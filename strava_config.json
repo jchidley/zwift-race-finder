@@ -1,0 +1,10 @@
+{
+  "client_id": "161572",
+  "client_secret": "18580cda599f50e6f7203f8933ba9f56b1ae8101",
+  "redirect_uri": "http://localhost:8080/exchange_token",
+  "scope": "read,activity:read_all",
+  "access_token": "e311f9ef21af8f37ce8ddee991e06fa502d7045d",
+  "refresh_token": "1697b8581456989a1947fb42b2ec11f68e96bb9e",
+  "expires_at": 1748210571,
+  "athlete_id": 2996494
+}

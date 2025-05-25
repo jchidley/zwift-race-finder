@@ -113,12 +113,12 @@ struct CachedStats {
     cached_at: DateTime<Utc>,
 }
 
-// Average speeds by category (km/h) - rough estimates
-const CAT_A_SPEED: f64 = 40.0;
-const CAT_B_SPEED: f64 = 35.0;
-const CAT_C_SPEED: f64 = 30.0;
-const CAT_D_SPEED: f64 = 25.0;
-const STRONG_CAT_D_SPEED: f64 = 27.0; // For 190-199 score range
+// Average speeds by category (km/h) - based on actual race data with draft
+const CAT_A_SPEED: f64 = 42.0;  // Estimated based on Cat D scaling
+const CAT_B_SPEED: f64 = 37.0;  // Estimated based on Cat D scaling
+const CAT_C_SPEED: f64 = 33.0;  // Estimated based on Cat D scaling
+const CAT_D_SPEED: f64 = 30.9;  // Jack's actual average from 151 races
+const STRONG_CAT_D_SPEED: f64 = 32.0; // For 190-199 score range
 
 // Zwift route database - route_id is the primary key for all calculations
 // This should be expanded with Jack's actual race data
