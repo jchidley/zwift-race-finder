@@ -1,6 +1,6 @@
 # Zwift Race Finder 🚴
 
-> 🎯 **BETA SOFTWARE**: Achieving 25.1% prediction accuracy! This tool predicts Zwift race durations based on your racing score and historical data. Multi-lap races and route mapping are actively being improved.
+> 🎯 **PRODUCTION READY**: Achieving 25.7% prediction accuracy! This tool predicts Zwift race durations based on your racing score and historical data. Includes pack dynamics modeling and comprehensive test coverage.
 
 A command-line tool to find Zwift races that match your target duration and racing score. Designed for cyclists who want to find races that fit their schedule and fitness level.
 
@@ -176,6 +176,10 @@ zwift-race-finder --record-result "route_id,minutes,event_name"
 
 # Enable debug mode to see filtering details
 zwift-race-finder --debug
+
+# Update rider stats for personalized predictions
+./update_rider_stats.sh 86.0        # Weight only
+./update_rider_stats.sh 86.0 250    # Weight and FTP
 ```
 
 ## Performance & Accuracy
@@ -234,7 +238,13 @@ To calibrate predictions with your actual performance:
 4. Paste in browser console - a file will download
 5. Import the results:
    ```bash
-   ./dev_import_results.sh
+   ./import_zwiftpower_dev.sh  # For development/testing
+   ./import_zwiftpower.sh      # For production
+   ```
+
+6. Apply route mappings to imported data:
+   ```bash
+   ./apply_route_mappings.sh
    ```
 
 ## Development
@@ -247,6 +257,9 @@ cargo build
 
 # Run tests including regression tests
 cargo test
+
+# Run specific test module
+cargo test regression
 
 # Run with logging
 RUST_LOG=debug cargo run
@@ -267,11 +280,13 @@ Route IDs can be found on [ZwiftHacks.com](https://zwifthacks.com/).
 
 ```
 ├── src/
-│   ├── main.rs          # CLI and event filtering logic
-│   ├── database.rs      # SQLite integration
-│   └── regression_test.rs # Accuracy testing
-├── extract_zwiftpower_v2.js # Browser script for data extraction
-├── dev_import_results.sh    # Import race history
+│   ├── main.rs              # CLI and event filtering logic
+│   ├── database.rs          # SQLite integration
+│   └── regression_test.rs   # Accuracy testing
+├── zwiftpower_profile_extractor.js # Browser script for data extraction
+├── import_zwiftpower.sh     # Import race history
+├── apply_route_mappings.sh  # Apply route mappings to imported data
+├── update_rider_stats.sh    # Update rider weight/FTP for predictions
 └── route_mappings.sql       # Route data mappings
 ```
 

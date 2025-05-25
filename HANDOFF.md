@@ -1,20 +1,20 @@
 # Project: Zwift Race Finder
-Updated: 2025-05-25 22:30 UTC
+Updated: 2025-05-25 23:15 UTC
 
 ## Current State
-Status: 25.7% accuracy, all tests passing ✅
-Target: Maintain <30% accuracy
-Latest: Created accuracy timeline showing 92.8% → 25.7% journey
+Status: README fully documented with all commands
+Target: Complete documentation of all tool features
+Latest: Added missing commands from CLAUDE.md to README
 
 ## Essential Context
-- Accuracy progression: 92.8% → 31.2% → 25.1% → 36.9% → 25.7%
-- Each improvement came from fixing bad assumptions with real data
-- High variance (32-86 min for same route) is inherent to racing, not a bug
-- Archived ZWIFT_API_LOG.md and created fresh summary version
-- All code cleanup and documentation complete
+- Added update_rider_stats.sh documentation
+- Added apply_route_mappings.sh documentation
+- Added cargo test regression example
+- Fixed script names (import_zwiftpower.sh not dev_import_results.sh)
+- Project structure section now accurate
 
 ## Next Step
-Ready to commit all changes - project in excellent state
+Review git status and prepare for commit
 
 ## If Blocked
-All tasks complete - tool ready for daily use
+None - documentation update complete

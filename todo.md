@@ -25,6 +25,11 @@
 - [x] Added multi-lap race detection test
 - [x] Added edge case tests (sprint, gran fondo, Alpe)
 - [x] Updated all test expectations for 30.9 km/h speed
+- [x] Cleaned up dead code (physics functions, unused constants)
+- [x] Added integration test for Zwift API
+- [x] Archived ZWIFT_API_LOG.md with date
+- [x] Created ACCURACY_TIMELINE.md documentation
+- [x] Fixed all 7 failing tests after speed update
 
 ## 🎯 Next Phase: Get Below 20% Error
 
@@ -66,11 +71,11 @@
 - [ ] Power-based pacing recommendations
 
 ## 🐛 Current Known Issues
-- [ ] Dead code warnings for unused physics constants
 - [ ] Some routes still need distance corrections
 - [ ] Network connectivity affects API calls
 - [ ] Category E not properly mapped (treated as D)
 - [ ] Race series (like EVO CC) run different routes each week
+- [ ] Some struct fields show as "never read" but are used in DB queries
 
 ## 💡 Key Learnings
 
