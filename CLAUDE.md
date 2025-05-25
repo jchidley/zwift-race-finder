@@ -31,15 +31,16 @@ cargo test regression
 ### Data Import from ZwiftPower
 ```bash
 # 1. First extract data from ZwiftPower in browser:
-cat extract_zwiftpower_v2.js | xclip -selection clipboard
+cat zwiftpower_profile_extractor.js | xclip -selection clipboard
 # Then paste in browser console on ZwiftPower profile page
 
 # 2. Import the downloaded results:
-./dev_import_results.sh  # For development/testing
-./import_zwiftpower_results.sh  # For production
+./import_zwiftpower_dev.sh  # For development/testing
+./import_zwiftpower.sh      # For production
 
 # 3. Apply route mappings to imported data:
-sqlite3 ~/.local/share/zwift-race-finder/races.db < route_mappings.sql
+./apply_route_mappings.sh
+# Or manually: sqlite3 ~/.local/share/zwift-race-finder/races.db < route_mappings.sql
 ```
 
 ## Architecture Overview

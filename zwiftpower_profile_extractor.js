@@ -39,7 +39,7 @@
             const raceName = raceCell?.textContent?.trim() || '';
             const raceLink = raceCell?.querySelector('a')?.href || '';
             const distanceText = cells[15]?.textContent?.trim() || '';
-            const resultScore = cells[17]?.textContent?.trim() || '';
+            // Skip resultScore (cells[17]) as it's unreliable
             
             // Extract event ID from link
             let eventId = null;
@@ -82,7 +82,7 @@
                 position: position,
                 distance_km: distance,
                 estimated_minutes: estimatedMinutes,
-                zwift_score: resultScore,
+                // zwift_score excluded - unreliable field
                 event_link: raceLink,
                 route_name: routeName
             });

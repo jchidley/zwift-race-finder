@@ -587,9 +587,170 @@ sqlite3 ~/.local/share/zwift-race-finder/races.db "SELECT * FROM zwiftpower_resu
 - Root cause: 3 laps (36.6km) not accounted for in base route distance (12.2km)
 - Actual race speed with draft: ~31.8 km/h (reasonable for Cat D)
 
+## Session 2025-05-25: ZwiftPower Data Import and Regression Testing (continued)
+
+### Key Discoveries
+
+- **ZwiftPower Data Reliability Issues**:
+  - The "Result/Score" field in ZwiftPower is NOT the Zwift Racing Score
+  - Category fields are inconsistent and don't match Zwift Racing Score pen system
+  - Position data is not meaningful (depends on field size)
+  - Reliable fields: power metrics (watts, w/kg), heart rate (bpm), distance (km)
+
+- **Zwift Racing Score vs ZwiftPower Data**:
+  - Jack's actual Zwift Racing Score: 195 (Cat D)
+  - ZwiftPower "scores" were 410-600 (completely different metric)
+  - Must use hardcoded racing score, not imported values
+
+- **Route Mapping Challenges**:
+  - Event names don't reliably indicate actual routes
+  - Same event series can use different routes/lap counts
+  - Need route_id from Zwift API for accurate mapping
+  - Created route_mappings.sql for batch updates
+
+- **Regression Testing Results**:
+  - Current algorithm shows 78% mean error - needs calibration
+  - Base speed assumptions too high (25 km/h for Cat D vs actual ~20 km/h)
+  - Route distances in database don't match actual race distances (lap count issues)
+
+- **Physical Attributes Impact**:
+  - Weight crucial for w/kg calculations
+  - Height (1.82m for Jack) affects aerodynamics and draft benefit
+  - These matter more than position/category for performance modeling
+
+### Solutions Implemented
+
+- **Bitwarden Integration**: 
+  - Secure credential storage for ZwiftPower
+  - Fixed wrapper script color code issues
+  - No more hardcoded credentials
+
+- **Database Schema Fixes**:
+  - Handle mixed integer/real types for zwift_score
+  - Use String for race_date (stored as text)
+  - Exclude unreliable fields from import
+
+- **Import Script Updates**:
+  - Use Jack's actual Zwift Racing Score (195)
+  - Remove category/position from imports
+  - Focus on objective metrics (power, HR, distance)
+
+### Technical Challenges Solved
+
+- **SQLite Type Mismatches**: 
+  ```rust
+  // Handle zwift_score as either integer or real
+  let zwift_score_raw: Result<u32, _> = row.get(4);
+  let zwift_score = match zwift_score_raw {
+      Ok(val) => val,
+      Err(_) => {
+          let val: f64 = row.get(4)?;
+          val.round() as u32
+      }
+  };
+  ```
+
+- **Subshell BW_SESSION Issue**:
+  ```bash
+  # Ensure BW_SESSION is available to the script
+  export BW_SESSION="${BW_SESSION}"
+  ```
+
+---
+## Key Commands
+
+```bash
+# Bitwarden setup and usage
+export BW_SESSION=$(bw unlock --raw)
+./bw_config.sh setup
+./zwift-race-finder-bw  # Wrapper with auto-credential loading
+
+# Data import workflow
+# 1. Extract from ZwiftPower (paste in browser console)
+cat extract_zwiftpower_v3.js | xclip -selection clipboard
+# 2. Import results
+./dev_import_results.sh
+# 3. Apply route mappings
+sqlite3 ~/.local/share/zwift-race-finder/races.db < route_mappings.sql
+
+# Regression testing
+cargo test test_race_predictions_accuracy -- --nocapture
+
+# Database queries
+sqlite3 ~/.local/share/zwift-race-finder/races.db "SELECT COUNT(DISTINCT event_name) FROM race_results;"
+sqlite3 ~/.local/share/zwift-race-finder/races.db ".schema race_results"
+
+# Run with specific parameters
+./zwift-race-finder-bw --duration 60 --tolerance 60 --days 7
+
+# Build and install Zwift race finder
+cd rust/zwift-race-finder && cargo build --release
+cp target/release/zwift-race-finder ~/.local/bin/
+
+# Event type filtering - NEW in this session
+zwift-race-finder -e race -n 3              # Find races in next 3 days
+zwift-race-finder -e fondo -t 60            # Find fondos with ±60 min tolerance
+zwift-race-finder -e group                  # Find regular group rides
+zwift-race-finder -e workout                # Find structured workouts
+zwift-race-finder -e tt                     # Find time trials
+
+# Debug mode to troubleshoot filtering
+zwift-race-finder -e race --debug -n 2      # Show filtering pipeline stats
+
+# Basic usage with auto-detected stats
+zwift-race-finder
+
+# Show only races in next 3 days
+zwift-race-finder -r -n 3
+
+# Override Zwift score and adjust tolerance
+zwift-race-finder -s 220 -t 20
+
+# Target shorter races (1.5h ±15min)
+zwift-race-finder -d 90 -t 15
+
+# Test Zwift API directly
+curl "https://us-or-rly101.zwift.com/api/public/events/upcoming" | jq '.[0]'
+
+# Clear cached user stats to force refresh
+rm ~/.cache/zwift-race-finder/user_stats.json
+
+# Extract text from PDF files
+pdftotext "/path/to/file.pdf" -                    # to stdout
+pdftotext -f 1 -l 5 file.pdf output.txt           # pages 1-5
+
+# Search for academic papers in local library
+find /mnt/c/Users/YOUR_USERNAME/OneDrive/Library -name "*chung*.pdf" -o -name "*CdA*.pdf"
+
+# Download research papers
+curl -L -o filename.pdf "URL"
+
+# Check event types in Zwift API
+curl -s "https://us-or-rly101.zwift.com/api/public/events/upcoming" | jq '[.[] | select(.sport == "CYCLING") | .eventType] | unique | sort'
+
+# Debug specific event structure
+curl -s "https://us-or-rly101.zwift.com/api/public/events/upcoming" | jq '[.[] | select(.sport == "CYCLING" and .eventType == "RACE")] | .[0]'
+
+# Zwift Race Finder with SQLite
+cd ~/tools/rust/zwift-race-finder && cargo run -- --duration 90 --tolerance 30
+
+# Show unknown routes that need mapping
+zwift-race-finder --show-unknown-routes
+
+# Record actual race result
+zwift-race-finder --record-result "route_id,minutes,event_name"
+
+# Extract ZwiftPower data (after login)
+cat ~/tools/rust/zwift-race-finder/extract_zwiftpower.js | xclip -selection clipboard
+~/tools/rust/zwift-race-finder/copy_results.sh
+~/tools/rust/zwift-race-finder/export_zwiftpower_logged_in.sh import
+
+# Query race results database
+sqlite3 ~/.local/share/zwift-race-finder/races.db "SELECT * FROM zwiftpower_results;"
+
 # ZwiftPower Data Extraction
-cat ~/tools/rust/zwift-race-finder/extract_zwiftpower_final.js | xclip -selection clipboard
-~/tools/rust/zwift-race-finder/import_zwiftpower_results.sh
+cat ~/tools/rust/zwift-race-finder/zwiftpower_profile_extractor.js | xclip -selection clipboard
+~/tools/rust/zwift-race-finder/import_zwiftpower.sh
 
 # Route Research and Mapping
 ~/tools/rust/zwift-race-finder/route_research.sh                  # Analyze event patterns
@@ -605,4 +766,291 @@ sqlite3 ~/.local/share/zwift-race-finder/races.db "SELECT DISTINCT event_name FR
 # Regression Testing
 cd ~/tools/rust/zwift-race-finder && cargo test regression_test -- --nocapture
 sqlite3 ~/.local/share/zwift-race-finder/races.db "SELECT * FROM unknown_routes ORDER BY times_seen DESC;"
+```
+
+## Session 2025-05-25: Zwift Race Prediction Accuracy & Strava API Integration
+
+### Key Discoveries
+
+- **Regression Test Results**: Current predictions show 92.8% mean error - predictions are way off
+  - Root cause: We're using estimated race times from distance/category, not actual times
+  - ZwiftPower doesn't display race duration on the profile summary page
+  - The "actual_minutes" in our database are ESTIMATED (30 km/h for Cat D)
+
+- **Route Distance Issues**:
+  - KISS Racing showing 100km but races finish in ~1 hour (impossible for Cat D)
+  - Multi-lap races not accounting for total distance
+  - Route distances in database need verification
+
+- **ZwiftPower Limitations**:
+  - Summary page lacks race duration data
+  - Individual event pages DO have actual times (e.g., "1:51:42" for Jack Chidley)
+  - Would require visiting each event page individually
+
+- **Zwift API Research**:
+  - No official public API documentation
+  - Developer API exists but not available to hobby developers
+  - Contact: developers@zwift.com (limited responses)
+  - Only public endpoints:
+    - Events: `https://us-or-rly101.zwift.com/api/public/events/upcoming`
+    - Status: `https://status.zwift.com/api/v2/status.json`
+
+### Solutions Implemented
+
+- **Strava API Integration**: Created complete workflow for getting actual race times
+  - `strava_auth.sh` - OAuth authentication setup
+  - `strava_fetch_activities.sh` - Fetch Zwift virtual rides
+  - `strava_import_to_db.sh` - Match and import race times
+  - `strava_analyze.py` - Analyze performance patterns
+
+- **Popular Zwift API Projects Found**:
+  - **zwift-offline** (912+ stars) - Run Zwift offline, Python
+  - **Sauce4Zwift** (400+ stars) - Real-time API on localhost:1080
+  - **zwift-mobile-api** (109+ stars) - Limited by Developer API restrictions
+
+### Technical Insights
+
+- **Speed Calibration Needed**:
+  - Base Cat D speed: 25 km/h (solo) vs ~30+ km/h (race with draft)
+  - Draft benefit provides ~30% speed boost
+  - Must account for this in predictions
+
+- **Data Architecture**:
+  - Zwift API provides: route_id, laps, distance
+  - Strava API provides: actual moving_time, elapsed_time
+  - Combined approach gives complete picture
+
+---
+## Key Commands
+
+```bash
+# Strava API Integration
+./strava_auth.sh                    # Set up OAuth authentication
+./strava_fetch_activities.sh        # Fetch Zwift activities from Strava
+./strava_import_to_db.sh           # Import race times to database
+./strava_analyze.py                # Analyze race performance
+
+# Test Zwift public API
+curl -s "https://us-or-rly101.zwift.com/api/public/events/upcoming" | jq '.[0]'
+
+# Check event structure with route data
+curl -s "https://us-or-rly101.zwift.com/api/public/events/upcoming" | \
+  jq '[.[] | select(.eventType == "RACE")][0] | {name, routeId, laps, distanceInMeters, eventSubgroups}'
+
+# Run regression tests
+cd ~/tools/rust/zwift-race-finder && cargo test regression_test -- --nocapture
+
+# Database queries
+sqlite3 ~/.local/share/zwift-race-finder/races.db "SELECT * FROM routes ORDER BY route_id;"
+sqlite3 ~/.local/share/zwift-race-finder/races.db ".schema race_results"
+
+# Popular Zwift API projects
+# https://github.com/zoffline/zwift-offline (912+ stars)
+# https://github.com/SauceLLC/sauce4zwift (400+ stars)
+# Sauce4Zwift API: http://localhost:1080/api (when running)
+
+# Device Emulation Setup
+git clone https://github.com/paixaop/zwack.git && cd zwack && npm install
+git clone https://github.com/ptx2/gymnasticon.git && cd gymnasticon && npm install
+git clone https://github.com/WouterJD/FortiusANT.git && cd FortiusANT
+
+# Run Zwack simulator
+node server.js  # Then use w/s for power, a/d for cadence
+
+# Gymnasticon for Peloton bridge
+npm start -- --bike peloton
+```
+
+## Session 2025-05-25: Device Emulation Projects for Zwift Testing
+
+### Key Discoveries
+
+- **Device Simulation Need**: For testing race predictions without actually riding
+  - Can simulate different power profiles (Cat A/B/C/D)
+  - Test edge cases (power spikes, dropouts)
+  - Automated regression testing possibilities
+
+- **Top GitHub Projects Found**:
+  
+  1. **Gymnasticon** (500+ stars) - github.com/ptx2/gymnasticon
+     - JavaScript/Node.js
+     - Bridges proprietary bikes (Peloton, IC4) to Zwift
+     - Simulates ANT+ and BLE power/cadence sensors
+     - Runs on Raspberry Pi Zero W
+  
+  2. **FortiusANT** (100+ stars) - github.com/WouterJD/FortiusANT
+     - Python
+     - Full ANT+ FE-C trainer control implementation
+     - Grade simulation and power curves
+     - Can run headless for testing
+  
+  3. **Zwack** (50+ stars) - github.com/paixaop/zwack
+     - JavaScript/Node.js
+     - Pure BLE sensor simulator
+     - FTMS, Cycling Power, Heart Rate services
+     - Keyboard controls: w/s (power), a/d (cadence)
+  
+  4. **openant** (300+ stars) - github.com/Tigge/openant
+     - Python ANT+ library
+     - Includes device simulator examples
+     - Full protocol implementation
+  
+  5. **zwift-offline** (912+ stars) - github.com/zoffline/zwift-offline
+     - Python
+     - Complete offline Zwift server
+     - Uses power simulators for RoboPacers
+
+- **ANT+ vs Bluetooth Considerations**:
+  - Most simulators need separate hardware (Raspberry Pi)
+  - Cannot run on same computer as Zwift
+  - ANT+ uses dongles, BLE uses built-in Bluetooth
+
+### Technical Implementation Notes
+
+- **Zwack Quick Start**:
+  ```bash
+  git clone https://github.com/paixaop/zwack.git
+  cd zwack
+  npm install
+  node server.js
+  # Use w/s/a/d keys to control power/cadence
+  ```
+
+- **Testing Applications for Race Finder**:
+  - Simulate consistent power output to verify duration calculations
+  - Test draft benefit by running multiple simulators
+  - Validate category-based speed estimates
+  - Edge case testing (0W to 1000W spikes)
+
+### Integration Opportunities
+
+- Could create automated test suite using these simulators
+- Generate power profiles matching historical race data
+- Test prediction accuracy without manual riding
+- Simulate entire race fields for draft calculations
+
+## Session 2025-01-25: Project Cleanup and Cruft Removal
+
+### Key Discovery
+The project has accumulated significant cruft from multiple abandoned approaches:
+- Multiple versions of ZwiftPower extraction scripts (v1, v2, v3, final, safe, all_pages)
+- Abandoned Bitwarden/security configuration attempts (6+ different setup scripts)
+- Debug and test scripts that are no longer needed
+- The project pivoted from ZwiftPower scraping to Strava API but kept all the old files
+
+### Files Identified for Deletion (26 files)
+**ZwiftPower Scraping (replaced by Strava API):**
+- extract_zwiftpower.js, extract_zwiftpower_all_pages.js, extract_zwiftpower_safe.js
+- extract_zwiftpower_final.js, extract_zwiftpower_v3.js
+- debug_pagination.js, debug_zwiftpower_page.js, save_page_structure.js
+- scrape_zwiftpower.py, scrape_zwiftpower.sh
+- export_zwiftpower_logged_in.sh, import_zwiftpower_results_v2.sh
+- check_time_field.js, extract_event_time.js, extract_full_race_data.js
+
+**Configuration Cruft:**
+- setup_bitwarden_config.sh, setup_bitwarden_proper.sh
+- setup_encrypted_config.sh, setup_secure_config.sh, setup_personal_config.sh
+- bitwarden_item_template.json, config.example.json
+
+**Other Dead Files:**
+- copy_results.sh, import_and_merge_results.sh, collect_routes.sh
+- route_research.sh, sanitize_personal_data.sh
+- create_extended_schema.sql, analyze_speeds.sh
+
+### Current Active Approach
+- Using Strava API for real race times (strava_*.sh scripts)
+- Keeping only extract_zwiftpower_v2.js as referenced in CLAUDE.md
+- Core functionality in Rust src/ files remains unchanged
+
+### Cleanup Commands
+```bash
+# Create list of files to delete
+cat > files_to_delete.txt << 'EOF'
+extract_zwiftpower.js
+extract_zwiftpower_all_pages.js
+extract_zwiftpower_safe.js
+extract_zwiftpower_final.js
+extract_zwiftpower_v3.js
+debug_pagination.js
+debug_zwiftpower_page.js
+save_page_structure.js
+scrape_zwiftpower.py
+scrape_zwiftpower.sh
+export_zwiftpower_logged_in.sh
+import_zwiftpower_results_v2.sh
+check_time_field.js
+extract_event_time.js
+extract_full_race_data.js
+setup_bitwarden_config.sh
+setup_bitwarden_proper.sh
+setup_encrypted_config.sh
+setup_secure_config.sh
+setup_personal_config.sh
+bitwarden_item_template.json
+config.example.json
+copy_results.sh
+import_and_merge_results.sh
+collect_routes.sh
+route_research.sh
+sanitize_personal_data.sh
+create_extended_schema.sql
+analyze_speeds.sh
+EOF
+
+# Review what will be deleted
+cat files_to_delete.txt | xargs -I {} ls -la {}
+
+# Delete the files
+cat files_to_delete.txt | xargs rm -v
+
+# Clean up
+rm files_to_delete.txt
+```
+
+---
+## Key Commands
+
+```bash
+# Build and run with defaults
+cargo run
+
+# Install to ~/.local/bin
+./install.sh
+
+# Run with specific parameters
+cargo run -- --zwift-score 195 --duration 120 --tolerance 30
+
+# Show unknown routes
+cargo run -- --show-unknown-routes
+
+# Record race result
+cargo run -- --record-result "route_id,minutes,event_name"
+
+# Run regression tests
+cargo test regression
+
+# Extract data from ZwiftPower (browser)
+cat zwiftpower_profile_extractor.js | xclip -selection clipboard
+
+# Import ZwiftPower results
+./import_zwiftpower_dev.sh           # Development
+./import_zwiftpower.sh              # Production
+
+# Apply route mappings
+sqlite3 ~/.local/share/zwift-race-finder/races.db < route_mappings.sql
+
+# Strava integration
+./strava_auth.sh                     # Authenticate with Strava
+./strava_fetch_activities.sh         # Fetch Zwift activities
+./strava_import_to_db.sh            # Import real race times
+python strava_analyze.py            # Analyze performance
+
+# Fix KISS Racing distance
+sqlite3 ~/.local/share/zwift-race-finder/races.db "UPDATE routes SET distance_km = 35.0 WHERE route_id = 2474227587"
+
+# Check for secrets before committing
+./check_secrets.sh
+
+# List files for cleanup
+find . -name "*.js" -o -name "*.py" -o -name "*_v[0-9]*" | grep -E "(v[0-9]|_old|debug_|test_|temp_|backup_)" | sort
 ```

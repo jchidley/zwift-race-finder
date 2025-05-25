@@ -1,16 +1,32 @@
 #!/bin/bash
 # Import ZwiftPower results from the standard download location
-# This script uses a separate zwiftpower_results table to avoid conflicts
+# This script assumes you've already run the JavaScript extractor in your browser
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DOWNLOAD_FILE="/mnt/c/Users/YOUR_USERNAME/Downloads/zwiftpower_results.json"
+
+# Load config if exists
+if [[ -f "${SCRIPT_DIR}/config.json" ]]; then
+    WINDOWS_USERNAME=$(jq -r '.windows_username // empty' "${SCRIPT_DIR}/config.json")
+fi
+
+# Use environment variable, config, or fallback to default
+WINDOWS_USERNAME="${WINDOWS_USERNAME:-${ZWIFTPOWER_WINDOWS_USERNAME:-YOUR_USERNAME}}"
+
+# Set paths
+if [[ "$WINDOWS_USERNAME" != "YOUR_USERNAME" ]]; then
+    DOWNLOAD_FILE="/mnt/c/Users/${WINDOWS_USERNAME}/Downloads/zwiftpower_results.json"
+else
+    # Fallback to Linux Downloads directory
+    DOWNLOAD_FILE="${HOME}/Downloads/zwiftpower_results.json"
+fi
+
 LOCAL_FILE="${SCRIPT_DIR}/zwiftpower_results.json"
 DB_PATH="${HOME}/.local/share/zwift-race-finder/races.db"
 
-echo "🚴 ZwiftPower Results Importer V2"
-echo "================================="
+echo "🚴 ZwiftPower Results Importer"
+echo "=============================="
 echo ""
 
 # Check if download file exists
@@ -20,7 +36,7 @@ if [[ ! -f "$DOWNLOAD_FILE" ]]; then
     echo "To extract your results:"
     echo "1. Go to your ZwiftPower profile page"
     echo "2. Open browser console (F12)"
-    echo "3. Run: cat ~/tools/rust/zwift-race-finder/extract_zwiftpower_final.js | xclip -selection clipboard"
+    echo "3. Run: cat ~/tools/rust/zwift-race-finder/extract_zwiftpower_v2.js | xclip -selection clipboard"
     echo "4. Paste and run in console"
     echo "5. File will download automatically"
     exit 1
@@ -45,32 +61,33 @@ cd "$SCRIPT_DIR"
 
 # Create SQL import file
 {
-    # Create zwiftpower_results table for imported data
+    # Create table if not exists
     cat << 'SQL'
-CREATE TABLE IF NOT EXISTS zwiftpower_results (
+-- Note: This creates a different table structure than the main app
+-- Consider using dev_import_results.sh instead for consistency
+CREATE TABLE IF NOT EXISTS zwiftpower_imports (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    race_date TEXT NOT NULL,
+    date TEXT NOT NULL,
     event_name TEXT NOT NULL,
     event_id TEXT,
     category TEXT,
     position TEXT,
     distance_km REAL,
     estimated_minutes INTEGER,
-    zwift_score TEXT,
     route_name TEXT,
     imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Add indexes for faster lookups
-CREATE INDEX IF NOT EXISTS idx_zwiftpower_results_date ON zwiftpower_results(race_date);
-CREATE INDEX IF NOT EXISTS idx_zwiftpower_results_event ON zwiftpower_results(event_name);
+-- Add index for faster lookups  
+CREATE INDEX IF NOT EXISTS idx_zwiftpower_imports_date ON zwiftpower_imports(date);
+CREATE INDEX IF NOT EXISTS idx_zwiftpower_imports_event ON zwiftpower_imports(event_name);
 SQL
 
     echo ""
     
-    # Convert JSON to INSERT statements
+    # Convert JSON to INSERT statements (excluding unreliable zwift_score field)
     jq -r '.[] | 
-        "INSERT OR IGNORE INTO zwiftpower_results (race_date, event_name, event_id, category, position, distance_km, estimated_minutes, zwift_score, route_name) VALUES (" +
+        "INSERT OR IGNORE INTO zwiftpower_imports (date, event_name, event_id, category, position, distance_km, estimated_minutes, route_name) VALUES (" +
         "\"" + .date + "\", " +
         "\"" + (.event_name | gsub("\""; "\"\"")) + "\", " +
         "\"" + (.event_id // "null") + "\", " +
@@ -78,7 +95,6 @@ SQL
         "\"" + .position + "\", " +
         (.distance_km | tostring) + ", " +
         (.estimated_minutes | tostring) + ", " +
-        "\"" + (.zwift_score // "null") + "\", " +
         "\"" + (.route_name // "null" | gsub("\""; "\"\"")) + "\");"' "$LOCAL_FILE"
 } > import.sql
 
@@ -94,32 +110,30 @@ echo "📈 Summary:"
 sqlite3 -column -header "$DB_PATH" <<'SQL'
 -- Overall stats
 SELECT COUNT(*) as total_races, 
-       MIN(race_date) as first_race,
-       MAX(race_date) as last_race
-FROM zwiftpower_results;
+       MIN(date) as first_race,
+       MAX(date) as last_race
+FROM race_results;
 
 -- Category breakdown
 SELECT category, COUNT(*) as races, 
        ROUND(AVG(distance_km), 1) as avg_distance_km,
        ROUND(AVG(estimated_minutes), 0) as avg_minutes
-FROM zwiftpower_results 
+FROM race_results 
 GROUP BY category
 ORDER BY category;
 
 -- Most frequent events
 SELECT event_name, COUNT(*) as times_raced
-FROM zwiftpower_results 
+FROM race_results 
 GROUP BY event_name 
 HAVING COUNT(*) > 1
 ORDER BY times_raced DESC 
 LIMIT 5;
 
 -- Events with unknown routes (need mapping)
-SELECT DISTINCT event_name, distance_km
-FROM zwiftpower_results 
-WHERE (route_name IS NULL OR route_name = 'null')
-  AND event_name NOT LIKE '%Workout%'
-  AND event_name NOT LIKE '%Group Ride%'
+SELECT DISTINCT event_name
+FROM race_results 
+WHERE route_name IS NULL OR route_name = 'null'
 LIMIT 10;
 SQL
 
@@ -138,6 +152,5 @@ fi
 echo ""
 echo "🎯 Next steps:"
 echo "1. Check for unknown routes above and add them to the route database"
-echo "2. Look for events with consistent names to identify route patterns"
-echo "3. Run: cd ~/tools/rust/zwift-race-finder && cargo run -- --show-unknown-routes"
-echo "4. Build regression tests with your actual data"
+echo "2. Run: cd ~/tools/rust/zwift-race-finder && cargo run -- --show-unknown-routes"
+echo "3. Build regression tests with your actual data"

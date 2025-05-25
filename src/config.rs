@@ -21,6 +21,8 @@ pub struct Config {
 pub struct Defaults {
     pub zwift_score: Option<u32>,
     pub category: Option<String>,
+    pub height_m: Option<f32>,  // Height in meters
+    pub weight_kg: Option<f32>, // Default weight if not available from race data
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -73,6 +75,8 @@ impl Default for Defaults {
         Defaults {
             zwift_score: Some(195),
             category: Some("D".to_string()),
+            height_m: Some(1.82),  // Jack's height
+            weight_kg: Some(86.0), // Typical weight from race data
         }
     }
 }

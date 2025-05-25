@@ -66,6 +66,7 @@ echo "💾 Importing races..."
 
 # We'll use a simple mapping: if we can't find a route, use route_id 9999
 # and track it in unknown_routes
+# Use Jack's actual Zwift Racing Score (195) instead of unreliable zwift_score field
 jq -r '.[] | 
     # For now, just use placeholder route_id 9999 for everything
     # The Rust program will track these as unknown
@@ -73,16 +74,16 @@ jq -r '.[] |
     "9999, " +
     "\"" + (.event_name | gsub("\""; "\"\"")) + "\", " +
     ((.estimated_minutes // 60) | tostring) + ", " +
-    ((.zwift_score // "500") | gsub("[^0-9.]"; "") | if . == "" then "500" else . end) + ", " +
+    "195, " +
     "\"" + .date + "\", " +
-    "\"Category " + .category + " - Position " + .position + " - " + (.distance_km | tostring) + "km\");"' "$LOCAL_FILE" > import.sql
+    "\"" + (.distance_km | tostring) + "km\");"' "$LOCAL_FILE" > import.sql
 
 # Also track unique events in unknown_routes
-jq -r '[.[] | {event_name: .event_name, event_type: .category}] | unique_by(.event_name) | .[] |
+jq -r '[.[] | {event_name: .event_name}] | unique_by(.event_name) | .[] |
     "INSERT OR IGNORE INTO unknown_routes (route_id, event_name, event_type) VALUES (" +
     "9999, " +
     "\"" + (.event_name | gsub("\""; "\"\"")) + "\", " +
-    "\"" + .event_type + "\");"' "$LOCAL_FILE" >> import.sql
+    "\"race\");"' "$LOCAL_FILE" >> import.sql
 
 # Import to database
 sqlite3 "$DB_PATH" < import.sql

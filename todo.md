@@ -1,83 +1,80 @@
 # Zwift Race Finder - TODO
 
-## 🚀 High Priority (Do First)
+## 🚨 IMMEDIATE PRIORITY - Post-Cleanup Tasks
 
-### 1. Fix Unknown Routes Tracking
-- [ ] Update import script to properly track all 109 unique events
-- [ ] Show all unmapped events in unknown_routes table
-- [ ] Add query to group by event name pattern (e.g., all "3R Racing" variants)
+### Step 1: Test Everything After Cleanup ⚡ IN PROGRESS
+```bash
+# Test core functionality
+cargo test
+cargo run -- --help
+cargo run  # Should show upcoming races
 
-### 2. Map Top 10 Most Common Routes
-- [ ] Research route data for:
-  - [ ] 3R Racing (13 races) - likely Volcano Flat
-  - [ ] EVO CC Race Series (8 races)
-  - [ ] Team DRAFT Monday Race (6 races)
-  - [ ] KISS Racing (4 races)
-  - [ ] 3R Volcano Flat Race - 3 Laps (3 races) - definitely Volcano Flat
-- [ ] Create route_mappings.sql with proper route data
-- [ ] Update import script to use mappings
+# Test imports still work
+./import_zwiftpower_dev.sh --help
 
-### 3. Write Basic Regression Test
-- [ ] Create tests/regression.rs
-- [ ] Load actual race times from database
-- [ ] Compare with predicted times using current algorithm
-- [ ] Output accuracy metrics (even with placeholder data)
+# Check scripts have correct permissions
+ls -la *.sh | grep -v "rwx"
+```
 
-## 📊 Medium Priority
+### Step 2: Commit Cleanup to GitHub
+```bash
+git add -A
+git commit -m "refactor: major cleanup - remove dead code and rename files
 
-### 4. Improve Route Research Tools
-- [ ] Create route_research.sh script that:
-  - [ ] Shows all variants of an event name
-  - [ ] Calculates average distance/time for consistency
-  - [ ] Suggests likely route matches
-- [ ] Add WebFetch integration for ZwiftHacks API
+- Removed 28 obsolete files (old extractors, abandoned approaches)
+- Renamed files for clarity (extract_zwiftpower_v2 → zwiftpower_profile_extractor)
+- Kept zwiftpower_event_extractor.js for future individual event scraping
+- Updated documentation to reflect new filenames"
+git push
+```
 
-### 5. Enhance Import Process
-- [ ] Add event_name → route_id mapping table
-- [ ] Support partial matching (e.g., "Volcano" → Volcano routes)
-- [ ] Add confidence scoring for mappings
-- [ ] Create update mechanism for existing data
+## 🎯 THEN: Get Real Race Data
 
-### 6. Regression Test Improvements
-- [ ] Group results by category (A/B/C/D/E)
-- [ ] Account for draft benefit in races vs TTs
-- [ ] Add visualization of prediction errors
-- [ ] Identify systematic biases
+### Step 3: Run Strava Import 
+```bash
+cd ~/tools/rust/zwift-race-finder
+./strava_auth.sh                    # Authenticate with Strava
+./strava_fetch_activities.sh        # Download your races  
+./strava_import_to_db.sh           # Import REAL times
+python strava_analyze.py           # Check your actual speeds
+```
 
-## 🔍 Low Priority
+### Step 4: Fix KISS Racing Distance
+```sql
+-- Run this after Strava import
+sqlite3 ~/.local/share/zwift-race-finder/races.db \
+  "UPDATE routes SET distance_km = 35.0 WHERE route_id = 2474227587;"
+```
 
-### 7. Data Quality
-- [ ] Identify and handle DNF/DQ results
-- [ ] Detect obvious data errors (0 minute races, etc.)
-- [ ] Add data validation to import process
+### Step 5: Run Regression Test
+```bash
+cargo test regression_test -- --nocapture
+# Should see MASSIVE improvement from 92.8% error!
+```
 
-### 8. Documentation
-- [ ] Document route mapping process
-- [ ] Create CONTRIBUTING.md for route additions
-- [ ] Add examples of good route research
+## 📊 Only After Real Data Is Imported
 
-### 9. Long-term Features
-- [ ] Auto-fetch from ZwiftPower API (if available)
-- [ ] Machine learning for route detection
-- [ ] Community database of route mappings
-- [ ] Integration with Zwift Companion API
+### Fix Remaining Routes (as needed)
+- [ ] Check any routes with >50% error
+- [ ] Focus on your most frequent races
+- [ ] Use Strava distances as ground truth
 
-## 📝 Quick Wins (Can do anytime)
+### Future Projects
+- [ ] Scrape individual ZwiftPower event pages for precise times
+- [ ] Automate Strava sync
+- [ ] Add draft vs solo toggle
+- [ ] Implement device emulation testing
 
-- [ ] Add --list-routes command to show all known routes
-- [ ] Add --stats command to show database statistics  
-- [ ] Color code output for better readability
-- [ ] Add progress bar for import process
+## ✅ Completed Today
+- [x] Major cleanup: removed 28 dead files
+- [x] Renamed files with sensible names
+- [x] Updated CLAUDE.md and logs with new filenames
+- [x] Discovered ZwiftPower event pages have actual times
 
-## 🐛 Known Issues
+## 🐛 Current Known Issues
+- [x] 92.8% prediction error - caused by fake "actual" times
+- [ ] Route distances wrong (KISS = 100km?)
+- [ ] Multi-lap races not handled correctly
 
-- [ ] Unknown routes only showing 1 entry instead of all unique events
-- [ ] Warning about unused functions in Rust code
-- [ ] Need proper error handling for malformed Zwift scores
-
-## 💡 Ideas for Later
-
-- Consider using event_id from ZwiftPower for better matching
-- Add support for workout/group ride filtering
-- Create web interface for route mapping collaboration
-- Add export functionality for training analysis
+## 💡 The Big Lesson
+**We were comparing estimates to estimates!** The "actual_minutes" in the database were calculated as distance ÷ 30 km/h, not real race times. Strava + individual ZwiftPower events have the real data we need.

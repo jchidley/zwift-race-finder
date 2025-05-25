@@ -28,6 +28,30 @@ cargo build --release
 
 Make sure `~/.local/bin` is in your PATH.
 
+## Strava Integration (NEW!)
+
+Get actual race times from your Strava activities:
+
+```bash
+# 1. Set up Strava authentication
+./strava_auth.sh
+# Follow prompts to create app at https://www.strava.com/settings/api
+
+# 2. Fetch your Zwift activities from Strava
+./strava_fetch_activities.sh
+
+# 3. Import actual race times into database
+./strava_import_to_db.sh
+
+# 4. Analyze your race performance
+./strava_analyze.py
+```
+
+This provides:
+- Actual race completion times (not estimates!)
+- Accurate speed data including draft benefit
+- Better calibration for future predictions
+
 ## Quick Start
 
 ### For New Users
@@ -148,6 +172,13 @@ The tool estimates race duration using:
    - Gravel/mixed surfaces apply speed penalties
 
 3. **Historical Calibration**: Your actual race times improve predictions
+   - Strava API provides real race completion times
+   - Draft benefit in races accounted for (~30% speed boost)
+
+### Data Sources
+- **Zwift Public API**: Upcoming events, routes, distances
+- **Strava API**: Your actual race times and performance data
+- **Local Database**: Stores route information and race history
 
 ## Importing Race History from ZwiftPower
 
