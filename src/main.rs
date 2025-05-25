@@ -360,6 +360,12 @@ fn get_route_difficulty_multiplier(route_name: &str) -> f64 {
 // Primary duration estimation - uses route_id when available
 fn estimate_duration_from_route_id(route_id: u32, zwift_score: u32) -> Option<u32> {
     let route_data = get_route_data(route_id)?;
+    estimate_duration_with_distance(route_id, route_data.distance_km, zwift_score)
+}
+
+// Duration estimation with explicit distance (for multi-lap races)
+fn estimate_duration_with_distance(route_id: u32, distance_km: f64, zwift_score: u32) -> Option<u32> {
+    let route_data = get_route_data(route_id)?;
     
     // Zwift Racing Score ranges (new system)
     // Based on Jack's score of 189 being Category D
@@ -371,6 +377,7 @@ fn estimate_duration_from_route_id(route_id: u32, zwift_score: u32) -> Option<u3
     };
     
     // Use elevation-based multiplier for more accurate estimates
+    // Use base route distance for elevation calculation, not total distance
     let difficulty_multiplier = get_route_difficulty_multiplier_from_elevation(
         route_data.distance_km,
         route_data.elevation_m
@@ -385,7 +392,7 @@ fn estimate_duration_from_route_id(route_id: u32, zwift_score: u32) -> Option<u3
     };
     
     let effective_speed = base_speed * difficulty_multiplier * surface_multiplier;
-    let duration_hours = route_data.distance_km / effective_speed;
+    let duration_hours = distance_km / effective_speed;  // Use actual distance
     
     Some((duration_hours * 60.0) as u32)
 }
@@ -612,9 +619,21 @@ fn filter_events(mut events: Vec<ZwiftEvent>, args: &Args, zwift_score: u32) -> 
             return diff <= args.tolerance as i32;
         }
         
-        // PRIMARY METHOD: Use route_id for most accurate estimation
+        // PRIMARY METHOD: Use route_id with actual distance for most accurate estimation
         if let Some(route_id) = event.route_id {
-            if let Some(estimated_duration) = estimate_duration_from_route_id(route_id, zwift_score) {
+            // Check if user's subgroup has a specific distance (multi-lap races)
+            let user_subgroup = find_user_subgroup(event, zwift_score);
+            let distance_meters = user_subgroup
+                .and_then(|sg| sg.distance_in_meters)
+                .or(event.distance_in_meters);
+                
+            if let Some(dist_m) = distance_meters {
+                let distance_km = dist_m / 1000.0;
+                if let Some(estimated_duration) = estimate_duration_with_distance(route_id, distance_km, zwift_score) {
+                    let diff = (estimated_duration as i32 - args.duration as i32).abs();
+                    return diff <= args.tolerance as i32;
+                }
+            } else if let Some(estimated_duration) = estimate_duration_from_route_id(route_id, zwift_score) {
                 let diff = (estimated_duration as i32 - args.duration as i32).abs();
                 return diff <= args.tolerance as i32;
             }
@@ -769,26 +788,60 @@ fn print_event(event: &ZwiftEvent, _args: &Args, zwift_score: u32) {
             format_duration(duration)
         );
     } else if let Some(route_id) = event.route_id {
-        // PRIMARY: Use route_id for most accurate estimation
+        // PRIMARY: Use route_id with actual race distance
         if let Some(route_data) = get_route_data(route_id) {
-            println!("{}: {:.1} km", "Distance".bright_blue(), route_data.distance_km);
+            // Use subgroup distance if available (for multi-lap races), otherwise base route distance
+            let actual_distance_km = if let Some(dist_m) = distance_meters {
+                dist_m / 1000.0
+            } else {
+                route_data.distance_km
+            };
             
-            if let Some(estimated_duration) = estimate_duration_from_route_id(route_id, zwift_score) {
-                let cat_string = match zwift_score {
-                    0..=149 => "D",
-                    150..=189 => "D",
-                    190..=199 => "D+", // Strong Cat D
-                    200..=249 => "C",
-                    250..=299 => "B",
-                    _ => "A",
-                };
-                println!(
-                    "{}: {} (estimated for Cat {} rider)",
-                    "Duration".bright_blue(),
-                    format_duration(estimated_duration).green(),
-                    cat_string
-                );
+            println!("{}: {:.1} km", "Distance".bright_blue(), actual_distance_km);
+            
+            // Calculate laps if distance differs from base route
+            let laps = (actual_distance_km / route_data.distance_km).round() as u32;
+            if laps > 1 {
+                println!("{}: {} laps of {:.1} km route", "Laps".bright_blue(), laps, route_data.distance_km);
             }
+            
+            // Use actual distance for estimation, not base route distance
+            let effective_speed = match zwift_score {
+                0..=199 => CAT_D_SPEED,
+                200..=299 => CAT_C_SPEED,
+                300..=399 => CAT_B_SPEED,
+                _ => CAT_A_SPEED,
+            };
+            
+            let difficulty_multiplier = get_route_difficulty_multiplier_from_elevation(
+                route_data.distance_km,  // Use base route for elevation calculation
+                route_data.elevation_m
+            );
+            
+            let surface_multiplier = match route_data.surface {
+                "road" => 1.0,
+                "gravel" => 0.85,
+                "mixed" => 0.92,
+                _ => 1.0,
+            };
+            
+            let adjusted_speed = effective_speed * difficulty_multiplier * surface_multiplier;
+            let estimated_duration = ((actual_distance_km / adjusted_speed) * 60.0) as u32;
+            
+            let cat_string = match zwift_score {
+                0..=149 => "D",
+                150..=189 => "D",
+                190..=199 => "D+", // Strong Cat D
+                200..=249 => "C",
+                250..=299 => "B",
+                _ => "A",
+            };
+            println!(
+                "{}: {} (estimated for Cat {} rider)",
+                "Duration".bright_blue(),
+                format_duration(estimated_duration).green(),
+                cat_string
+            );
         } else {
             // Unknown route_id - show it for data collection
             println!(

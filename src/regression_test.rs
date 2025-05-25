@@ -3,7 +3,8 @@
 #[cfg(test)]
 mod tests {
     use crate::database::Database;
-    use crate::{estimate_duration_from_route_id, get_route_data};
+    use crate::{estimate_duration_from_route_id, estimate_duration_with_distance, 
+                parse_distance_from_name, get_route_data};
     
     #[test]
     fn test_race_predictions_accuracy() {
@@ -25,11 +26,21 @@ mod tests {
                 continue;
             }
             
-            // Estimate duration using route_id
-            let predicted = estimate_duration_from_route_id(
-                result.route_id,
-                result.zwift_score,
-            );
+            // Estimate duration using route_id and actual distance
+            let predicted = if let Some(distance_km) = parse_distance_from_name(&result.event_name) {
+                // Use parsed distance for multi-lap races
+                estimate_duration_with_distance(
+                    result.route_id,
+                    distance_km,
+                    result.zwift_score,
+                )
+            } else {
+                // Fall back to base route distance
+                estimate_duration_from_route_id(
+                    result.route_id,
+                    result.zwift_score,
+                )
+            };
             
             if let Some(predicted_minutes) = predicted {
                 let actual_minutes = result.actual_minutes as f64;
