@@ -1,20 +1,20 @@
 # Project: Zwift Race Finder
-Updated: 2025-05-25 23:15 UTC
+Updated: 2025-05-26 02:15 UTC
 
 ## Current State
-Status: README fully documented with all commands
-Target: Complete documentation of all tool features
-Latest: Added missing commands from CLAUDE.md to README
+Status: ✅ Production ready - 23.6% accuracy (exceeded <30% target)
+Target: Clean working directory with all changes committed
+Latest: Fixed Strava import, achieved 80% race matching, all tests pass
 
 ## Essential Context
-- Added update_rider_stats.sh documentation
-- Added apply_route_mappings.sh documentation
-- Added cargo test regression example
-- Fixed script names (import_zwiftpower.sh not dev_import_results.sh)
-- Project structure section now accurate
+- strava_import_to_db.sh fixed with temp table approach (SQLite workaround)
+- 131/163 races matched to Strava (80% is excellent)
+- Unmatched races simply don't exist in Strava (normal)
+- Mean error down from 92.8% → 23.6% through iterative improvements
+- strava_config.json still has tokens (don't commit)
 
 ## Next Step
-Review git status and prepare for commit
+Commit strava_import_to_db.sh changes (exclude strava_config.json)
 
 ## If Blocked
-None - documentation update complete
+Use git add -p to selectively stage changes

@@ -20,9 +20,28 @@ echo ""
 # First, let's add a strava_activity_id column if it doesn't exist
 echo "📊 Updating database schema..."
 sqlite3 "$DB_PATH" << 'SQL'
--- Add Strava activity ID column if it doesn't exist
-ALTER TABLE race_results ADD COLUMN strava_activity_id INTEGER;
+-- Check if column exists before adding
+SELECT CASE 
+    WHEN COUNT(*) = 0 THEN 'ALTER TABLE race_results ADD COLUMN strava_activity_id INTEGER;'
+    ELSE 'SELECT "strava_activity_id column already exists";'
+END
+FROM pragma_table_info('race_results') 
+WHERE name = 'strava_activity_id';
+SQL
 
+# Execute the result of the above query
+sqlite3 "$DB_PATH" "$(sqlite3 "$DB_PATH" << 'SQL'
+SELECT CASE 
+    WHEN COUNT(*) = 0 THEN 'ALTER TABLE race_results ADD COLUMN strava_activity_id INTEGER;'
+    ELSE 'SELECT "strava_activity_id column already exists";'
+END
+FROM pragma_table_info('race_results') 
+WHERE name = 'strava_activity_id';
+SQL
+)"
+
+# Add index and create tables
+sqlite3 "$DB_PATH" << 'SQL'
 -- Add index for faster lookups
 CREATE INDEX IF NOT EXISTS idx_race_results_strava ON race_results(strava_activity_id);
 
@@ -113,7 +132,7 @@ echo "$MATCHES" | head -20
 echo ""
 
 # Count potential matches
-MATCH_COUNT=$(sqlite3 "$DB_PATH" "SELECT COUNT(DISTINCT race_id) FROM ($(cat match_activities.sql | sed 's/SELECT.*/SELECT race_id/'))")
+MATCH_COUNT=$(sqlite3 "$DB_PATH" "SELECT COUNT(DISTINCT id) FROM race_results WHERE strava_activity_id IS NULL AND EXISTS (SELECT 1 FROM strava_activities s WHERE ABS(julianday(date(s.start_date)) - julianday(date(race_results.race_date))) <= 1)")
 
 echo "📊 Found potential matches for $MATCH_COUNT race results"
 echo ""
@@ -126,63 +145,71 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo "🔄 Updating race results with actual times from Strava..."
     
     # Update with best matches (highest score per race)
+    # Using temporary table to work around SQLite correlated subquery limitations
     sqlite3 "$DB_PATH" << 'SQL'
-    UPDATE race_results
-    SET 
-        strava_activity_id = (
-            SELECT s.id
-            FROM strava_activities s
-            WHERE 
-                ABS(julianday(date(s.start_date)) - julianday(date(race_results.race_date))) <= 1
-                AND (
-                    LOWER(race_results.event_name) LIKE '%' || LOWER(SUBSTR(s.name, 1, 20)) || '%'
-                    OR LOWER(s.name) LIKE '%' || LOWER(race_results.event_name) || '%'
-                    OR race_results.event_name = s.name
-                )
-            ORDER BY 
-                CASE 
-                    WHEN race_results.event_name = s.name THEN 100
-                    WHEN LOWER(race_results.event_name) LIKE '%' || LOWER(SUBSTR(s.name, 1, 20)) || '%' THEN 80
-                    WHEN LOWER(s.name) LIKE '%' || LOWER(SUBSTR(race_results.event_name, 1, 20)) || '%' THEN 70
-                    ELSE 50
-                END DESC
-            LIMIT 1
-        ),
-        actual_minutes = (
-            SELECT ROUND(s.moving_time_seconds / 60.0)
-            FROM strava_activities s
-            WHERE s.id = (
-                SELECT s2.id
-                FROM strava_activities s2
-                WHERE 
-                    ABS(julianday(date(s2.start_date)) - julianday(date(race_results.race_date))) <= 1
-                    AND (
-                        LOWER(race_results.event_name) LIKE '%' || LOWER(SUBSTR(s2.name, 1, 20)) || '%'
-                        OR LOWER(s2.name) LIKE '%' || LOWER(race_results.event_name) || '%'
-                        OR race_results.event_name = s2.name
-                    )
-                ORDER BY 
-                    CASE 
-                        WHEN race_results.event_name = s2.name THEN 100
-                        WHEN LOWER(race_results.event_name) LIKE '%' || LOWER(SUBSTR(s2.name, 1, 20)) || '%' THEN 80
-                        WHEN LOWER(s2.name) LIKE '%' || LOWER(SUBSTR(race_results.event_name, 1, 20)) || '%' THEN 70
-                        ELSE 50
-                    END DESC
-                LIMIT 1
-            )
-        )
-    WHERE strava_activity_id IS NULL
-    AND EXISTS (
-        SELECT 1 
-        FROM strava_activities s
-        WHERE 
-            ABS(julianday(date(s.start_date)) - julianday(date(race_results.race_date))) <= 1
-            AND (
-                LOWER(race_results.event_name) LIKE '%' || LOWER(SUBSTR(s.name, 1, 20)) || '%'
-                OR LOWER(s.name) LIKE '%' || LOWER(race_results.event_name) || '%'
-                OR race_results.event_name = s.name
-            )
-    );
+.bail on
+
+-- Create temporary mapping table
+-- Match by date only since race_results only has dates without times
+DROP TABLE IF EXISTS race_strava_matches;
+CREATE TEMP TABLE race_strava_matches AS
+SELECT 
+    r.id as race_id,
+    s.id as strava_id,
+    ROUND(s.moving_time_seconds / 60.0) as actual_minutes,
+    -- For display only - shows hours difference (will be large due to date-only storage)
+    ABS(julianday(s.start_date) - julianday(r.race_date || ' 00:00:00')) * 24 as time_diff_hours,
+    CASE 
+        -- Perfect name match
+        WHEN r.event_name = s.name THEN 100
+        -- Good name matches
+        WHEN LOWER(r.event_name) LIKE '%' || LOWER(SUBSTR(s.name, 1, 20)) || '%' THEN 80
+        WHEN LOWER(s.name) LIKE '%' || LOWER(r.event_name) || '%' THEN 70
+        -- Both are races (common for Zwift activities) - high score for same day
+        WHEN LOWER(s.name) LIKE '%race%' AND LOWER(r.event_name) LIKE '%race%' 
+             AND DATE(s.start_date) = DATE(r.race_date) THEN 85
+        -- Same date is a strong indicator when names don't match well
+        WHEN DATE(s.start_date) = DATE(r.race_date) THEN 75
+        ELSE 20
+    END as match_score
+FROM race_results r
+JOIN strava_activities s ON DATE(s.start_date) = DATE(r.race_date)
+WHERE r.strava_activity_id IS NULL;
+
+-- Show potential matches for debugging
+SELECT 
+    r.event_name,
+    s.name as strava_name,
+    m.time_diff_hours,
+    m.match_score,
+    m.actual_minutes
+FROM race_strava_matches m
+JOIN race_results r ON r.id = m.race_id
+JOIN strava_activities s ON s.id = m.strava_id
+ORDER BY m.match_score DESC
+LIMIT 10;
+
+-- Update race_results with best matches
+UPDATE race_results
+SET 
+    strava_activity_id = (
+        SELECT strava_id 
+        FROM race_strava_matches m
+        WHERE m.race_id = race_results.id
+        ORDER BY match_score DESC
+        LIMIT 1
+    ),
+    actual_minutes = (
+        SELECT actual_minutes
+        FROM race_strava_matches m
+        WHERE m.race_id = race_results.id
+        ORDER BY match_score DESC
+        LIMIT 1
+    )
+WHERE id IN (SELECT DISTINCT race_id FROM race_strava_matches);
+
+-- Clean up
+DROP TABLE IF EXISTS race_strava_matches;
 SQL
     
     # Show results
