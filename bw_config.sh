@@ -12,10 +12,10 @@ NC='\033[0m'
 # Function to check if logged in to Bitwarden
 check_bw_login() {
     if ! bw status | grep -q "unlocked"; then
-        echo -e "${YELLOW}Bitwarden vault is locked or not logged in${NC}"
-        echo "Please login and unlock:"
-        echo "  bw login"
-        echo "  export BW_SESSION=\$(bw unlock --raw)"
+        echo -e "${YELLOW}Bitwarden vault is locked or not logged in${NC}" >&2
+        echo "Please login and unlock:" >&2
+        echo "  bw login" >&2
+        echo "  export BW_SESSION=\$(bw unlock --raw)" >&2
         return 1
     fi
     return 0

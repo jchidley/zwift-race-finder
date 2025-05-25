@@ -1,5 +1,7 @@
 # Zwift Race Finder 🚴
 
+> ⚠️ **ALPHA SOFTWARE**: This tool is currently in early development and is not fully functional. Duration estimation is incomplete and many routes are not yet mapped. Use at your own risk.
+
 A command-line tool to find Zwift races that match your target duration and racing score. Designed for cyclists who want to find races that fit their schedule and fitness level.
 
 ## Features

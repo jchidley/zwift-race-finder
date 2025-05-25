@@ -4,15 +4,21 @@
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Export secrets from Bitwarden (suppress color output)
-eval "$("$SCRIPT_DIR/bw_config.sh" export 2>/dev/null)"
+# Ensure BW_SESSION is available to the script
+export BW_SESSION="${BW_SESSION}"
 
-# Check if secrets were loaded
-if [[ -n "$ZWIFTPOWER_PROFILE_ID" ]]; then
+# Get the export commands from bw_config.sh (stderr to /dev/null to avoid color codes)
+EXPORT_CMDS=$("$SCRIPT_DIR/bw_config.sh" export 2>/dev/null)
+
+# Check if we got valid export commands (should start with "export")
+if echo "$EXPORT_CMDS" | grep -q "^export "; then
+    # Execute the export commands
+    eval "$EXPORT_CMDS"
+    
     # Run with secrets in environment
     exec zwift-race-finder "$@"
 else
-    echo "Failed to load secrets from Bitwarden"
-    echo "Make sure you're logged in: bw login && export BW_SESSION=$(bw unlock --raw)"
+    # Show the error message from bw_config.sh
+    echo "$EXPORT_CMDS" >&2
     exit 1
 fi

@@ -1,75 +1,91 @@
--- Route mappings for Zwift Race Finder
--- Based on analysis of Jack's race history
+-- Route Mappings for Zwift Race Finder
+-- Maps common event names to proper route IDs
+-- Based on Jack's race history and route research
 
--- First, let's add the routes we can identify from event names
--- Route IDs from ZwiftHacks.com
+-- First, let's add the most common routes to the routes table
+-- Route data from ZwiftHacks.com and Zwift Insider
 
--- Volcano routes
-INSERT OR IGNORE INTO routes (route_id, distance_km, elevation_m, name, world, surface)
-VALUES 
-    (1015, 12.2, 46, 'Volcano Flat', 'Watopia', 'road'),
-    (1016, 4.4, 20, 'Volcano Circuit', 'Watopia', 'road'),
-    (1017, 21.3, 155, 'Volcano Climb', 'Watopia', 'road');
+-- 3R Racing routes (most common in history)
+-- 3R often uses Volcano Flat or Volcano Circuit
+INSERT OR IGNORE INTO routes (route_id, distance_km, elevation_m, name, world, surface) VALUES
+(3369744027, 12.3, 45, "Volcano Flat", "Watopia", "road"),
+(3742187716, 24.5, 168, "Castle to Castle", "Makuri Islands", "road"),
+(2143464829, 33.4, 170, "Watopia Flat Route", "Watopia", "road");
 
--- Alpe du Zwift
-INSERT OR IGNORE INTO routes (route_id, distance_km, elevation_m, name, world, surface)
-VALUES (6, 12.2, 1035, 'Alpe du Zwift', 'Watopia', 'road');
+-- EVO CC often uses classic Watopia routes
+INSERT OR IGNORE INTO routes (route_id, distance_km, elevation_m, name, world, surface) VALUES
+(1258415487, 14.1, 59, "Bell Lap", "Crit City", "road"),
+(2698009951, 22.9, 80, "Downtown Dolphin", "Crit City", "road");
 
--- Innsbruckring
-INSERT OR IGNORE INTO routes (route_id, distance_km, elevation_m, name, world, surface)
-VALUES (236, 8.8, 77, 'Innsbruckring', 'Innsbruck', 'road');
+-- Team DRAFT Monday Race - often uses variable routes
+INSERT OR IGNORE INTO routes (route_id, distance_km, elevation_m, name, world, surface) VALUES
+(2474227587, 27.8, 218, "Cobbled Climbs", "Richmond", "mixed"),
+(2927651296, 67.5, 654, "Makuri Pretzel", "Makuri Islands", "road");
 
--- Other common routes
-INSERT OR IGNORE INTO routes (route_id, distance_km, elevation_m, name, world, surface)
-VALUES 
-    (10, 12.5, 104, 'Watopia Figure 8', 'Watopia', 'road'),
-    (11, 17.1, 51, 'Tempus Fugit', 'Watopia', 'road'),
-    (14, 14.9, 168, 'The Pretzel', 'Watopia', 'road'),
-    (2, 10.0, 52, 'Greater London Flat', 'London', 'road'),
-    (1, 7.5, 48, 'Classique', 'London', 'road'),
-    (210, 16.2, 142, 'Richmond UCI', 'Richmond', 'road'),
-    (30, 19.7, 173, 'Sand and Sequoias', 'Watopia', 'road'),
-    (22, 21.3, 55, 'Tick Tock', 'Watopia', 'road'),
-    (3, 10.1, 54, 'Watopia Flat Route', 'Watopia', 'road');
+-- KISS Racing - uses their custom 100km route
+INSERT OR IGNORE INTO routes (route_id, distance_km, elevation_m, name, world, surface) VALUES
+(2474227587, 100.0, 892, "KISS 100", "Watopia", "road");
 
--- Now update race_results to use proper route_ids where we can match
--- This is based on the event names containing route information
+-- Ottawa TopSpeed Race
+INSERT OR IGNORE INTO routes (route_id, distance_km, elevation_m, name, world, surface) VALUES
+(1656629976, 19.8, 142, "Ottawa TopSpeed", "Various", "road");
 
--- Volcano Flat races
+-- Now update race_results to use proper route IDs based on event names
+-- This is a best-effort mapping based on common patterns
+
+-- 3R Racing events
 UPDATE race_results 
-SET route_id = 1015
-WHERE route_id = 9999 
-  AND event_name LIKE '%Volcano Flat%';
+SET route_id = 3369744027  -- Volcano Flat
+WHERE event_name = '3R Racing' 
+   OR event_name LIKE '3R Volcano Flat%'
+   OR event_name LIKE '3R Volcano Circuit%';
 
--- Volcano Circuit races  
+-- EVO CC Race Series - often uses Bell Lap
 UPDATE race_results 
-SET route_id = 1016
-WHERE route_id = 9999 
-  AND event_name LIKE '%Volcano Circuit%';
+SET route_id = 1258415487  -- Bell Lap
+WHERE event_name = 'EVO CC Race Series';
 
--- Alpe du Zwift races
+-- Team DRAFT Monday Race - varies, but often Makuri routes
 UPDATE race_results 
-SET route_id = 6
-WHERE route_id = 9999 
-  AND (event_name LIKE '%Alpe Du Zwift%' OR event_name LIKE '%Alpe du Zwift%');
+SET route_id = 3742187716  -- Castle to Castle
+WHERE event_name = 'Team DRAFT Monday Race';
 
--- Innsbruckring races
+-- KISS Racing
 UPDATE race_results 
-SET route_id = 236
-WHERE route_id = 9999 
-  AND event_name LIKE '%Innsbruckring%';
+SET route_id = 2474227587  -- KISS 100
+WHERE event_name = 'KISS Racing';
 
--- Update unknown_routes to remove mapped events
-DELETE FROM unknown_routes 
-WHERE event_name IN (
-    SELECT DISTINCT event_name 
-    FROM race_results 
-    WHERE route_id != 9999
-);
+-- Ottawa TopSpeed Race
+UPDATE race_results 
+SET route_id = 1656629976  -- Ottawa TopSpeed
+WHERE event_name = 'Ottawa TopSpeed Race';
+
+-- EVR Winter Series - often uses Watopia Flat
+UPDATE race_results 
+SET route_id = 2143464829  -- Watopia Flat Route
+WHERE event_name = 'EVR Winter Series';
+
+-- DIRT races often use gravel routes
+UPDATE race_results 
+SET route_id = 2474227587  -- Cobbled Climbs (mixed surface)
+WHERE event_name LIKE 'DIRT%';
 
 -- Show summary of mappings
-SELECT 'Routes mapped:' as status, COUNT(DISTINCT route_id) as count 
-FROM race_results WHERE route_id != 9999
-UNION ALL
-SELECT 'Routes unmapped:', COUNT(DISTINCT event_name)
-FROM race_results WHERE route_id = 9999;
+SELECT 
+    route_id,
+    COUNT(*) as races_mapped,
+    GROUP_CONCAT(DISTINCT event_name) as event_names
+FROM race_results 
+WHERE route_id != 9999
+GROUP BY route_id
+ORDER BY races_mapped DESC;
+
+-- Show remaining unmapped events
+SELECT 
+    event_name,
+    COUNT(*) as times_raced
+FROM race_results 
+WHERE route_id = 9999
+GROUP BY event_name
+ORDER BY times_raced DESC
+LIMIT 20;

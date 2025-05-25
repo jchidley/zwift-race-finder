@@ -2,7 +2,7 @@
 // Stores route information and Jack's actual race completion times
 
 use anyhow::Result;
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use rusqlite::{params, Connection, OptionalExtension};
 use std::path::PathBuf;
 
@@ -23,7 +23,7 @@ pub struct RaceResult {
     pub event_name: String,
     pub actual_minutes: u32,
     pub zwift_score: u32,
-    pub race_date: DateTime<Utc>,
+    pub race_date: String,  // Stored as text in database
     pub notes: Option<String>,
 }
 
@@ -243,6 +243,40 @@ impl Database {
         Ok(result.map(|avg| avg.round() as u32))
     }
     
+    pub fn get_all_race_results(&self) -> Result<Vec<RaceResult>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, route_id, event_name, actual_minutes, zwift_score, race_date, notes 
+             FROM race_results 
+             ORDER BY race_date DESC"
+        )?;
+        
+        let results = stmt.query_map([], |row| {
+            // Handle zwift_score as either integer or real
+            let zwift_score_raw: Result<u32, _> = row.get(4);
+            let zwift_score = match zwift_score_raw {
+                Ok(val) => val,
+                Err(_) => {
+                    // Try as f64 and convert
+                    let val: f64 = row.get(4)?;
+                    val.round() as u32
+                }
+            };
+            
+            Ok(RaceResult {
+                id: row.get(0)?,
+                route_id: row.get(1)?,
+                event_name: row.get(2)?,
+                actual_minutes: row.get(3)?,
+                zwift_score,
+                race_date: row.get(5)?,
+                notes: row.get(6)?,
+            })
+        })?
+        .collect::<Result<Vec<_>, rusqlite::Error>>()?;
+        
+        Ok(results)
+    }
+    
     pub fn get_unknown_routes(&self) -> Result<Vec<(u32, String, i32)>> {
         let mut stmt = self.conn.prepare(
             "SELECT route_id, event_name, times_seen 
@@ -294,7 +328,7 @@ mod tests {
             event_name: "Test Race".to_string(),
             actual_minutes: 32,
             zwift_score: 195,
-            race_date: Utc::now(),
+            race_date: Utc::now().format("%Y-%m-%d").to_string(),
             notes: Some("Test result".to_string()),
         };
         

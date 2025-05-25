@@ -38,7 +38,7 @@ struct Args {
     tolerance: u32,
 
     /// Event type filter: all, race, fondo, group, workout, tt (time trial)
-    #[arg(short = 'e', long, default_value = "all")]
+    #[arg(short = 'e', long, default_value = "race")]
     event_type: String,
 
     /// Show next N days of events (default: 1)
@@ -864,7 +864,7 @@ fn record_race_result(input: &str) -> Result<()> {
         event_name: event_name.clone(),
         actual_minutes: minutes,
         zwift_score,
-        race_date: Utc::now(),
+        race_date: Utc::now().format("%Y-%m-%d").to_string(),
         notes: None,
     };
     

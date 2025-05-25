@@ -48,6 +48,15 @@ pub struct Secrets {
     pub zwiftpower_session_id: Option<String>,
 }
 
+impl Default for Secrets {
+    fn default() -> Self {
+        Secrets {
+            zwiftpower_profile_id: None,
+            zwiftpower_session_id: None,
+        }
+    }
+}
+
 impl Default for Config {
     fn default() -> Self {
         Config {
@@ -126,10 +135,9 @@ impl Config {
     }
     
     pub fn get_download_path(&self) -> String {
-        let username = self.import.windows_username.as_ref()
-            .or_else(|| std::env::var("WINDOWS_USERNAME").ok().as_ref())
-            .map(|s| s.as_str())
-            .unwrap_or("YOUR_USERNAME");
+        let username = self.import.windows_username.clone()
+            .or_else(|| std::env::var("WINDOWS_USERNAME").ok())
+            .unwrap_or_else(|| "YOUR_USERNAME".to_string());
             
         if username != "YOUR_USERNAME" {
             format!("/mnt/c/Users/{}/Downloads", username)
@@ -153,6 +161,15 @@ impl Secrets {
 pub struct FullConfig {
     pub config: Config,
     pub secrets: Secrets,
+}
+
+impl Default for FullConfig {
+    fn default() -> Self {
+        FullConfig {
+            config: Config::default(),
+            secrets: Secrets::default(),
+        }
+    }
 }
 
 impl FullConfig {
