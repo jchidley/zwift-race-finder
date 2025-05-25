@@ -27,6 +27,13 @@ pub struct RaceResult {
     pub notes: Option<String>,
 }
 
+#[derive(Debug, Clone)]
+pub struct RiderStats {
+    pub height_m: f64,
+    pub weight_kg: f64,
+    pub ftp_watts: Option<u32>,
+}
+
 pub struct Database {
     conn: Connection,
 }
@@ -83,6 +90,18 @@ impl Database {
                 event_type TEXT,
                 first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 times_seen INTEGER DEFAULT 1
+            )",
+            [],
+        )?;
+        
+        // Rider stats table for physics calculations
+        self.conn.execute(
+            "CREATE TABLE IF NOT EXISTS rider_stats (
+                id INTEGER PRIMARY KEY,
+                height_m REAL DEFAULT 1.82,
+                weight_kg REAL,
+                ftp_watts INTEGER,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
             )",
             [],
         )?;
@@ -290,6 +309,22 @@ impl Database {
         .collect::<std::result::Result<Vec<_>, _>>()?;
         
         Ok(routes)
+    }
+    
+    pub fn get_rider_stats(&self) -> Result<Option<RiderStats>> {
+        let result = self.conn.query_row(
+            "SELECT height_m, weight_kg, ftp_watts FROM rider_stats WHERE id = 1",
+            [],
+            |row| {
+                Ok(RiderStats {
+                    height_m: row.get(0)?,
+                    weight_kg: row.get(1)?,
+                    ftp_watts: row.get(2)?,
+                })
+            }
+        ).optional()?;
+        
+        Ok(result)
     }
 }
 

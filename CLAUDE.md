@@ -2,6 +2,19 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Development Philosophy
+
+This project demonstrates AI-assisted development where:
+- **The Human** (Jack) provides: domain expertise (Zwift racing), technical knowledge (40 years IT), problem definition, and quality control
+- **The AI** (Claude) provides: code implementation, API integration, debugging assistance, and transparent reasoning
+- **Success comes from**: Clear communication, iterative refinement, and testing against real data
+
+Key principles:
+1. **Transparency**: Always explain what you're doing and why
+2. **Assumptions**: Flag when making assumptions based on ambiguous requirements
+3. **Data-Driven**: When data contradicts descriptions, investigate and clarify
+4. **Pragmatic**: Simple solutions first, optimize based on real-world performance
+
 ## Essential Commands
 
 ### Build and Run
@@ -65,10 +78,11 @@ ZwiftPower → Import → SQLite → Route Mappings
 
 ### Duration Estimation Algorithm
 1. Primary method: Use route_id to lookup known route data
-2. Calculate base speed from Zwift Racing Score (Cat D: 25-27 km/h)
-3. Apply difficulty multiplier based on elevation gain per km
-4. Apply surface penalty for gravel/mixed routes
-5. Fallback: Estimate from event name patterns or provided distance
+2. Check event_sub_groups for category-specific distances (multi-lap races)
+3. Calculate base speed from Zwift Racing Score (Cat D: 30.9 km/h with draft)
+4. Apply difficulty multiplier based on elevation gain per km
+5. Apply surface penalty for gravel/mixed routes
+6. Fallback: Estimate from event name patterns or provided distance
 
 ### Route ID System
 - Zwift uses internal route IDs that are stable across event name changes
@@ -83,9 +97,12 @@ ZwiftPower → Import → SQLite → Route Mappings
 - `src/regression_test.rs`: Tests comparing estimates vs actual race times
 
 ### Shell Scripts
-- `dev_import_results.sh`: Development import with schema matching
-- `import_zwiftpower_results.sh`: Production import from browser extraction
-- `extract_zwiftpower_v2.js`: Browser script to extract race history
+- `import_zwiftpower_dev.sh`: Development import with schema matching
+- `import_zwiftpower.sh`: Production import from browser extraction
+- `zwiftpower_profile_extractor.js`: Browser script to extract race history
+- `strava_auth.sh`: OAuth authentication for Strava
+- `strava_fetch_activities.sh`: Fetch Zwift activities from Strava
+- `strava_import_to_db.sh`: Import real race times to database
 
 ### Data Files
 - `route_mappings.sql`: Maps event names to route IDs
@@ -94,10 +111,27 @@ ZwiftPower → Import → SQLite → Route Mappings
 ## Regression Testing Strategy
 
 The project uses Jack's actual race history to calibrate duration estimates:
-1. Import historical races from ZwiftPower
+1. Import historical races from Strava (151 races with real times)
 2. Map events to route IDs using patterns and manual research
 3. Compare predicted vs actual times
 4. Adjust difficulty multipliers based on error analysis
+
+Current accuracy: 25.1% mean absolute error (down from 92.8%)
+
+## Database Management
+
+### Backup Strategy
+```bash
+# Backup database before major changes
+cp ~/.local/share/zwift-race-finder/races.db ~/.local/share/zwift-race-finder/races.db.backup
+
+# Create timestamped backup
+cp ~/.local/share/zwift-race-finder/races.db ~/.local/share/zwift-race-finder/races_$(date +%Y%m%d).db
+```
+
+### Database Location
+- Primary: `~/.local/share/zwift-race-finder/races.db`
+- Contains: routes, race_results, strava_activities, unknown_routes
 
 Current accuracy target: < 20% mean absolute error
 

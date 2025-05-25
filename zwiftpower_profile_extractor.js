@@ -38,6 +38,7 @@
             const raceCell = cells[3];
             const raceName = raceCell?.textContent?.trim() || '';
             const raceLink = raceCell?.querySelector('a')?.href || '';
+            const weightText = cells[12]?.textContent?.trim() || '';
             const distanceText = cells[15]?.textContent?.trim() || '';
             // Skip resultScore (cells[17]) as it's unreliable
             
@@ -45,6 +46,9 @@
             let eventId = null;
             const idMatch = raceLink.match(/[?&]id=(\d+)/);
             if (idMatch) eventId = idMatch[1];
+            
+            // Extract weight (remove 'kg' suffix)
+            const weight = parseFloat(weightText.replace('kg', '')) || 0;
             
             // Extract distance (remove 'km' suffix)
             const distance = parseFloat(distanceText.replace('km', '')) || 0;
@@ -80,6 +84,7 @@
                 event_id: eventId,
                 category: category,
                 position: position,
+                weight_kg: weight,
                 distance_km: distance,
                 estimated_minutes: estimatedMinutes,
                 // zwift_score excluded - unreliable field

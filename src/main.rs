@@ -120,6 +120,13 @@ const CAT_C_SPEED: f64 = 33.0;  // Estimated based on Cat D scaling
 const CAT_D_SPEED: f64 = 30.9;  // Jack's actual average from 151 races
 const STRONG_CAT_D_SPEED: f64 = 32.0; // For 190-199 score range
 
+// Zwift-specific physics constants (tweaked for game balance)
+const GRAVITY: f64 = 9.81; // m/s²
+const AIR_DENSITY: f64 = 1.2; // kg/m³ at sea level
+const CRR_ROAD: f64 = 0.004; // Rolling resistance coefficient for road
+const CRR_GRAVEL: f64 = 0.006; // Rolling resistance coefficient for gravel (less penalty than real)
+const DRAFT_REDUCTION: f64 = 0.67; // 33% power savings in draft (Zwift is generous)
+
 // Zwift route database - route_id is the primary key for all calculations
 // This should be expanded with Jack's actual race data
 struct RouteData {
@@ -357,6 +364,78 @@ fn get_route_difficulty_multiplier(route_name: &str) -> f64 {
     }
 }
 
+// Calculate CdA (Coefficient of Drag × Area) for Zwift
+// Zwift uses simplified aerodynamics
+fn calculate_cda(height_m: f64, weight_kg: f64) -> f64 {
+    // Zwift seems to use a simpler model than real world
+    // Base CdA around 0.3-0.35 for most riders
+    let base_cda = 0.32;
+    
+    // Small adjustments based on size
+    let height_factor = (height_m / 1.75).powf(0.5);
+    let weight_factor = (weight_kg / 75.0).powf(0.3);
+    
+    base_cda * height_factor * weight_factor
+}
+
+// Estimate FTP from Zwift Racing Score
+// Based on typical Zwift category power outputs
+fn estimate_ftp_from_zwift_score(zwift_score: u32, weight_kg: f64) -> f64 {
+    let w_per_kg = match zwift_score {
+        0..=189 => 2.3,    // Lower Cat D: ~2.3 W/kg
+        190..=199 => 2.6,  // Upper Cat D: ~2.6 W/kg
+        200..=299 => 3.2,  // Cat C: ~3.2 W/kg
+        300..=399 => 3.9,  // Cat B: ~3.9 W/kg
+        _ => 4.5,          // Cat A: ~4.5 W/kg
+    };
+    w_per_kg * weight_kg
+}
+
+// Calculate speed for given power using Martin et al. (1998) equation
+// Returns speed in km/h
+fn calculate_speed_from_power(
+    power_watts: f64,
+    weight_kg: f64,
+    cda: f64,
+    grade_percent: f64,
+    crr: f64,
+    is_draft: bool,
+) -> f64 {
+    // Apply draft reduction to effective power
+    let effective_power = if is_draft {
+        power_watts / DRAFT_REDUCTION
+    } else {
+        power_watts
+    };
+    
+    // Convert grade from percent to radians
+    let grade_rad = (grade_percent / 100.0).atan();
+    
+    // Binary search for speed that matches the power
+    let mut speed_low = 0.0; // m/s
+    let mut speed_high = 20.0; // m/s (72 km/h)
+    
+    while speed_high - speed_low > 0.01 {
+        let speed_mid = (speed_low + speed_high) / 2.0;
+        
+        // Calculate required power at this speed
+        let rolling_resistance = weight_kg * GRAVITY * speed_mid * grade_rad.cos() * crr;
+        let gravity_component = weight_kg * GRAVITY * speed_mid * grade_rad.sin();
+        let air_resistance = 0.5 * AIR_DENSITY * cda * speed_mid.powi(3);
+        
+        let required_power = rolling_resistance + gravity_component + air_resistance;
+        
+        if required_power < effective_power {
+            speed_low = speed_mid;
+        } else {
+            speed_high = speed_mid;
+        }
+    }
+    
+    // Convert m/s to km/h
+    speed_low * 3.6
+}
+
 // Primary duration estimation - uses route_id when available
 fn estimate_duration_from_route_id(route_id: u32, zwift_score: u32) -> Option<u32> {
     let route_data = get_route_data(route_id)?;
@@ -367,8 +446,54 @@ fn estimate_duration_from_route_id(route_id: u32, zwift_score: u32) -> Option<u3
 fn estimate_duration_with_distance(route_id: u32, distance_km: f64, zwift_score: u32) -> Option<u32> {
     let route_data = get_route_data(route_id)?;
     
-    // Zwift Racing Score ranges (new system)
-    // Based on Jack's score of 189 being Category D
+    // Try pack-based calculation if rider stats are available
+    if let Ok(db) = Database::new() {
+        if let Ok(Some(rider_stats)) = db.get_rider_stats() {
+            // We don't need complex physics for pack racing
+            // Power matters less than staying with the group
+            
+            // In Zwift races, you ride at pack speed which is fairly consistent
+            // The key insight: draft is so powerful that individual power matters less
+            // than staying with the group. Pack speed is determined by the strongest riders.
+            
+            let base_pack_speed = match zwift_score {
+                0..=199 => CAT_D_SPEED,    // Pack averages 30.9 km/h
+                200..=299 => CAT_C_SPEED,  // Pack averages 33.0 km/h
+                300..=399 => CAT_B_SPEED,  // Pack averages 37.0 km/h
+                _ => CAT_A_SPEED,          // Pack averages 42.0 km/h
+            };
+            
+            // Elevation still matters - packs slow on climbs, speed up on descents
+            // But the effect is less dramatic than solo riding due to draft
+            let elevation_factor = get_route_difficulty_multiplier_from_elevation(
+                route_data.distance_km,
+                route_data.elevation_m
+            );
+            
+            // Surface penalties still apply but are reduced in a pack
+            let surface_factor = match route_data.surface {
+                "road" => 1.0,
+                "gravel" => 0.92,  // Only 8% slower (vs 15% solo)
+                "mixed" => 0.96,   // Only 4% slower (vs 8% solo)
+                _ => 1.0,
+            };
+            
+            // Weight affects climbing ability - heavier riders struggle more on hills
+            let weight_factor = if route_data.elevation_m > 500 {
+                // On hilly routes, lighter is better
+                (75.0 / rider_stats.weight_kg).powf(0.15).min(1.1)
+            } else {
+                1.0  // Weight doesn't matter much on flats due to draft
+            };
+            
+            let speed_kmh = base_pack_speed * elevation_factor * surface_factor * weight_factor;
+            
+            let duration_hours = distance_km / speed_kmh;
+            return Some((duration_hours * 60.0) as u32);
+        }
+    }
+    
+    // Fallback to category-based estimation
     let base_speed = match zwift_score {
         0..=199 => CAT_D_SPEED,      // 0-199 is Cat D (includes Jack at 189)
         200..=299 => CAT_C_SPEED,    // 200-299 is Cat C  

@@ -1,108 +1,81 @@
 # Zwift Race Finder - TODO
 
 ## 📊 Current Status
-- **Prediction Error**: 31.2% (down from 92.8%!)
+- **Prediction Error**: 29.6% (down from 92.8%!) ✅ BELOW 30% TARGET!
 - **Real Race Data**: 151 races from Strava
-- **Next Goal**: Get below 30% error using physics model
+- **Multi-Lap Handling**: FIXED - now using event_sub_groups
+- **Pack Model**: Implemented - recognizes draft dominance in racing
+- **Next Goal**: Get below 20% error by refining pack dynamics
 
-## 🚨 IMMEDIATE PRIORITY - Post-Cleanup Tasks
-
-### Step 1: Test Everything After Cleanup ⚡ IN PROGRESS
-```bash
-# Test core functionality
-cargo test
-cargo run -- --help
-cargo run  # Should show upcoming races
-
-# Test imports still work
-./import_zwiftpower_dev.sh --help
-
-# Check scripts have correct permissions
-ls -la *.sh | grep -v "rwx"
-```
-
-### Step 2: Commit Cleanup to GitHub
-```bash
-git add -A
-git commit -m "refactor: major cleanup - remove dead code and rename files
-
-- Removed 28 obsolete files (old extractors, abandoned approaches)
-- Renamed files for clarity (extract_zwiftpower_v2 → zwiftpower_profile_extractor)
-- Kept zwiftpower_event_extractor.js for future individual event scraping
-- Updated documentation to reflect new filenames"
-git push
-```
-
-## 🎯 THEN: Get Real Race Data
-
-### Step 3: Run Strava Import 
-```bash
-cd ~/tools/rust/zwift-race-finder
-./strava_auth.sh                    # Authenticate with Strava
-./strava_fetch_activities.sh        # Download your races  
-./strava_import_to_db.sh           # Import REAL times
-python strava_analyze.py           # Check your actual speeds
-```
-
-### Step 4: Fix KISS Racing Distance
-```sql
--- Run this after Strava import
-sqlite3 ~/.local/share/zwift-race-finder/races.db \
-  "UPDATE routes SET distance_km = 35.0 WHERE route_id = 2474227587;"
-```
-
-### Step 5: Run Regression Test
-```bash
-cargo test regression_test -- --nocapture
-# Should see MASSIVE improvement from 92.8% error!
-```
-
-## 📊 Only After Real Data Is Imported
-
-### Fix Remaining Routes (as needed)
-- [ ] Check any routes with >50% error
-- [ ] Focus on your most frequent races
-- [ ] Use Strava distances as ground truth
-
-## 🚀 Next Phase: Get Below 30% Error
-
-### Priority 1: Handle Multi-Lap Races
-- [ ] Parse lap count from event names ("3 Laps")
-- [ ] Extract distance from names ("36.6km/22.7mi")
-- [ ] Create database table for multi-lap events
-- [ ] Update prediction logic to multiply base route distance
-
-### Priority 2: Physics-Based Speed Model
-- [ ] Add rider stats table (height, weight, FTP)
-- [ ] Implement Martin et al. (1998) power equation
-- [ ] Calculate personalized CdA from height/weight
-- [ ] Replace category speeds with physics calculations
-- [ ] Account for elevation profiles properly
-
-### Priority 3: More Accurate Data
-- [ ] Scrape individual ZwiftPower event pages (has exact times)
-- [ ] Import power data from Strava (for FTP estimation)
-- [ ] Build route elevation profiles database
-- [ ] Map more routes with correct distances
-
-### Future Enhancements
-- [ ] Automate Strava sync (daily/weekly)
-- [ ] Add weather/draft conditions toggle
-- [ ] Surface-specific bike recommendations
-- [ ] Real-time predictions during races (Sauce4Zwift)
-- [ ] Community data sharing API
-- [ ] Device emulation for automated testing
-
-## ✅ Completed Today
+## ✅ Completed Tasks
 - [x] Major cleanup: removed 28 dead files
 - [x] Renamed files with sensible names
-- [x] Updated CLAUDE.md and logs with new filenames
-- [x] Discovered ZwiftPower event pages have actual times
+- [x] Committed cleanup to GitHub
+- [x] Ran Strava import - got 151 real race times
+- [x] Fixed route distances (KISS Racing: 100→35km)
+- [x] Updated base speed: 25→30.9 km/h based on actual data
+- [x] Implemented multi-lap race detection using event_sub_groups
+- [x] Fixed Volcano Flat 3 Laps prediction (21→71 min)
+- [x] Achieved <30% prediction error target!
+- [x] Created rider_stats table and weight import
+- [x] Implemented pack-based model (draft dominates in races)
+
+## 🎯 Next Phase: Get Below 20% Error
+
+### Priority 1: Refine Pack Dynamics Model
+- [x] Implemented simplified pack-based model
+- [ ] Analyze races with highest prediction errors
+- [ ] Account for race size (bigger fields = more consistent draft)
+- [ ] Consider route-specific pack dynamics (climbs split packs)
+- [ ] Add time-of-day factor (peak hours = bigger fields)
+- [ ] Test impact of category density on pack formation
+
+### Priority 2: Better Route Data
+- [ ] Build elevation profile database
+- [ ] Add grade-specific speed calculations
+- [ ] Import more route mappings from ZwiftHacks
+- [ ] Handle surface-specific rolling resistance
+
+### Priority 3: Enhanced Data Collection
+- [ ] Scrape individual ZwiftPower event pages for exact times
+- [ ] Import power data from Strava (for FTP estimation)
+- [ ] Add route elevation profiles from ZwiftHacks API
+- [ ] Track draft vs non-draft events
+
+## 🚀 Future Enhancements
+
+### Near Term
+- [ ] Add database backup automation
+- [ ] Add time trial support (no draft calculation)
+- [ ] Surface-specific bike recommendations
+- [ ] Weather condition effects (if Zwift adds them)
+- [ ] Automate weekly Strava sync
+- [ ] Create CI/CD pipeline with automated tests
+
+### Long Term
+- [ ] Real-time predictions during races (Sauce4Zwift API)
+- [ ] Community data sharing API
+- [ ] Device emulation for automated testing
+- [ ] Machine learning model from race history
+- [ ] Power-based pacing recommendations
 
 ## 🐛 Current Known Issues
-- [x] 92.8% prediction error - caused by fake "actual" times
-- [ ] Route distances wrong (KISS = 100km?)
-- [ ] Multi-lap races not handled correctly
+- [ ] Route names blank in error analysis output
+- [ ] Some routes still need distance corrections
+- [ ] Network connectivity affects API calls
+- [ ] Category E not properly mapped (treated as D)
 
-## 💡 The Big Lesson
-**We were comparing estimates to estimates!** The "actual_minutes" in the database were calculated as distance ÷ 30 km/h, not real race times. Strava + individual ZwiftPower events have the real data we need.
+## 💡 Key Learnings
+
+### Technical Discoveries
+1. **Event subgroups are crucial** - Different categories race different distances
+2. **Real data beats estimates** - Strava integration was game-changing
+3. **Draft matters** - 30.9 km/h in races vs 25 km/h solo
+4. **Multi-lap races** - Must use total distance, not base route
+
+### AI Development Insights
+1. **Domain knowledge essential** - Knowing Zwift racing guided better solutions
+2. **Technical experience valuable** - 40 years IT helped spot issues and guide architecture
+3. **Management approach works** - Treating AI as enthusiastic employee needing direction
+4. **Transparency enables debugging** - Seeing AI's reasoning catches problems early
+5. **Data validates assumptions** - Real-world testing revealed multiple wrong assumptions

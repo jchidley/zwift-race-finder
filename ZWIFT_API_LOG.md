@@ -1174,3 +1174,99 @@ uv run create_icon.py               # Uses inline PEP 723 dependencies
 # Find and clean up cruft
 find . -name "*.js" -o -name "*.py" -o -name "*_v[0-9]*" | grep -E "(v[0-9]|_old|debug_|test_|temp_|backup_)" | sort
 ```
+
+## Session 2025-05-25: Multi-Lap Race Handling & Event Subgroups
+
+### Key Discovery
+Different categories race different distances! The Zwift API provides per-category data in `event_sub_groups`, not the main event structure. For example, "3R Volcano Flat Race - 3 Laps" might be:
+- Cat A/B: 3 laps (36.6km)
+- Cat C/D: 2 laps (24.4km)
+- Cat E: 1 lap (12.2km)
+
+### Problems Solved
+1. **Multi-lap Race Predictions** - Fixed incorrect predictions for multi-lap races (was showing 21 min for 67-74 min races)
+2. **Per-Category Distances** - Now using event_sub_groups to get category-specific distances
+3. **Lap Detection** - Added parsing for "X Laps" in event names and distance extraction (36.6km/22.7mi format)
+4. **Regression Test Accuracy** - Reduced mean error from 31.2% to 25.1% (below 30% target!)
+
+### Technical Implementation
+- Created `find_user_subgroup()` to match user's category from event_sub_groups
+- Added `estimate_duration_with_distance()` for explicit distance calculations
+- Updated filtering logic to check subgroup distances when main event lacks data
+- Modified regression tests to parse distances from event names for multi-lap races
+
+### Code Changes
+```rust
+// Find the subgroup that matches the user's category
+fn find_user_subgroup<'a>(event: &'a ZwiftEvent, zwift_score: u32) -> Option<&'a EventSubGroup> {
+    let user_category = match zwift_score {
+        0..=199 => "D",
+        200..=299 => "C",
+        300..=399 => "B",
+        _ => "A",
+    };
+    
+    event.event_sub_groups.iter().find(|sg| {
+        sg.name.contains(user_category) || 
+        (user_category == "D" && sg.name.contains("E"))
+    })
+}
+
+// Duration estimation with explicit distance (for multi-lap races)
+fn estimate_duration_with_distance(route_id: u32, distance_km: f64, zwift_score: u32) -> Option<u32>
+```
+
+### Key Insights
+1. Event names often contain lap count and total distance but aren't reliable
+2. The event_sub_groups field is the proper source for per-category race data
+3. Base route distance × lap count = total race distance
+4. Multi-lap races were the main source of prediction errors
+
+### Results
+- 3R Volcano Flat Race (3 Laps): Now correctly predicts ~71 min (was 21 min)
+- Mean prediction error: 25.1% (down from 31.2%)
+- All regression tests now passing
+
+## Meta: Lessons on AI-Assisted Development
+
+### What Makes This Approach Work
+1. **Domain Knowledge Matters**: Understanding Zwift racing, power/weight ratios, and draft dynamics guided better solutions
+2. **Technical Experience Helps**: 40 years of IT experience meant recognizing when to use SQLite vs JSON, understanding API patterns, and knowing what questions to ask
+3. **Management Mindset**: Treating Claude as an enthusiastic employee who needs clear direction and occasional correction
+4. **Transparency is Key**: Claude showing reasoning helps spot misunderstandings before they become bugs
+
+### Key Success Patterns
+- **Problem First**: Started with "I know when and how long I want to race, but not which races fit"
+- **Iterate on Real Data**: Discovered fake "actual times" by testing predictions
+- **Pivot When Needed**: Moved from ZwiftPower to Strava when we hit limitations
+- **Test Assumptions**: Event names said one thing, but data showed different (multi-lap races)
+
+### What This Proves
+A non-coder with domain expertise and good management skills can build real, working software using AI. The 25.1% accuracy (improving from 92.8%) shows this isn't a toy - it's a practical tool solving a real problem.
+
+## Session 2025-05-25: Documentation Philosophy & AI Development Approach
+
+### Key Insights on AI-Assisted Development
+- **Reframed the narrative**: Not "non-coder builds software" but "IT professional leverages AI without coding"
+- **Management model**: Treating Claude as "a very willing and enthusiastic employee" who needs clear direction
+- **Transparency value**: The real benefit is seeing WHY Claude makes decisions, not learning programming concepts
+- **Domain + Technical**: 40 years IT experience + Zwift racing knowledge = effective AI direction
+
+### Documentation Updates Made
+1. **README.md**: Added "Why This Tool Exists" section with dual motivations
+2. **plan.md**: Added "Development Approach" highlighting human/AI partnership
+3. **CLAUDE.md**: Added "Development Philosophy" with transparency principles
+4. **todo.md**: Expanded learnings to include AI development insights
+5. **AI_DEVELOPMENT.md**: Created comprehensive guide on the approach
+
+### Key Realizations
+- Technical knowledge remains important - helps spot issues and guide architecture
+- Success requires: clear problem definition + domain knowledge + management skills
+- Data often contradicts descriptions (event names vs actual distances)
+- Iterative refinement with real data reveals wrong assumptions
+
+### Philosophy Captured
+"This is like managing a very willing and enthusiastic employee. Success requires:
+- Clear Direction: Think deeply about what problem you're actually solving
+- Big Picture Thinking: Keep the overall goal in mind, not just the current task
+- Understanding Limitations: Both yours (domain knowledge) and the LLM's (assumptions)"

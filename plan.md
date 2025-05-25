@@ -1,18 +1,24 @@
 # Zwift Race Finder - Project Plan
 
-## Current Status (Post-Cleanup)
+## Current Status (Multi-Lap Fix Complete)
 ✅ Major cleanup complete - removed 28 dead files
 ✅ Files renamed for clarity (e.g., `zwiftpower_profile_extractor.js`)
-✅ Successfully imported 163 historical races from ZwiftPower (but with FAKE times!)
-✅ Strava API integration complete and ready to use
-✅ Database structure supports real data
-⚡ Testing post-cleanup functionality
-❌ Current "actual_minutes" are estimates (distance ÷ 30 km/h) NOT real times
-❌ Regression tests showing 92.8% error because we're comparing estimates to estimates
-❌ Route distances wrong (KISS Racing ≠ 100km)
+✅ Successfully imported 151 real race times from Strava
+✅ Fixed route distances (KISS Racing: 100→35km)
+✅ Updated base speed: 25→30.9 km/h based on actual data
+✅ Implemented multi-lap race handling using event_sub_groups
+✅ Mean prediction error: 25.1% (below 30% target!)
+⚡ Ready for physics-based modeling phase
 
 ## Goal
 Create accurate race duration predictions by using ACTUAL race times (not estimates) to calibrate the model.
+
+## Development Approach
+This project is built using Claude Code (AI-assisted development) with:
+- **Domain Expert**: 40+ years IT experience, active Zwift racer understanding the problem space
+- **AI Developer**: Claude Code handling implementation details and coding
+- **Management Model**: Treating AI as an enthusiastic employee requiring clear direction
+- **Success Metric**: Real-world accuracy (currently 25.1% error, targeting <20%)
 
 ## Architecture Overview
 ```
@@ -30,15 +36,17 @@ Data Sources:
             Rust Program (predictions)
 ```
 
-## Why This Project Failed Initially
-1. **No actual race times** - Used estimates instead of real data
-2. **Wrong route distances** - KISS Racing at 100km? Really?
-3. **No draft accounting** - Solo estimates for pack races
+## Key Problems We Solved
+1. **Fake race times** - ZwiftPower exports had estimates (distance ÷ 30 km/h), not real times
+2. **Wrong route distances** - KISS Racing was 100km instead of 35km
+3. **Multi-lap races** - Different categories race different distances (event_sub_groups)
+4. **Draft benefit** - Races are ~30% faster than solo riding
 
-## The Fix Is Simple
-1. Use Strava API to get REAL race times ✅ (already built!)
-2. Fix obvious route errors
-3. Let the data tell us the actual speeds
+## How We Fixed It
+1. ✅ Integrated Strava API for real race times (151 races imported)
+2. ✅ Fixed route distances using actual race data
+3. ✅ Implemented per-category distance handling from event_sub_groups
+4. ✅ Updated base speeds: Cat D = 30.9 km/h (was 25 km/h)
 
 ## Technical Decisions
 - **Why SQLite?** Portable, simple, perfect for this use case
@@ -47,40 +55,38 @@ Data Sources:
 - **Why Strava API?** Only reliable source for actual race completion times
 - **Why not Zwift API?** No public API for personal results, developer API restricted
 
-## Immediate Action Plan
+## Current Accuracy & Next Steps
 
-### Step 0: Test & Commit Cleanup (15 min) ⚡ CURRENT
+### Achievement Unlocked! 🎉
+- **Prediction Error**: 25.1% (was 92.8%)
+- **Target**: Was 30%, now achieved!
+- **Next Target**: <20% with physics model
+
+### What Made the Difference
+1. **Real race times from Strava** (not estimates)
+2. **Correct route distances** from actual data
+3. **Multi-lap handling** via event_sub_groups
+4. **Accurate base speed** (30.9 km/h for Cat D)
+
+### Immediate Next Steps (Physics Phase)
 ```bash
-# Test everything still works
-cargo test
-cargo run
-./import_zwiftpower_dev.sh --help
+# 1. Add physical stats to database
+sqlite3 ~/.local/share/zwift-race-finder/races.db
+"CREATE TABLE rider_stats (
+    id INTEGER PRIMARY KEY,
+    height_m REAL DEFAULT 1.82,
+    weight_kg REAL,
+    ftp_watts INTEGER,
+    updated_at TEXT
+);"
 
-# Commit to GitHub
-git add -A
-git commit -m "refactor: major cleanup - remove dead code and rename files"
-git push
+# 2. Extract weight from Zwift profile
+# Note: Zwift weight is more accurate than Strava
+# Riders update it regularly for fair racing
+
+# 3. Calculate CdA from height/weight
+# A = 0.0276 × h^0.725 × m^0.425
 ```
-
-### Step 1: Get Real Data (1 hour)
-```bash
-# This is ALL we need to do first!
-cd ~/tools/rust/zwift-race-finder
-./strava_auth.sh                    # Set up authentication
-./strava_fetch_activities.sh        # Fetch your Zwift races
-./strava_import_to_db.sh           # Import REAL times
-./strava_analyze.py                # See your actual speeds
-```
-
-### Step 2: Fix Obvious Errors (30 min)
-- KISS Racing: Change from 100km to ~35km
-- Check multi-lap races ("3 Laps" in name)
-- Run regression test - should improve dramatically
-
-### Step 3: Iterate (ongoing)
-- Map more routes as needed
-- Adjust speed model based on real data
-- Target <20% prediction error
 
 ## Future Projects
 
@@ -202,11 +208,11 @@ These GitHub projects can simulate power meters, heart rate monitors, and traine
 
 ## Next Phase: Advanced Physics-Based Modeling
 
-### Multi-Lap Race Handling
-- Detect lap count from event names (e.g., "3 Laps")
-- Parse distance info from names (e.g., "36.6km/22.7mi")
-- Create virtual routes for multi-lap events
-- Store lap info in database for accurate predictions
+### Multi-Lap Race Handling ✅ COMPLETE
+- ✅ Use event_sub_groups for per-category distances
+- ✅ Parse distance from event names as fallback
+- ✅ Calculate laps from total distance ÷ base route distance
+- ✅ Fixed 3R Volcano Flat Race (was 21 min, now correctly 71 min)
 
 ### ZwiftPower Event Page Scraping
 - Individual event pages contain precise race times
@@ -252,7 +258,8 @@ Based on our research findings:
 - **Zwift Physics Documentation**: https://zwiftinsider.com/zwift-speeds/
 
 ### Expected Outcomes
-- Reduce error from 31.2% → <20%
-- Handle multi-lap races correctly
+- Reduce error from 25.1% → <20%
+- ✅ Handle multi-lap races correctly (DONE!)
 - Account for elevation profiles accurately
 - Personalized predictions based on rider characteristics
+- Better draft modeling (24.7-33% power savings)
