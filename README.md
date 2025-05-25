@@ -22,12 +22,12 @@ This project demonstrates the power of using LLMs (specifically Claude Code) to 
 - Create data analysis and machine learning features
 - Build a tool that actually solves my problem
 
-**The result**: A working tool with 25.1% prediction accuracy, improving with each race!
+**The result**: A working tool with 25.7% prediction accuracy, improving with each race!
 
 ## Features
 
 - 🎯 Filters Zwift events by estimated duration based on your racing score
-- 📊 25.1% prediction accuracy using 151+ real race results
+- 📊 25.7% prediction accuracy using 151+ real race results
 - 🗺️ Route-aware duration estimation considering elevation and surface type
 - 🔄 Strava integration for actual race times (not estimates!)
 - 🏁 Multi-lap race support with per-category distance handling

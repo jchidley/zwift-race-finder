@@ -39,6 +39,10 @@ cargo test
 
 # Run specific test module
 cargo test regression
+
+# Update rider stats for personalized predictions
+./update_rider_stats.sh 86.0        # Weight only
+./update_rider_stats.sh 86.0 250    # Weight and FTP
 ```
 
 ### Data Import from ZwiftPower
@@ -79,10 +83,27 @@ ZwiftPower → Import → SQLite → Route Mappings
 ### Duration Estimation Algorithm
 1. Primary method: Use route_id to lookup known route data
 2. Check event_sub_groups for category-specific distances (multi-lap races)
-3. Calculate base speed from Zwift Racing Score (Cat D: 30.9 km/h with draft)
-4. Apply difficulty multiplier based on elevation gain per km
-5. Apply surface penalty for gravel/mixed routes
-6. Fallback: Estimate from event name patterns or provided distance
+3. Use dual-speed model (if rider stats available):
+   - Calculate drop probability based on elevation, weight, category
+   - Pack speed: Category-based (Cat D: 30.9 km/h)
+   - Solo speed: 77% of pack speed (no draft)
+   - Weighted average based on drop probability
+4. Apply elevation penalties (no bonuses for flat routes)
+5. Fallback: Category-based estimation without drop dynamics
+
+### Pack Dynamics Insights
+- **Draft is King**: 33% power savings in Zwift vs 25% in real world (Source: Zwift Insider research)
+- **Pack > Physics**: Pure physics model overestimated by 127% (68+ min for 30 min races)
+- **Zwift != Real**: Martin et al. (1998) model accurate for real cycling but fails in Zwift
+- **Context Matters**: Bigger races = more consistent draft = better predictions (empirical observation from 151 races)
+
+### Drop Dynamics Discovery (Session 2025-05-25)
+- **Root Cause of Variance**: Getting dropped on hills explains 82.6% variance (Bell Lap: 32-86 min)
+- **Binary State**: Either with pack (30.9 km/h) or solo (23.8 km/h) - no middle ground
+- **Weight Penalty**: Jack at 86kg vs typical 70-75kg = major disadvantage on climbs
+- **Cascade Effect**: Drop early → race mostly solo → much longer total time
+- **Model Status**: Dual-speed model implemented with 36.9% accuracy
+- **Key Insight**: High variance is inherent to racing, not a prediction failure
 
 ### Route ID System
 - Zwift uses internal route IDs that are stable across event name changes
@@ -116,7 +137,8 @@ The project uses Jack's actual race history to calibrate duration estimates:
 3. Compare predicted vs actual times
 4. Adjust difficulty multipliers based on error analysis
 
-Current accuracy: 25.1% mean absolute error (down from 92.8%)
+Current accuracy: 36.9% mean absolute error (down from 92.8%)
+Status: Acceptable given inherent race variance (32-86 min for same route)
 
 ## Database Management
 

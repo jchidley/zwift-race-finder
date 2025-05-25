@@ -118,14 +118,6 @@ const CAT_A_SPEED: f64 = 42.0;  // Estimated based on Cat D scaling
 const CAT_B_SPEED: f64 = 37.0;  // Estimated based on Cat D scaling
 const CAT_C_SPEED: f64 = 33.0;  // Estimated based on Cat D scaling
 const CAT_D_SPEED: f64 = 30.9;  // Jack's actual average from 151 races
-const STRONG_CAT_D_SPEED: f64 = 32.0; // For 190-199 score range
-
-// Zwift-specific physics constants (tweaked for game balance)
-const GRAVITY: f64 = 9.81; // m/s²
-const AIR_DENSITY: f64 = 1.2; // kg/m³ at sea level
-const CRR_ROAD: f64 = 0.004; // Rolling resistance coefficient for road
-const CRR_GRAVEL: f64 = 0.006; // Rolling resistance coefficient for gravel (less penalty than real)
-const DRAFT_REDUCTION: f64 = 0.67; // 33% power savings in draft (Zwift is generous)
 
 // Zwift route database - route_id is the primary key for all calculations
 // This should be expanded with Jack's actual race data
@@ -259,10 +251,6 @@ fn get_route_data(route_id: u32) -> Option<RouteData> {
 }
 
 // Get just the distance for backward compatibility
-fn get_route_distance_by_id(route_id: u32) -> Option<f64> {
-    get_route_data(route_id).map(|data| data.distance_km)
-}
-
 // Parse lap count from event name (e.g., "3 Laps", "6 laps")
 fn parse_lap_count(name: &str) -> Option<u32> {
     let re = Regex::new(r"(\d+)\s*[Ll]aps?").unwrap();
@@ -362,78 +350,6 @@ fn get_route_difficulty_multiplier(route_name: &str) -> f64 {
     } else {
         1.0 // Default
     }
-}
-
-// Calculate CdA (Coefficient of Drag × Area) for Zwift
-// Zwift uses simplified aerodynamics
-fn calculate_cda(height_m: f64, weight_kg: f64) -> f64 {
-    // Zwift seems to use a simpler model than real world
-    // Base CdA around 0.3-0.35 for most riders
-    let base_cda = 0.32;
-    
-    // Small adjustments based on size
-    let height_factor = (height_m / 1.75).powf(0.5);
-    let weight_factor = (weight_kg / 75.0).powf(0.3);
-    
-    base_cda * height_factor * weight_factor
-}
-
-// Estimate FTP from Zwift Racing Score
-// Based on typical Zwift category power outputs
-fn estimate_ftp_from_zwift_score(zwift_score: u32, weight_kg: f64) -> f64 {
-    let w_per_kg = match zwift_score {
-        0..=189 => 2.3,    // Lower Cat D: ~2.3 W/kg
-        190..=199 => 2.6,  // Upper Cat D: ~2.6 W/kg
-        200..=299 => 3.2,  // Cat C: ~3.2 W/kg
-        300..=399 => 3.9,  // Cat B: ~3.9 W/kg
-        _ => 4.5,          // Cat A: ~4.5 W/kg
-    };
-    w_per_kg * weight_kg
-}
-
-// Calculate speed for given power using Martin et al. (1998) equation
-// Returns speed in km/h
-fn calculate_speed_from_power(
-    power_watts: f64,
-    weight_kg: f64,
-    cda: f64,
-    grade_percent: f64,
-    crr: f64,
-    is_draft: bool,
-) -> f64 {
-    // Apply draft reduction to effective power
-    let effective_power = if is_draft {
-        power_watts / DRAFT_REDUCTION
-    } else {
-        power_watts
-    };
-    
-    // Convert grade from percent to radians
-    let grade_rad = (grade_percent / 100.0).atan();
-    
-    // Binary search for speed that matches the power
-    let mut speed_low = 0.0; // m/s
-    let mut speed_high = 20.0; // m/s (72 km/h)
-    
-    while speed_high - speed_low > 0.01 {
-        let speed_mid = (speed_low + speed_high) / 2.0;
-        
-        // Calculate required power at this speed
-        let rolling_resistance = weight_kg * GRAVITY * speed_mid * grade_rad.cos() * crr;
-        let gravity_component = weight_kg * GRAVITY * speed_mid * grade_rad.sin();
-        let air_resistance = 0.5 * AIR_DENSITY * cda * speed_mid.powi(3);
-        
-        let required_power = rolling_resistance + gravity_component + air_resistance;
-        
-        if required_power < effective_power {
-            speed_low = speed_mid;
-        } else {
-            speed_high = speed_mid;
-        }
-    }
-    
-    // Convert m/s to km/h
-    speed_low * 3.6
 }
 
 // Primary duration estimation - uses route_id when available
@@ -1292,9 +1208,9 @@ mod tests {
     #[test]
     fn test_filters_out_running_events() {
         let events = vec![
-            create_test_event("Cycling Race", 50.0, "Watopia Flat", "CYCLING"), // ~111 min
+            create_test_event("Cycling Race", 60.0, "Watopia Flat", "CYCLING"), // ~116 min
             create_test_event("Running Event", 10.0, "May Field", "RUNNING"),
-            create_test_event("Bike Race 2", 54.0, "Tempus Fugit", "CYCLING"), // ~110 min
+            create_test_event("Bike Race 2", 62.0, "Tempus Fugit", "CYCLING"), // ~112 min
         ];
 
         let args = Args {
@@ -1319,32 +1235,32 @@ mod tests {
     #[test]
     fn test_duration_estimation_for_cat_d() {
         // Test known distances and expected durations for Cat D (195 score)
-        // Base speed for 195 score is 27 km/h
+        // Base speed for 195 score is 30.9 km/h
 
-        // Watopia: 40km at 27km/h * 1.0 multiplier = 88.88 ≈ 88 min (rounds down)
+        // Watopia: 40km at 30.9km/h * 1.0 multiplier = 77.7 ≈ 77 min
         let watopia_time = estimate_duration_for_category(40.0, "Watopia", 195);
-        assert_eq!(watopia_time, 88);
+        assert_eq!(watopia_time, 77);
 
-        // Alpe du Zwift: 30km at 27km/h * 0.7 multiplier = 95.23 ≈ 95 min
+        // Alpe du Zwift: 30km at 30.9km/h * 0.7 multiplier = 83.1 ≈ 83 min
         let alpe_time = estimate_duration_for_category(30.0, "Alpe du Zwift", 195);
-        assert_eq!(alpe_time, 95);
+        assert_eq!(alpe_time, 83);
 
-        // Tempus Fugit: 35km at 27km/h * 1.1 multiplier = 70.70 ≈ 70 min (rounds down)
+        // Tempus Fugit: 35km at 30.9km/h * 1.1 multiplier = 61.8 ≈ 61 min
         let tempus_time = estimate_duration_for_category(35.0, "Tempus Fugit", 195);
-        assert_eq!(tempus_time, 70);
+        assert_eq!(tempus_time, 61);
     }
 
     #[test]
     fn test_duration_filtering() {
         let events = vec![
-            create_test_event("Short Race", 20.0, "Watopia Flat", "CYCLING"), // ~44 min
-            create_test_event("Perfect Race", 50.0, "Watopia Flat", "CYCLING"), // ~111 min
-            create_test_event("Long Race", 80.0, "Watopia Flat", "CYCLING"),  // ~178 min
+            create_test_event("Short Race", 20.0, "Watopia Flat", "CYCLING"), // ~39 min
+            create_test_event("Perfect Race", 50.0, "Watopia Flat", "CYCLING"), // ~97 min
+            create_test_event("Long Race", 80.0, "Watopia Flat", "CYCLING"),  // ~155 min
         ];
 
         let args = Args {
             zwift_score: Some(195),
-            duration: 120, // 2 hours
+            duration: 100, // ~1h 40m
             tolerance: 20, // ±20 minutes
             event_type: "all".to_string(),
             days: 1,
@@ -1376,35 +1292,35 @@ mod tests {
                 name: "3R Watopia Flat Route Race",
                 distance_km: 33.4,
                 route: "Watopia Flat Route",
-                typical_time_minutes: 67, // Calculated: 33.4km / (27km/h * 1.1) = 67 min
+                typical_time_minutes: 58, // Calculated: 33.4km / (30.9km/h * 1.1) = 58 min
                 tolerance: 5,
             },
             RaceData {
                 name: "ZSUN Sunday Race",
                 distance_km: 25.7,
                 route: "London Loop",
-                typical_time_minutes: 57, // 25.7km / 27km/h = 57 min
+                typical_time_minutes: 50, // 25.7km / 30.9km/h = 50 min
                 tolerance: 5,
             },
             RaceData {
                 name: "DBR Monday Race",
                 distance_km: 41.1,
                 route: "Tempus Fugit",
-                typical_time_minutes: 83, // 41.1km / (27km/h * 1.1) = 83 min
+                typical_time_minutes: 72, // 41.1km / (30.9km/h * 1.1) = 72 min
                 tolerance: 5,
             },
             RaceData {
                 name: "Herd Racing",
                 distance_km: 46.9,
                 route: "Innsbruck",
-                typical_time_minutes: 104, // 46.9km / 27km/h = 104 min
+                typical_time_minutes: 91, // 46.9km / 30.9km/h = 91 min
                 tolerance: 7,
             },
             RaceData {
                 name: "ZRL Race",
                 distance_km: 29.5,
                 route: "Richmond",
-                typical_time_minutes: 66, // 29.5km / 27km/h = 65.5 ≈ 66 min
+                typical_time_minutes: 57, // 29.5km / 30.9km/h = 57 min
                 tolerance: 5,
             },
         ];
@@ -1422,6 +1338,40 @@ mod tests {
                 diff,
                 race.tolerance
             );
+        }
+    }
+
+    #[test]
+    fn test_multi_lap_race_detection() {
+        // Test that we can detect multi-lap races from event names
+        assert_eq!(parse_lap_count("3R Volcano Flat Race - 3 Laps"), Some(3));
+        assert_eq!(parse_lap_count("Race - 5 laps"), Some(5));
+        assert_eq!(parse_lap_count("2 Lap Race"), Some(2));
+        assert_eq!(parse_lap_count("Regular Race"), None);
+        
+        // Test distance calculation for multi-lap races
+        if let Some(route_data) = get_route_data(123) { // Volcano Flat
+            let base_distance = route_data.distance_km;
+            
+            // Single lap
+            assert_eq!(
+                get_multi_lap_distance("Regular Race", base_distance),
+                base_distance
+            );
+            
+            // 3 laps
+            assert_eq!(
+                get_multi_lap_distance("3 Lap Race", base_distance),
+                base_distance * 3.0
+            );
+        }
+    }
+
+    fn get_multi_lap_distance(event_name: &str, base_distance: f64) -> f64 {
+        if let Some(laps) = parse_lap_count(event_name) {
+            base_distance * laps as f64
+        } else {
+            base_distance
         }
     }
 
@@ -1539,20 +1489,20 @@ mod tests {
             RouteExpectation {
                 route_id: 1258415487,  // Bell Lap (14.1km, 59m elevation)
                 name: "Bell Lap",
-                min_minutes: 28,
-                max_minutes: 35,
+                min_minutes: 22,  // 14.1km at ~38 km/h (flat boost)
+                max_minutes: 28,
             },
             RouteExpectation {
                 route_id: 2698009951,  // Downtown Dolphin (22.9km, 80m elevation)
                 name: "Downtown Dolphin",
-                min_minutes: 45,
-                max_minutes: 55,
+                min_minutes: 40,  // 22.9km at ~34 km/h
+                max_minutes: 48,
             },
             RouteExpectation {
                 route_id: 2663908549,  // Mt. Fuji (20.3km, 1159m elevation)
                 name: "Mt. Fuji",
-                min_minutes: 60,  // Very hilly route, wide range for Cat D
-                max_minutes: 85,
+                min_minutes: 52,  // Very hilly route, 20.3km at ~23 km/h
+                max_minutes: 70,
             },
         ];
         
@@ -1579,5 +1529,78 @@ mod tests {
         // let jacks_results = vec![
         //     ActualResult { route_id: 2698009951, actual_minutes: 52, date: "2025-01" },
         // ];
+    }
+
+    #[test]
+    fn test_edge_case_estimations() {
+        // Test very short race (sprint)
+        let sprint_duration = estimate_duration_for_category(5.0, "Sprint Route", 195);
+        assert!(sprint_duration >= 8 && sprint_duration <= 12, 
+            "Sprint (5km) should take 8-12 minutes, got {}", sprint_duration);
+        
+        // Test very long race (gran fondo)
+        let fondo_duration = estimate_duration_for_category(100.0, "Epic Route", 195);
+        assert!(fondo_duration >= 180 && fondo_duration <= 250,
+            "Gran Fondo (100km) should take 3-4.2 hours, got {} min", fondo_duration);
+        
+        // Test extreme elevation (Alpe du Zwift)
+        let alpe_duration = estimate_duration_for_category(12.2, "Alpe du Zwift", 195);
+        assert!(alpe_duration >= 33 && alpe_duration <= 45,
+            "Alpe (12.2km with 1035m elevation) should take 33-45 min, got {}", alpe_duration);
+    }
+
+    #[test]
+    fn test_database_route_validation() {
+        // Test that all routes in database have valid data
+        if let Ok(db) = Database::new() {
+            if let Ok(routes) = db.get_all_routes() {
+                for route in routes {
+                    // Distance should be reasonable
+                    assert!(route.distance_km > 0.0 && route.distance_km < 200.0,
+                        "Route {} has unrealistic distance: {} km", 
+                        route.name, route.distance_km);
+                    
+                    // Elevation gain per km should be reasonable
+                    let elevation_per_km = route.elevation_m as f64 / route.distance_km;
+                    assert!(elevation_per_km < 100.0,
+                        "Route {} has unrealistic elevation: {} m/km",
+                        route.name, elevation_per_km);
+                    
+                    // Surface should be valid
+                    assert!(matches!(route.surface.as_str(), "road" | "gravel" | "mixed"),
+                        "Route {} has invalid surface: {}",
+                        route.name, route.surface);
+                }
+            }
+        }
+    }
+
+    #[tokio::test]
+    #[ignore] // Run with: cargo test -- --ignored
+    async fn test_real_zwift_api_connection() {
+        // Simple test to verify API is accessible
+        let client = reqwest::Client::new();
+        let url = "https://us-or-rly101.zwift.com/api/public/events";
+        
+        let response = client
+            .get(url)
+            .header("Accept", "application/json")
+            .header("User-Agent", "zwift-race-finder/1.0")
+            .send()
+            .await;
+        
+        match response {
+            Ok(resp) => {
+                assert!(resp.status().is_success(), "API returned error: {}", resp.status());
+                
+                // Try to parse as JSON array
+                let body = resp.text().await.expect("Failed to read response body");
+                assert!(body.starts_with('['), "Response doesn't look like JSON array");
+                assert!(body.len() > 100, "Response seems too short");
+            }
+            Err(e) => {
+                panic!("Failed to connect to Zwift API: {}", e);
+            }
+        }
     }
 }

@@ -262,6 +262,26 @@ impl Database {
         Ok(result.map(|avg| avg.round() as u32))
     }
     
+    pub fn get_all_routes(&self) -> Result<Vec<RouteData>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT route_id, distance_km, elevation_m, name, world, surface 
+             FROM routes"
+        )?;
+        
+        let routes = stmt.query_map([], |row| {
+            Ok(RouteData {
+                route_id: row.get(0)?,
+                distance_km: row.get(1)?,
+                elevation_m: row.get(2)?,
+                name: row.get(3)?,
+                world: row.get(4)?,
+                surface: row.get(5)?,
+            })
+        })?.collect::<Result<Vec<_>, _>>()?;
+        
+        Ok(routes)
+    }
+
     pub fn get_all_race_results(&self) -> Result<Vec<RaceResult>> {
         let mut stmt = self.conn.prepare(
             "SELECT id, route_id, event_name, actual_minutes, zwift_score, race_date, notes 

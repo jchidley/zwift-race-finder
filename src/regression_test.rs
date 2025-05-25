@@ -108,9 +108,9 @@ mod tests {
         // Test specific routes we've mapped
         let test_cases = vec![
             // (route_id, zwift_score, expected_minutes_range)
-            (3369744027, 195, (25, 35)),  // Volcano Flat for Cat D
-            (1258415487, 195, (30, 40)),  // Bell Lap for Cat D
-            (3742187716, 195, (50, 70)),  // Castle to Castle for Cat D
+            (3369744027, 195, (23, 30)),  // Volcano Flat for Cat D (updated for 30.9 km/h)
+            (1258415487, 195, (22, 28)),  // Bell Lap for Cat D (14.1km flat)
+            (3742187716, 195, (45, 60)),  // Castle to Castle for Cat D
         ];
         
         for (route_id, zwift_score, (min_expected, max_expected)) in test_cases {
@@ -128,6 +128,52 @@ mod tests {
                     min_expected,
                     max_expected
                 );
+            }
+        }
+    }
+
+    #[test]
+    fn test_route_mapping_consistency() {
+        // Ensure mapped routes have reasonable race times
+        let db = Database::new().expect("Failed to open database");
+        
+        let results = db.get_all_race_results()
+            .expect("Failed to get race results");
+        
+        // Group by route and check for outliers
+        let mut route_times: std::collections::HashMap<u32, Vec<u32>> = std::collections::HashMap::new();
+        
+        for result in results.iter().filter(|r| r.route_id != 9999) {
+            route_times.entry(result.route_id)
+                .or_insert_with(Vec::new)
+                .push(result.actual_minutes);
+        }
+        
+        // Check each route for suspicious variance
+        for (route_id, times) in route_times {
+            if times.len() < 2 { continue; }
+            
+            let min = *times.iter().min().unwrap() as f64;
+            let max = *times.iter().max().unwrap() as f64;
+            let avg = times.iter().sum::<u32>() as f64 / times.len() as f64;
+            
+            // If max is more than 2x min, likely a mapping error
+            if max > min * 2.0 {
+                if let Some(route_data) = get_route_data(route_id) {
+                    // Calculate expected speed range
+                    let distance_km = route_data.distance_km;
+                    let min_speed = distance_km * 60.0 / max; // km/h
+                    let max_speed = distance_km * 60.0 / min; // km/h
+                    
+                    println!("WARNING: Route {} shows high variance", route_data.name);
+                    println!("  Times: {}-{} min (avg: {:.0})", min, max, avg);
+                    println!("  Speeds: {:.1}-{:.1} km/h", min_speed, max_speed);
+                    
+                    // Fail if speeds are unreasonably low (< 15 km/h for races)
+                    assert!(min_speed > 15.0, 
+                        "Route {} has suspiciously slow times - likely wrong distance or multi-lap",
+                        route_data.name);
+                }
             }
         }
     }

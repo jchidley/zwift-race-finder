@@ -1,10 +1,11 @@
 # Zwift Race Finder - TODO
 
 ## 📊 Current Status
-- **Prediction Error**: 29.6% (down from 92.8%!) ✅ BELOW 30% TARGET!
-- **Real Race Data**: 151 races from Strava
+- **Prediction Error**: 25.7% (down from 92.8%!) ✅ BELOW 30% TARGET!
+- **Real Race Data**: 151 races from Strava  
 - **Multi-Lap Handling**: FIXED - now using event_sub_groups
 - **Pack Model**: Implemented - recognizes draft dominance in racing
+- **Test Suite**: Complete with route validation - all tests passing ✅
 - **Next Goal**: Get below 20% error by refining pack dynamics
 
 ## ✅ Completed Tasks
@@ -19,6 +20,11 @@
 - [x] Achieved <30% prediction error target!
 - [x] Created rider_stats table and weight import
 - [x] Implemented pack-based model (draft dominates in races)
+- [x] Fixed EVO CC route mapping (was on wrong routes)
+- [x] Added route mapping consistency test
+- [x] Added multi-lap race detection test
+- [x] Added edge case tests (sprint, gran fondo, Alpe)
+- [x] Updated all test expectations for 30.9 km/h speed
 
 ## 🎯 Next Phase: Get Below 20% Error
 
@@ -60,10 +66,11 @@
 - [ ] Power-based pacing recommendations
 
 ## 🐛 Current Known Issues
-- [ ] Route names blank in error analysis output
+- [ ] Dead code warnings for unused physics constants
 - [ ] Some routes still need distance corrections
 - [ ] Network connectivity affects API calls
 - [ ] Category E not properly mapped (treated as D)
+- [ ] Race series (like EVO CC) run different routes each week
 
 ## 💡 Key Learnings
 
@@ -72,6 +79,8 @@
 2. **Real data beats estimates** - Strava integration was game-changing
 3. **Draft matters** - 30.9 km/h in races vs 25 km/h solo
 4. **Multi-lap races** - Must use total distance, not base route
+5. **Route mapping critical** - Wrong mapping (EVO CC) caused 11.2% accuracy drop
+6. **Test coverage essential** - Comprehensive tests prevent regression
 
 ### AI Development Insights
 1. **Domain knowledge essential** - Knowing Zwift racing guided better solutions

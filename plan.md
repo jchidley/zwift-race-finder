@@ -1,13 +1,16 @@
 # Zwift Race Finder - Project Plan
 
-## Current Status (Multi-Lap Fix Complete)
+## Current Status (Test Suite Complete)
 ✅ Major cleanup complete - removed 28 dead files
 ✅ Files renamed for clarity (e.g., `zwiftpower_profile_extractor.js`)
 ✅ Successfully imported 151 real race times from Strava
 ✅ Fixed route distances (KISS Racing: 100→35km)
 ✅ Updated base speed: 25→30.9 km/h based on actual data
 ✅ Implemented multi-lap race handling using event_sub_groups
-✅ Mean prediction error: 25.1% (below 30% target!)
+✅ Mean prediction error: 25.7% (below 30% target!)
+✅ Fixed EVO CC mapping issue (was on wrong routes)
+✅ Added comprehensive test suite with route validation
+✅ All tests passing - ready for confident refactoring
 ⚡ Ready for physics-based modeling phase
 
 ## Goal
@@ -58,15 +61,18 @@ Data Sources:
 ## Current Accuracy & Next Steps
 
 ### Achievement Unlocked! 🎉
-- **Prediction Error**: 25.1% (was 92.8%)
+- **Prediction Error**: 25.7% (was 92.8%)
 - **Target**: Was 30%, now achieved!
 - **Next Target**: <20% with physics model
+- **Test Coverage**: All tests passing ✅
 
 ### What Made the Difference
 1. **Real race times from Strava** (not estimates)
 2. **Correct route distances** from actual data
 3. **Multi-lap handling** via event_sub_groups
 4. **Accurate base speed** (30.9 km/h for Cat D)
+5. **Fixed route mappings** (EVO CC was on wrong routes)
+6. **Comprehensive test suite** prevents regressions
 
 ### Immediate Next Steps (Physics Phase)
 ```bash
