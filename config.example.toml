@@ -1,0 +1,23 @@
+# Zwift Race Finder Configuration
+# Non-secret settings only - secrets are stored in Bitwarden
+
+[defaults]
+zwift_score = 195
+category = "D"
+
+[import]
+# For WSL users - set your Windows username here
+# Or use environment variable WINDOWS_USERNAME
+windows_username = "YOUR_USERNAME"
+
+[preferences]
+# Default search parameters
+default_duration = 120
+default_tolerance = 30
+default_days = 1
+
+[display]
+# Color output
+use_colors = true
+# Show debug information
+debug = false
