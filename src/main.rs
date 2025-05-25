@@ -256,8 +256,61 @@ fn get_route_distance_by_id(route_id: u32) -> Option<f64> {
     get_route_data(route_id).map(|data| data.distance_km)
 }
 
+// Parse lap count from event name (e.g., "3 Laps", "6 laps")
+fn parse_lap_count(name: &str) -> Option<u32> {
+    let re = Regex::new(r"(\d+)\s*[Ll]aps?").unwrap();
+    if let Some(caps) = re.captures(name) {
+        caps.get(1)?.as_str().parse().ok()
+    } else {
+        None
+    }
+}
+
+// Find the subgroup that matches the user's category
+fn find_user_subgroup<'a>(event: &'a ZwiftEvent, zwift_score: u32) -> Option<&'a EventSubGroup> {
+    if event.event_sub_groups.is_empty() {
+        return None;
+    }
+    
+    let user_category = match zwift_score {
+        0..=199 => "D",
+        200..=299 => "C",
+        300..=399 => "B",
+        _ => "A",
+    };
+    
+    // Try to find exact match first
+    event.event_sub_groups.iter().find(|sg| {
+        sg.name.contains(user_category) || 
+        (user_category == "D" && sg.name.contains("E"))
+    })
+}
+
+// Parse distance from event name (e.g., "36.6km/22.7mi", "(40km)")
+fn parse_distance_from_name(name: &str) -> Option<f64> {
+    // Try to find km distance first
+    let km_re = Regex::new(r"(\d+(?:\.\d+)?)\s*km").unwrap();
+    if let Some(caps) = km_re.captures(name) {
+        return caps.get(1)?.as_str().parse().ok();
+    }
+    
+    // If no km found, try miles and convert
+    let mi_re = Regex::new(r"(\d+(?:\.\d+)?)\s*mi").unwrap();
+    if let Some(caps) = mi_re.captures(name) {
+        let miles: f64 = caps.get(1)?.as_str().parse().ok()?;
+        return Some(miles * 1.60934); // Convert miles to km
+    }
+    
+    None
+}
+
 // Try to determine distance from event name patterns
 fn estimate_distance_from_name(name: &str) -> Option<f64> {
+    // First try to parse explicit distance from name
+    if let Some(distance) = parse_distance_from_name(name) {
+        return Some(distance);
+    }
+    
     let name_lower = name.to_lowercase();
 
     // Common race name patterns with typical distances
@@ -587,14 +640,30 @@ fn filter_events(mut events: Vec<ZwiftEvent>, args: &Args, zwift_score: u32) -> 
 
         // Check subgroups if main event has no distance/duration
         if !event.event_sub_groups.is_empty() {
-            // If any subgroup matches our criteria, include the event
+            // Find the subgroup that matches user's category
+            let user_category = match zwift_score {
+                0..=199 => "D",
+                200..=299 => "C", 
+                300..=399 => "B",
+                _ => "A",
+            };
+            
+            // Check if user's category subgroup matches criteria
             event.event_sub_groups.iter().any(|subgroup| {
+                // Check if this subgroup is for user's category
+                let is_user_category = subgroup.name.contains(user_category) || 
+                                     (user_category == "D" && subgroup.name.contains("E"));
+                
+                if !is_user_category {
+                    return false; // Skip other categories
+                }
+                
                 if let Some(duration) = subgroup.duration_in_minutes {
                     let diff = (duration as i32 - args.duration as i32).abs();
                     diff <= args.tolerance as i32
                 } else if let Some(distance) = subgroup.distance_in_meters.filter(|&d| d > 0.0) {
                     let distance_km = distance / 1000.0;
-                    let route_name = event.route.as_deref().unwrap_or("");
+                    let route_name = event.route.as_deref().unwrap_or(&event.name);
                     let estimated_duration =
                         estimate_duration_for_category(distance_km, route_name, zwift_score);
                     let diff = (estimated_duration as i32 - args.duration as i32).abs();
@@ -680,10 +749,18 @@ fn print_event(event: &ZwiftEvent, _args: &Args, zwift_score: u32) {
         }
     }
 
-    // Duration info - prioritize route_id for accuracy
-    let duration_minutes = event
-        .duration_in_minutes
+    // Duration info - check subgroups first for per-category data
+    let user_subgroup = find_user_subgroup(event, zwift_score);
+    
+    // Try to get duration/distance from user's category subgroup first
+    let duration_minutes = user_subgroup
+        .and_then(|sg| sg.duration_in_minutes)
+        .or(event.duration_in_minutes)
         .or_else(|| event.duration_in_seconds.map(|s| s / 60));
+    
+    let distance_meters = user_subgroup
+        .and_then(|sg| sg.distance_in_meters)
+        .or(event.distance_in_meters);
 
     if let Some(duration) = duration_minutes {
         println!(
@@ -720,8 +797,8 @@ fn print_event(event: &ZwiftEvent, _args: &Args, zwift_score: u32) {
                 route_id.to_string().yellow()
             );
         }
-    } else if let Some(distance) = event.distance_in_meters.filter(|&d| d > 0.0) {
-        // FALLBACK: Use provided distance
+    } else if let Some(distance) = distance_meters.filter(|&d| d > 0.0) {
+        // FALLBACK: Use provided distance (from subgroup or event)
         let distance_km = distance / 1000.0;
         let route_name = event.route.as_deref().unwrap_or(&event.name);
         let estimated_duration =
@@ -780,14 +857,52 @@ fn print_event(event: &ZwiftEvent, _args: &Args, zwift_score: u32) {
     // Show subgroups if any
     if !event.event_sub_groups.is_empty() {
         println!("{}: ", "Categories".bright_blue());
+        
+        // Find the subgroup that matches user's category
+        let user_category = match zwift_score {
+            0..=199 => "D",
+            200..=299 => "C",
+            300..=399 => "B",
+            _ => "A",
+        };
+        
         for group in &event.event_sub_groups {
+            let is_user_category = group.name.contains(user_category) || 
+                                   (user_category == "D" && group.name.contains("E"));
+            
             print!("  • {}", group.name);
+            
+            // Show distance and calculate laps if possible
             if let Some(dist) = group.distance_in_meters {
-                print!(" ({:.1} km)", dist / 1000.0);
+                let dist_km = dist / 1000.0;
+                print!(" ({:.1} km", dist_km);
+                
+                // Try to calculate laps based on base route distance
+                if let Some(route_id) = event.route_id {
+                    if let Some(route_data) = get_route_data(route_id) {
+                        let base_distance = route_data.distance_km;
+                        if base_distance > 0.0 {
+                            let laps = (dist_km / base_distance).round() as u32;
+                            if laps > 1 {
+                                print!(" - {} laps", laps);
+                            }
+                        }
+                    }
+                }
+                print!(")");
+                
+                // Show estimated duration for user's category
+                if is_user_category {
+                    let route_name = event.route.as_deref().unwrap_or(&event.name);
+                    let estimated_duration = estimate_duration_for_category(dist_km, route_name, zwift_score);
+                    print!(" → {} estimated", format_duration(estimated_duration).green());
+                }
             }
+            
             if let Some(dur) = group.duration_in_minutes {
                 print!(" ({})", format_duration(dur));
             }
+            
             println!();
         }
     }

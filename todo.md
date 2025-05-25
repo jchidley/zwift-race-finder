@@ -1,5 +1,10 @@
 # Zwift Race Finder - TODO
 
+## 📊 Current Status
+- **Prediction Error**: 31.2% (down from 92.8%!)
+- **Real Race Data**: 151 races from Strava
+- **Next Goal**: Get below 30% error using physics model
+
 ## 🚨 IMMEDIATE PRIORITY - Post-Cleanup Tasks
 
 ### Step 1: Test Everything After Cleanup ⚡ IN PROGRESS
@@ -59,11 +64,34 @@ cargo test regression_test -- --nocapture
 - [ ] Focus on your most frequent races
 - [ ] Use Strava distances as ground truth
 
-### Future Projects
-- [ ] Scrape individual ZwiftPower event pages for precise times
-- [ ] Automate Strava sync
-- [ ] Add draft vs solo toggle
-- [ ] Implement device emulation testing
+## 🚀 Next Phase: Get Below 30% Error
+
+### Priority 1: Handle Multi-Lap Races
+- [ ] Parse lap count from event names ("3 Laps")
+- [ ] Extract distance from names ("36.6km/22.7mi")
+- [ ] Create database table for multi-lap events
+- [ ] Update prediction logic to multiply base route distance
+
+### Priority 2: Physics-Based Speed Model
+- [ ] Add rider stats table (height, weight, FTP)
+- [ ] Implement Martin et al. (1998) power equation
+- [ ] Calculate personalized CdA from height/weight
+- [ ] Replace category speeds with physics calculations
+- [ ] Account for elevation profiles properly
+
+### Priority 3: More Accurate Data
+- [ ] Scrape individual ZwiftPower event pages (has exact times)
+- [ ] Import power data from Strava (for FTP estimation)
+- [ ] Build route elevation profiles database
+- [ ] Map more routes with correct distances
+
+### Future Enhancements
+- [ ] Automate Strava sync (daily/weekly)
+- [ ] Add weather/draft conditions toggle
+- [ ] Surface-specific bike recommendations
+- [ ] Real-time predictions during races (Sauce4Zwift)
+- [ ] Community data sharing API
+- [ ] Device emulation for automated testing
 
 ## ✅ Completed Today
 - [x] Major cleanup: removed 28 dead files

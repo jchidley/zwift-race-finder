@@ -199,3 +199,60 @@ These GitHub projects can simulate power meters, heart rate monitors, and traine
    - Combine device emulators with API monitoring
    - Automated nightly regression tests
    - Performance tracking dashboard
+
+## Next Phase: Advanced Physics-Based Modeling
+
+### Multi-Lap Race Handling
+- Detect lap count from event names (e.g., "3 Laps")
+- Parse distance info from names (e.g., "36.6km/22.7mi")
+- Create virtual routes for multi-lap events
+- Store lap info in database for accurate predictions
+
+### ZwiftPower Event Page Scraping
+- Individual event pages contain precise race times
+- Example: https://zwiftpower.com/events.php?zid=4943630
+- Shows actual finish times for all participants
+- Could build comprehensive time database across all categories
+
+### Physics-Based Speed Model (Target: <20% Error)
+
+#### Implement Martin et al. (1998) Power Equation
+```
+P = M·g·v·cos(arctan(G))·Crr + M·g·v·sin(arctan(G)) + (1/2)ρ·CD·A·v³
+```
+- Replace category-based speed with physics calculations
+- Account for rider weight, height → CdA
+- Surface-specific rolling resistance (Crr)
+- Gradient-dependent speed adjustments
+
+#### Zwift-Specific Adaptations
+Based on our research findings:
+- **CdA Calculations**: `A = 0.0276·h^0.725·m^0.425`
+- **Pack Dynamics**: 24.7-33% draft savings
+- **Surface Penalties**: 
+  - Road: Crr = 0.004
+  - Gravel: Crr = 0.008 (2x penalty)
+  - Dirt: 80W reduction for road bikes
+- **Speed Relationships**:
+  - Flats: Speed ∝ ∛(Power/CdA)
+  - Hills: Speed ∝ Power/Weight
+
+#### Implementation Plan
+1. **Add rider physical stats** (height, weight from Strava/ZwiftPower)
+2. **Calculate personalized CdA** based on height/weight
+3. **Estimate FTP/power** from historical performance
+4. **Apply physics model** instead of category speeds
+5. **Validate against real times** from Strava
+
+### Research Papers for Reference
+- **Martin et al. (1998)**: "Validation of a Mathematical Model for Road Cycling Power"
+  - R² = 0.97 correlation with measured power
+  - Standard error only 2.7W
+- **Chung (2003)**: Virtual elevation method for CdA testing
+- **Zwift Physics Documentation**: https://zwiftinsider.com/zwift-speeds/
+
+### Expected Outcomes
+- Reduce error from 31.2% → <20%
+- Handle multi-lap races correctly
+- Account for elevation profiles accurately
+- Personalized predictions based on rider characteristics

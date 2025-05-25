@@ -1054,3 +1054,123 @@ sqlite3 ~/.local/share/zwift-race-finder/races.db "UPDATE routes SET distance_km
 # List files for cleanup
 find . -name "*.js" -o -name "*.py" -o -name "*_v[0-9]*" | grep -E "(v[0-9]|_old|debug_|test_|temp_|backup_)" | sort
 ```
+
+## Session 2025-01-25: Major Cleanup and Strava Integration Success
+
+### The Big Discovery
+**We were comparing estimates to estimates!** The "actual_minutes" in the database weren't real race times - they were calculated as `distance ÷ 30 km/h`. This explained the 92.8% prediction error.
+
+### Problems Solved
+1. **Project Cruft** - Removed 28 dead files from abandoned approaches
+2. **Confusing Filenames** - Renamed files for clarity (e.g., `extract_zwiftpower_v2.js` → `zwiftpower_profile_extractor.js`)
+3. **No Real Race Times** - Successfully integrated Strava API to get actual race durations
+4. **Wrong Base Speed** - Updated from 25 km/h to 30.9 km/h (based on 151 real races)
+5. **Incorrect Route Distances** - Fixed major routes using Strava data
+
+### Technical Implementation
+- Created Strava OAuth flow with proper token management
+- Built activity fetcher filtering for Zwift virtual rides
+- Implemented smart matching between Strava activities and database races
+- Used PEP 723 script dependencies for Python tools (Pillow for icon creation)
+
+### Results
+- **Prediction Error**: 92.8% → 31.2% (66% improvement!)
+- **Real Data**: Now have 151 races with actual times from Strava
+- **Fixed Routes**:
+  - KISS Racing: 100km → 35km
+  - Ottawa TopSpeed: 19.8km → 50km  
+  - EVO CC (Bell Lap): 14.1km → 45km
+
+### Key Insights
+1. ZwiftPower profile exports only show estimated times
+2. Individual ZwiftPower event pages (e.g., zwiftpower.com/events.php?zid=4943630) show real times
+3. Strava API is the most reliable source for personal race times
+4. Average Cat D race speed with draft: 30.9 km/h (not 25 km/h)
+5. Many "races" are multi-lap events not reflected in base route distance
+
+### Cleanup Commands Used
+```bash
+# Find versioned/debug files
+find . -name "*.js" -o -name "*.py" -o -name "*_v[0-9]*" | grep -E "(v[0-9]|_old|debug_|test_|temp_|backup_)" | sort
+
+# Batch delete with confirmation
+cat files_to_delete.txt | xargs -I {} ls -la {}  # Review first
+cat files_to_delete.txt | xargs rm -v             # Then delete
+
+# Git cleanup commit
+git add -A
+git commit -m "refactor: major cleanup - remove dead code and rename files"
+```
+
+### Strava Integration Process
+```bash
+# 1. Create Strava app icon
+uv run create_icon.py  # Uses PEP 723 inline dependencies
+
+# 2. Authenticate (requires manual OAuth flow)
+./strava_auth.sh
+
+# 3. Import process
+./strava_fetch_activities.sh     # Gets all Zwift virtual rides
+./strava_import_to_db.sh        # Matches to races by name/date
+uv run strava_analyze.py        # Shows speed statistics
+```
+
+### Database Fixes Applied
+```sql
+-- Fix route distances based on Strava data
+UPDATE routes SET distance_km = 35.0 WHERE route_id = 2474227587;  -- KISS Racing
+UPDATE routes SET distance_km = 50.0 WHERE route_id = 1656629976;  -- Ottawa TopSpeed
+UPDATE routes SET distance_km = 45.0 WHERE route_id = 1258415487;  -- EVO CC Bell Lap
+```
+
+---
+## Key Commands
+
+```bash
+# Build and run with defaults
+cargo run
+
+# Install to ~/.local/bin
+./install.sh
+
+# Run with specific parameters
+cargo run -- --zwift-score 195 --duration 120 --tolerance 30
+
+# Show unknown routes
+cargo run -- --show-unknown-routes
+
+# Record race result
+cargo run -- --record-result "route_id,minutes,event_name"
+
+# Run regression tests
+cargo test regression_test -- --nocapture
+
+# Extract data from ZwiftPower (browser)
+cat zwiftpower_profile_extractor.js | xclip -selection clipboard
+
+# Import ZwiftPower results
+./import_zwiftpower_dev.sh           # Development
+./import_zwiftpower.sh               # Production
+
+# Apply route mappings
+./apply_route_mappings.sh
+
+# Strava integration
+./strava_auth.sh                     # Authenticate with Strava
+./strava_fetch_activities.sh         # Fetch Zwift activities
+./strava_import_to_db.sh            # Import real race times
+uv run strava_analyze.py            # Analyze performance
+
+# Fix route distances
+sqlite3 ~/.local/share/zwift-race-finder/races.db "UPDATE routes SET distance_km = 35.0 WHERE route_id = 2474227587"
+
+# Check for secrets before committing
+./check_secrets.sh
+
+# Create Strava app icon
+uv run create_icon.py               # Uses inline PEP 723 dependencies
+
+# Find and clean up cruft
+find . -name "*.js" -o -name "*.py" -o -name "*_v[0-9]*" | grep -E "(v[0-9]|_old|debug_|test_|temp_|backup_)" | sort
+```
