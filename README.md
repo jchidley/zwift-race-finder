@@ -73,6 +73,14 @@ This provides:
 - Accurate speed data including draft benefit
 - Better calibration for future predictions
 
+### Security Note
+
+The `strava_config.json` file contains OAuth tokens and should never be committed to version control. It's automatically excluded via `.gitignore`. For production use:
+
+1. Store tokens in environment variables or a secure vault
+2. Use the example config as a template: `cp strava_config.json.example strava_config.json`
+3. Consider implementing token encryption at rest
+
 ## Quick Start
 
 ### For New Users

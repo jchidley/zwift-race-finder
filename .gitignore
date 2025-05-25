@@ -61,6 +61,9 @@ GITHUB_PUBLISH_LOG.md
 .env
 .env.local
 
+# Strava config with OAuth tokens
+strava_config.json
+
 # Test coverage
 tarpaulin-report.html
 cobertura.xml

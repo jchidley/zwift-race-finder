@@ -31,6 +31,15 @@
 - [x] Created ACCURACY_TIMELINE.md documentation
 - [x] Fixed all 7 failing tests after speed update
 
+## 🔒 Security & Privacy Tasks
+
+### Priority 0: Secure Token Storage
+- [ ] Implement environment variable support for Strava tokens
+- [ ] Add token encryption at rest
+- [ ] Create secure token refresh mechanism
+- [ ] Document secure deployment practices
+- [ ] Consider using system keyring for token storage
+
 ## 🎯 Next Phase: Get Below 20% Error
 
 ### Priority 1: Refine Pack Dynamics Model

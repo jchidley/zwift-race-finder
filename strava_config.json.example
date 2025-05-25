@@ -1,0 +1,10 @@
+{
+  "client_id": "YOUR_CLIENT_ID",
+  "client_secret": "YOUR_CLIENT_SECRET",
+  "redirect_uri": "http://localhost:8080/exchange_token",
+  "scope": "read,activity:read_all",
+  "access_token": "",
+  "refresh_token": "",
+  "expires_at": 0,
+  "athlete_id": 0
+}
