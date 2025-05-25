@@ -41,13 +41,16 @@ decrypt_config.sh
 restore_personal_config.sh
 zwift-race-finder-secure
 zwift-race-finder-personal
-zwift-race-finder-bw
-bw_config.sh
+# zwift-race-finder-bw  # Now safe to commit (uses Bitwarden, no hardcoded secrets)
+# bw_config.sh  # Now safe to commit (uses Bitwarden, no hardcoded secrets)
 bitwarden_item_template.json
 
 # Keep example files
 !config.example.toml
 !config.example.json
+
+# Documentation with personal details (sanitize before committing)
+GITHUB_PUBLISH_LOG.md
 
 # Temporary files
 *.tmp

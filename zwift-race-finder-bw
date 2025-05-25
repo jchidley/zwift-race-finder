@@ -1,0 +1,18 @@
+#!/bin/bash
+# Wrapper that loads secrets from Bitwarden before running
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Export secrets from Bitwarden (suppress color output)
+eval "$("$SCRIPT_DIR/bw_config.sh" export 2>/dev/null)"
+
+# Check if secrets were loaded
+if [[ -n "$ZWIFTPOWER_PROFILE_ID" ]]; then
+    # Run with secrets in environment
+    exec zwift-race-finder "$@"
+else
+    echo "Failed to load secrets from Bitwarden"
+    echo "Make sure you're logged in: bw login && export BW_SESSION=$(bw unlock --raw)"
+    exit 1
+fi
