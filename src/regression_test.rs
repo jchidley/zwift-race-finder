@@ -35,11 +35,20 @@ mod tests {
                     result.zwift_score,
                 )
             } else {
-                // Fall back to base route distance
-                estimate_duration_from_route_id(
+                // Check for multi-lap events in database
+                let mut base_prediction = estimate_duration_from_route_id(
                     result.route_id,
                     result.zwift_score,
-                )
+                );
+                
+                // Apply multi-lap multiplier if known
+                if let Ok(db) = Database::new() {
+                    if let Ok(Some(lap_count)) = db.get_multi_lap_info(&result.event_name) {
+                        base_prediction = base_prediction.map(|d| (d as f64 * lap_count as f64) as u32);
+                    }
+                }
+                
+                base_prediction
             };
             
             if let Some(predicted_minutes) = predicted {
@@ -108,7 +117,7 @@ mod tests {
         // Test specific routes we've mapped
         let test_cases = vec![
             // (route_id, zwift_score, expected_minutes_range)
-            (3369744027, 195, (23, 30)),  // Volcano Flat for Cat D (updated for 30.9 km/h)
+            (3369744027, 195, (20, 25)),  // Volcano Flat for Cat D (12.3km, 45m elevation)
             (1258415487, 195, (22, 28)),  // Bell Lap for Cat D (14.1km flat)
             (3742187716, 195, (45, 60)),  // Castle to Castle for Cat D
         ];

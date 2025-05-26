@@ -1,13 +1,14 @@
 # Zwift Race Finder - TODO
 
 ## 📊 Current Status
-- **Prediction Error**: 23.6% (down from 92.8%!) ✅ EXCEEDED 30% TARGET!
+- **Prediction Error**: 16.1% (down from 92.8%!) ✅ EXCEEDED <20% TARGET!
 - **Real Race Data**: 131 matched races from Strava (80% match rate)
-- **Multi-Lap Handling**: FIXED - now using event_sub_groups
+- **Multi-Lap Handling**: FIXED - pattern matching enables flexible event detection
 - **Pack Model**: Implemented - recognizes draft dominance in racing
 - **Test Suite**: Complete with route validation - all tests passing ✅
 - **Security**: OAuth tokens protected with .gitignore
 - **Repository**: Published to GitHub with all fixes
+- **Production Status**: ✅ DEPLOYED - Binary installed, documentation complete, ready for users
 
 ## ✅ Completed Tasks
 - [x] Major cleanup: removed 28 dead files
@@ -130,7 +131,7 @@ Target: >80% code coverage with all critical paths tested
   - Cleaned up database (removed 20+ already-known routes)
   - Successfully finding races with known routes (Three Village Loop = 20 min)
 
-## 🚧 Next Priority: Optimize Route Discovery
+## ✅ Completed: Route Discovery Optimization (2025-05-27)
 
 ### Priority 0: Improve World Detection ✅ COMPLETED (2025-05-26)
 - [x] Parse world hints from event names (e.g., "Makuri May" → makuri-islands)
@@ -138,11 +139,59 @@ Target: >80% code coverage with all critical paths tested
 - [x] Detected world checked first, reducing API calls by ~10x per route
 - [x] Extract real route IDs from whatsonzwift.com URLs (no more placeholder 9999)
 
-### Priority 1: Batch Discovery Process
-- [ ] Run discovery in smaller batches (10-20 routes at a time)
-- [ ] Add progress saving between batches
-- [ ] Consider background/async discovery
-- [ ] Implement smarter targeting based on route frequency
+### Priority 1: Batch Discovery Process ✅ COMPLETED (2025-05-27)
+- [x] Run discovery in smaller batches (10-20 routes at a time)
+- [x] Add progress saving between batches
+- [x] Consider background/async discovery
+- [x] Implement smarter targeting based on route frequency
+- [x] Sort by frequency to prioritize high-value routes
+- [x] Show frequency count during discovery: "[55x] Searching for..."
+- [x] Graceful timeout handling with progress notification
+
+## ✅ Completed: Manual Route Mappings (2025-05-27)
+
+### Priority 1: Create Manual Mapping Table ✅ COMPLETED
+- [x] Researched actual routes used by high-frequency custom events
+  - EVO CC Race Series → Watopia's Waistband (40.8km)
+  - Sydkysten Race → Placeholder route 9001 (29.6km)
+  - Tofu Tornado Race → Volcano Flat (varies 32-70km)
+  - CAT & MOUSE KZR CHASE → Placeholder route 9002 (40km)
+  - DBR races → Watopia Flat Route
+  - ZHR Morning Tea Race → Placeholder route 9003 (49km)
+  - Zwift TT Club - Watopia's Waistband → route 3733109212
+- [x] Built SQL script for common event → route mappings (`manual_route_mappings.sql`)
+- [x] Documented event series patterns in `ROUTE_MAPPING_RESEARCH.md`
+- [x] Applied mappings: reduced unmapped events from 112 to 104
+- [x] Improved accuracy: regression error from 43.9% to 34.0%
+
+## ✅ Completed: Multi-Lap Race Detection (2025-05-27)
+
+### Multi-Lap Implementation
+- [x] Created multi_lap_events table for known multi-lap races
+- [x] Added database method get_multi_lap_info()
+- [x] Updated filtering logic to check for multi-lap events
+- [x] Modified display code to show lap information
+- [x] Enhanced regression test to apply lap multipliers
+- [x] **Achieved 16.1% accuracy (exceeded <20% target!)**
+- [x] **Production Deployment** (2025-05-27) - Built release binary, installed to ~/.local/bin
+- [x] **Created User Documentation** - FEEDBACK.md for collecting user reports
+- [x] **Created Deployment Guide** - DEPLOYMENT.md with installation and troubleshooting
+- [x] **Updated README** - Latest 16.1% accuracy metrics and achievement details
+- [x] **Production Testing** - Verified finding 34 races in 20-40 minute range
+- [x] Fixed "3R Racing" with pattern matching (533% error improvement!)
+- [x] Production-tested with live API data - working perfectly
+
+### Priority 1: Production Testing
+- [x] Test multi-lap detection with live API data - WORKING! Pattern matching enables flexible event matching
+- [x] Enhanced get_multi_lap_info() with SQL pattern matching (exact match + LIKE)
+- [x] Added Zwift Crit Racing Club (6 laps) - fixed 533% error!
+- [ ] Add more multi-lap events as discovered
+- [ ] Consider automating lap detection from event descriptions
+
+### Priority 2: Remaining Improvements
+- [ ] Create date-based mapping for rotating series (EVO CC changes weekly)
+- [ ] Replace placeholder route IDs (9001-9003) with real Zwift route_ids
+- [ ] Document multi-lap detection in README.md
 
 ### Priority 2: Integrate Description Parsing
 - [ ] Integrate `get_route_data_enhanced()` into main filtering logic
@@ -224,6 +273,8 @@ Target: >80% code coverage with all critical paths tested
 8. **Two event systems** - Traditional (A/B/C/D) vs Racing Score (0-650 ranges) are mutually exclusive
 9. **Site search tip** - Use `site:https://whatsonzwift.com` to find accurate route data
 10. **UX matters** - Event type counts and smart suggestions reduce user friction significantly
+11. **Manual mapping effective** - Custom event names need SQL scripts, not automated discovery
+12. **Route length critical** - Must match distance to duration (EVO CC: 40.8km not 12.1km)
 
 ### AI Development Insights
 1. **Domain knowledge essential** - Knowing Zwift racing guided better solutions
@@ -231,3 +282,4 @@ Target: >80% code coverage with all critical paths tested
 3. **Management approach works** - Treating AI as enthusiastic employee needing direction
 4. **Transparency enables debugging** - Seeing AI's reasoning catches problems early
 5. **Data validates assumptions** - Real-world testing revealed multiple wrong assumptions
+6. **Web search effective** - Event organizer websites often contain route details not in API

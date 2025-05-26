@@ -785,8 +785,17 @@ fn filter_events(mut events: Vec<ZwiftEvent>, args: &Args, zwift_score: u32) -> 
                     return diff <= args.tolerance as i32;
                 }
             } else if let Some(estimated_duration) = estimate_duration_from_route_id(route_id, zwift_score) {
-                // No distance provided, but we know the route - use base route distance
-                let diff = (estimated_duration as i32 - args.duration as i32).abs();
+                // No distance provided, but we know the route - check for multi-lap events
+                let mut actual_duration = estimated_duration;
+                
+                // Check if this is a known multi-lap event
+                if let Ok(db) = Database::new() {
+                    if let Ok(Some(lap_count)) = db.get_multi_lap_info(&event.name) {
+                        actual_duration = (estimated_duration as f64 * lap_count as f64) as u32;
+                    }
+                }
+                
+                let diff = (actual_duration as i32 - args.duration as i32).abs();
                 return diff <= args.tolerance as i32;
             } else if is_racing_score_event(event) {
                 // Racing Score event with route_id but no distance - try parsing description
@@ -1039,7 +1048,7 @@ fn print_event(event: &ZwiftEvent, _args: &Args, zwift_score: u32) {
                 route_data.distance_km
             };
             
-            // If actual distance is 0 or missing, use base route distance
+            // If actual distance is 0 or missing, check for multi-lap events
             if actual_distance_km > 0.0 {
                 println!("{}: {:.1} km", "Distance".bright_blue(), actual_distance_km);
                 
@@ -1049,8 +1058,24 @@ fn print_event(event: &ZwiftEvent, _args: &Args, zwift_score: u32) {
                     println!("{}: {} laps of {:.1} km route", "Laps".bright_blue(), laps, route_data.distance_km);
                 }
             } else {
-                actual_distance_km = route_data.distance_km;
-                println!("{}: {:.1} km", "Distance".bright_blue(), actual_distance_km);
+                // Check if this is a known multi-lap event
+                let mut lap_count = 1;
+                if let Ok(db) = Database::new() {
+                    if let Ok(Some(laps)) = db.get_multi_lap_info(&event.name) {
+                        lap_count = laps;
+                    }
+                }
+                
+                actual_distance_km = route_data.distance_km * lap_count as f64;
+                if lap_count > 1 {
+                    println!("{}: {:.1} km ({} laps of {:.1} km)", 
+                             "Distance".bright_blue(), 
+                             actual_distance_km, 
+                             lap_count, 
+                             route_data.distance_km);
+                } else {
+                    println!("{}: {:.1} km", "Distance".bright_blue(), actual_distance_km);
+                }
             }
             
             // Use actual distance for estimation, not base route distance
@@ -1279,64 +1304,127 @@ fn show_unknown_routes() -> Result<()> {
 
 async fn discover_unknown_routes() -> Result<()> {
     let db = Database::new()?;
-    let unknown = db.get_unknown_routes()?;
+    let mut unknown = db.get_unknown_routes()?;
     
     if unknown.is_empty() {
         println!("No unknown routes to discover!");
         return Ok(());
     }
     
+    // Sort by frequency (times_seen) to prioritize high-value routes
+    unknown.sort_by(|a, b| b.2.cmp(&a.2));
+    
     let total_count = unknown.len();
-    println!("🔍 Starting route discovery for {} unknown routes...\n", total_count);
+    println!("🔍 Starting route discovery for {} unknown routes...", total_count);
+    println!("📋 Prioritizing high-frequency events first\n");
+    
+    // Process in batches to avoid timeouts
+    const BATCH_SIZE: usize = 20;
+    const BATCH_TIMEOUT_MINS: u64 = 2;
     
     let discovery = route_discovery::RouteDiscovery::new()?;
-    let mut discovered_count = 0;
-    let mut failed_count = 0;
+    let mut total_discovered = 0;
+    let mut total_failed = 0;
+    let mut total_skipped = 0;
     
-    for (route_id, event_name, _times_seen) in unknown {
-        // Check if we should attempt discovery (not tried recently)
-        if !db.should_attempt_discovery(route_id)? {
-            println!("⏭️  Skipping {} (recently attempted)", event_name);
-            continue;
+    // Process routes in batches
+    for (batch_num, chunk) in unknown.chunks(BATCH_SIZE).enumerate() {
+        let batch_start = std::time::Instant::now();
+        println!("\n📦 Batch {} of {} ({} routes):", 
+            batch_num + 1, 
+            (unknown.len() + BATCH_SIZE - 1) / BATCH_SIZE,
+            chunk.len()
+        );
+        
+        let mut batch_discovered = 0;
+        let mut batch_failed = 0;
+        
+        for (route_id, event_name, times_seen) in chunk {
+            // Check if we're approaching timeout
+            if batch_start.elapsed().as_secs() > BATCH_TIMEOUT_MINS * 60 - 30 {
+                println!("\n⏰ Approaching timeout limit, saving progress...");
+                break;
+            }
+            
+            // Check if we should attempt discovery (not tried recently)
+            if !db.should_attempt_discovery(*route_id)? {
+                println!("⏭️  Skipping {} (recently attempted)", event_name);
+                total_skipped += 1;
+                continue;
+            }
+            
+            print!("🔎 [{:3}x] Searching for '{}' (ID: {})... ", 
+                times_seen, event_name, route_id);
+            std::io::stdout().flush()?;
+            
+            // Record the attempt
+            db.record_discovery_attempt(*route_id, event_name)?;
+            
+            // Try to discover route data
+            match discovery.discover_route(event_name).await {
+                Ok(discovered) => {
+                    // Use the discovered route_id if it's valid, otherwise use the original
+                    let final_route_id = if discovered.route_id != 9999 {
+                        discovered.route_id
+                    } else {
+                        *route_id
+                    };
+                    
+                    // Save to database
+                    db.save_discovered_route(
+                        final_route_id,
+                        discovered.distance_km,
+                        discovered.elevation_m,
+                        &discovered.world,
+                        &discovered.surface,
+                        &discovered.name,
+                    )?;
+                    
+                    println!("✅ Found! {}km, {}m elevation, ID: {}", 
+                        discovered.distance_km, discovered.elevation_m, final_route_id);
+                    batch_discovered += 1;
+                }
+                Err(e) => {
+                    println!("❌ Failed: {}", e);
+                    batch_failed += 1;
+                }
+            }
+            
+            // Small delay to be polite to external services
+            tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
         }
         
-        print!("🔎 Searching for '{}' (route_id: {})... ", event_name, route_id);
-        std::io::stdout().flush()?;
+        total_discovered += batch_discovered;
+        total_failed += batch_failed;
         
-        // Record the attempt
-        db.record_discovery_attempt(route_id, &event_name)?;
+        // Batch summary
+        println!("\nBatch {} complete: {} found, {} failed", 
+            batch_num + 1, batch_discovered, batch_failed);
         
-        // Try to discover route data
-        match discovery.discover_route(&event_name).await {
-            Ok(discovered) => {
-                // Save to database with the actual route_id
-                db.save_discovered_route(
-                    route_id,
-                    discovered.distance_km,
-                    discovered.elevation_m,
-                    &discovered.world,
-                    &discovered.surface,
-                    &discovered.name,
-                )?;
-                
-                println!("✅ Found! {}km, {}m elevation", 
-                    discovered.distance_km, discovered.elevation_m);
-                discovered_count += 1;
-            }
-            Err(e) => {
-                println!("❌ Failed: {}", e);
-                failed_count += 1;
-            }
+        // Check if we should continue
+        if batch_start.elapsed().as_secs() > BATCH_TIMEOUT_MINS * 60 - 30 {
+            println!("\n⏰ Timeout reached. {} routes remaining for next run.", 
+                total_count - (batch_num + 1) * BATCH_SIZE);
+            break;
         }
         
-        // Small delay to be polite to external services
-        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+        // Pause between batches
+        if batch_num + 1 < (unknown.len() + BATCH_SIZE - 1) / BATCH_SIZE {
+            println!("\n⏸️  Pausing 5 seconds before next batch...");
+            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+        }
     }
     
     println!("\n📊 Discovery Summary:");
-    println!("  ✅ Successfully discovered: {}", discovered_count);
-    println!("  ❌ Failed to discover: {}", failed_count);
-    println!("  ⏭️  Skipped (recent attempts): {}", total_count - discovered_count - failed_count);
+    println!("  ✅ Successfully discovered: {}", total_discovered);
+    println!("  ❌ Failed to discover: {}", total_failed);
+    println!("  ⏭️  Skipped (recent attempts): {}", total_skipped);
+    println!("  ⏳ Remaining to process: {}", 
+        total_count.saturating_sub(total_discovered + total_failed + total_skipped));
+    
+    if total_discovered > 0 {
+        println!("\n💡 Tip: Run the tool normally to see the newly discovered routes in action!");
+    }
     
     Ok(())
 }

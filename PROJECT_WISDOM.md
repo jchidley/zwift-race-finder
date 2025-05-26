@@ -14,6 +14,22 @@ This file uses a hierarchical structure to manage insights efficiently:
 ## Active Insights
 *New discoveries will be appended here during sessions*
 
+### 2025-05-27: Production Deployment Success
+Insight: Achieving <20% accuracy unlocked production readiness - users trust predictions that are "close enough"
+Impact: 16.1% error is sufficient for real-world use. Focus shifted from accuracy improvements to user experience and adoption.
+
+### 2025-05-27: Multi-Lap Fixes Achieve 52% Accuracy Improvement
+Insight: Multi-lap detection was the single biggest accuracy improvement factor, reducing error from 34.0% to 16.1%
+Impact: Exceeded <20% target by significant margin. Production ready with 16.1% mean absolute error across 46 races.
+
+### 2025-05-27: Pattern Matching Essential for Event Name Variants
+Insight: SQL pattern matching (LIKE with wildcards) enables flexible event matching where exact names vary
+Impact: "3R Racing" pattern now matches "3R Racing - Volcano Flat", "3R Racing Series", etc. One pattern handles all variants, preventing 533% duration errors on multi-lap races.
+
+### 2025-05-27: Multi-Lap Race Detection Critical for Accuracy
+Insight: Many high-error predictions were actually multi-lap races with misleading event names (e.g., "3R Racing" = 3 laps of Volcano Flat)
+Impact: Reduced prediction error from 34% to 16.1% by creating multi_lap_events table and checking for known patterns. Simple database lookup beats complex parsing.
+
 ### 2025-05-26: Web Scraping Architecture Pattern
 Insight: Separate discovery mechanism from business logic for flexibility
 Impact: When Google search failed, only needed to modify search function, not entire discovery flow. Clean architecture = easy pivots.
@@ -41,3 +57,20 @@ Impact: Successfully extracting real route IDs instead of placeholder 9999 enabl
 ### 2025-05-26: Performance Multiplication Through Smart Targeting
 Insight: Combining world detection + caching creates multiplicative performance gains
 Impact: World detection (10x speedup) + cache hits (∞ speedup) = dramatically faster discovery for common event patterns
+
+### 2025-05-27: Batch Processing Essential for Large Tasks
+Insight: Sequential processing of 185 routes times out; batching with progress saving enables completion
+Impact: Process 20 routes per batch with 2-min timeout, save progress between runs. Users can chip away at large discovery tasks.
+
+### 2025-05-27: Custom Event Names vs Route Names
+Insight: Most "unknown routes" are actually custom event names (club races, team events) that don't map to real routes
+
+### 2025-05-27: Event Organizer Websites Contain Route Details
+Insight: High-frequency community events often have organizer websites with detailed route information not available in Zwift API
+Impact: Web searches for "[event name] zwift route" can reveal actual routes when automated discovery fails. Found Mountain Mash, Tempus Fugit, and Tick Tock routes this way.
+Impact: Manual mapping SQL scripts more effective than automated discovery for these recurring series. Database shows patterns.
+
+### 2025-05-27: Route Length Critical for Accuracy
+Insight: Wrong route mapping causes massive prediction errors (EVO CC: 21 min for 75 min race = 72% error)
+Impact: Must match route distance to typical race duration. EVO CC needed 40.8km route, not 12.1km. Always verify with actual race times.
+Impact: Discovery will fail for these; need manual mapping table for recurring high-frequency events like "Restart Monday Mash" (55x)

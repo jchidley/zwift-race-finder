@@ -387,6 +387,31 @@ impl Database {
         Ok(result)
     }
     
+    /// Get lap count for multi-lap events
+    pub fn get_multi_lap_info(&self, event_name: &str) -> Result<Option<u32>> {
+        // Try exact match first
+        let result = self.conn.query_row(
+            "SELECT lap_count FROM multi_lap_events WHERE event_name_pattern = ?1",
+            params![event_name],
+            |row| row.get(0)
+        ).optional()?;
+        
+        if result.is_some() {
+            return Ok(result);
+        }
+        
+        // Try pattern match - check if event name contains the pattern
+        let result = self.conn.query_row(
+            "SELECT lap_count FROM multi_lap_events 
+             WHERE ?1 LIKE '%' || event_name_pattern || '%'
+             LIMIT 1",
+            params![event_name],
+            |row| row.get(0)
+        ).optional()?;
+        
+        Ok(result)
+    }
+    
     /// Check if we've already tried to discover this route recently
     pub fn should_attempt_discovery(&self, route_id: u32) -> Result<bool> {
         let result: Option<i64> = self.conn.query_row(
