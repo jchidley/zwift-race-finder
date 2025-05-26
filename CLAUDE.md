@@ -110,6 +110,24 @@ ZwiftPower → Import → SQLite → Route Mappings
 - Route 9999 is a placeholder for unmapped routes
 - The system automatically logs unknown routes for future mapping
 
+### Event Types (Discovered & Fixed 2025-05-26)
+Zwift has two mutually exclusive event categorization systems:
+1. **Traditional Categories**: A/B/C/D/E with `distanceInMeters` populated
+2. **Racing Score Events**: Score ranges (0-650) with `distanceInMeters: 0`
+   - Identified by `rangeAccessLabel` field in event subgroups
+   - Distance only available in description text
+   - Tool now handles both types seamlessly with `is_racing_score_event()` and `parse_distance_from_description()`
+   - Pro tip from Jack: Use `site:https://whatsonzwift.com` search for accurate route data
+
+### UX Enhancements (Implemented 2025-05-26)
+The tool now provides better guidance when users search for events:
+1. **Event Type Summary**: Shows counts after fetching (e.g., "Found: 91 group rides, 52 races, 33 group workouts, 5 time trials")
+2. **Smart No Results Messages**: Context-aware suggestions based on what was searched
+   - For races: Explains most are 20-30 minutes, provides working examples
+   - For time trials: Notes they're less common, suggests alternatives
+   - General tips: Wider tolerance, different event types, typical durations
+3. **Working Command Examples**: Shows exact commands like `cargo run -- -d 30 -t 30`
+
 ## Key Files and Modules
 
 ### Rust Code
@@ -137,8 +155,8 @@ The project uses Jack's actual race history to calibrate duration estimates:
 3. Compare predicted vs actual times
 4. Adjust difficulty multipliers based on error analysis
 
-Current accuracy: 36.9% mean absolute error (down from 92.8%)
-Status: Acceptable given inherent race variance (32-86 min for same route)
+Current accuracy: 23.6% mean absolute error (down from 92.8%)
+Status: Production ready - exceeded <30% target
 
 ## Database Management
 
@@ -176,3 +194,22 @@ Current accuracy target: < 20% mean absolute error
 2. Research route details on ZwiftHacks/Zwift Insider
 3. Add to routes table with proper data
 4. Update import scripts to map event names
+
+### Debugging Event Filtering Issues
+When races aren't being found:
+1. Run with `--debug` to see raw event data
+2. Check if distance is 0.0 (Racing Score events always have 0)
+3. Look for `rangeAccessLabel` field to identify Racing Score events
+4. Verify route_id exists in database
+5. Check if event description contains distance info
+6. See plan.md "Solution Plan" for Racing Score event handling
+
+## Log Management
+
+This project uses hierarchical log management to keep LLM context efficient:
+- **ZWIFT_API_LOG.md**: Index file pointing to Summary/Recent/Archives
+- **ZWIFT_API_LOG_SUMMARY.md**: Executive summary (<3KB)
+- **ZWIFT_API_LOG_RECENT.md**: Latest sessions (<2KB)
+- **sessions/**: Archived complete logs by date
+
+When adding log entries, append to ZWIFT_API_LOG_RECENT.md for current work.

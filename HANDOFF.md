@@ -1,20 +1,19 @@
 # Project: Zwift Race Finder
-Updated: 2025-05-26 02:15 UTC
+Updated: 2025-05-26 16:10 UTC
 
 ## Current State
-Status: ✅ Production ready - 23.6% accuracy (exceeded <30% target)
-Target: Clean working directory with all changes committed
-Latest: Fixed Strava import, achieved 80% race matching, all tests pass
+Status: UX improvements complete - tool now guides users effectively
+Target: Production ready with helpful output
+Latest: Added event type counts & context-aware "no results" suggestions
 
 ## Essential Context
-- strava_import_to_db.sh fixed with temp table approach (SQLite workaround)
-- 131/163 races matched to Strava (80% is excellent)
-- Unmatched races simply don't exist in Strava (normal)
-- Mean error down from 92.8% → 23.6% through iterative improvements
-- strava_config.json still has tokens (don't commit)
+- Now shows: "Found: 91 group rides, 52 races, 33 group workouts, 5 time trials"
+- Smart suggestions when no results (e.g., "Most races are short (20-30 minutes)")
+- Provides working command examples: `cargo run -- -d 30 -t 30`
+- Tested all scenarios - short races, TT, group rides work perfectly
 
 ## Next Step
-Commit strava_import_to_db.sh changes (exclude strava_config.json)
+Consider default parameters adjustment (maybe -d 60 -t 60 instead of -d 120)
 
 ## If Blocked
-Use git add -p to selectively stage changes
+N/A - implementation complete

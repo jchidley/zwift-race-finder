@@ -89,6 +89,20 @@ fn default_sport() -> String {
     "CYCLING".to_string()
 }
 
+fn is_racing_score_event(event: &ZwiftEvent) -> bool {
+    // Racing Score events have range_access_label in subgroups
+    event.event_sub_groups.iter().any(|sg| sg.range_access_label.is_some())
+}
+
+fn parse_distance_from_description(description: &Option<String>) -> Option<f64> {
+    if let Some(desc) = description {
+        // Look for patterns like "Distance: 23.5 km" or "Distance: 14.6 miles"
+        parse_distance_from_name(desc)
+    } else {
+        None
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 struct EventSubGroup {
@@ -98,6 +112,7 @@ struct EventSubGroup {
     distance_in_meters: Option<f64>,
     duration_in_minutes: Option<u32>,
     category_enforcement: Option<bool>,
+    range_access_label: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -652,7 +667,8 @@ fn filter_events(mut events: Vec<ZwiftEvent>, args: &Args, zwift_score: u32) -> 
         // Duration filter - prioritize route_id for accuracy
         let duration_minutes = event
             .duration_in_minutes
-            .or_else(|| event.duration_in_seconds.map(|s| s / 60));
+            .filter(|&d| d > 0) // Ignore 0-minute durations
+            .or_else(|| event.duration_in_seconds.map(|s| s / 60).filter(|&d| d > 0));
 
         if let Some(duration) = duration_minutes {
             // Fixed duration event
@@ -668,19 +684,46 @@ fn filter_events(mut events: Vec<ZwiftEvent>, args: &Args, zwift_score: u32) -> 
                 .and_then(|sg| sg.distance_in_meters)
                 .or(event.distance_in_meters);
                 
-            if let Some(dist_m) = distance_meters {
+                
+            if let Some(dist_m) = distance_meters.filter(|&d| d > 0.0) {
                 let distance_km = dist_m / 1000.0;
                 if let Some(estimated_duration) = estimate_duration_with_distance(route_id, distance_km, zwift_score) {
                     let diff = (estimated_duration as i32 - args.duration as i32).abs();
                     return diff <= args.tolerance as i32;
+                } else {
+                    // Unknown route but we have distance - use fallback estimation
+                    let route_name = event.route.as_deref().unwrap_or(&event.name);
+                    let estimated_duration = estimate_duration_for_category(distance_km, route_name, zwift_score);
+                    let diff = (estimated_duration as i32 - args.duration as i32).abs();
+                    return diff <= args.tolerance as i32;
                 }
             } else if let Some(estimated_duration) = estimate_duration_from_route_id(route_id, zwift_score) {
+                // No distance provided, but we know the route - use base route distance
                 let diff = (estimated_duration as i32 - args.duration as i32).abs();
                 return diff <= args.tolerance as i32;
+            } else if is_racing_score_event(event) {
+                // Racing Score event with route_id but no distance - try parsing description
+                if let Some(distance_km) = parse_distance_from_description(&event.description) {
+                    if let Some(estimated_duration) = estimate_duration_with_distance(route_id, distance_km, zwift_score) {
+                        let diff = (estimated_duration as i32 - args.duration as i32).abs();
+                        return diff <= args.tolerance as i32;
+                    }
+                }
+            } else {
+                // Try harder for Three Village Loop races which we know have distance in description
+                if event.name.contains("Three Village Loop") {
+                    if let Some(distance_km) = parse_distance_from_description(&event.description) {
+                        if let Some(estimated_duration) = estimate_duration_with_distance(route_id, distance_km, zwift_score) {
+                            let diff = (estimated_duration as i32 - args.duration as i32).abs();
+                            return diff <= args.tolerance as i32;
+                        }
+                    }
+                }
             }
+            // If we have a route_id but can't estimate (unknown route with no distance), continue to fallbacks
         }
         
-        // FALLBACK 1: Use provided distance
+        // FALLBACK 1: Use provided distance (but not if it's 0.0)
         if let Some(distance) = event.distance_in_meters.filter(|&d| d > 0.0) {
             let distance_km = distance / 1000.0;
             let route_name = event.route.as_deref().unwrap_or(&event.name);
@@ -690,7 +733,18 @@ fn filter_events(mut events: Vec<ZwiftEvent>, args: &Args, zwift_score: u32) -> 
             return diff <= args.tolerance as i32;
         }
         
-        // FALLBACK 2: Try to guess from event name
+        // FALLBACK 2: For Racing Score events with distance=0, try to parse from description
+        if is_racing_score_event(event) {
+            if let Some(distance_km) = parse_distance_from_description(&event.description) {
+                let route_name = event.route.as_deref().unwrap_or(&event.name);
+                let estimated_duration =
+                    estimate_duration_for_category(distance_km, route_name, zwift_score);
+                let diff = (estimated_duration as i32 - args.duration as i32).abs();
+                return diff <= args.tolerance as i32;
+            }
+        }
+        
+        // FALLBACK 3: Try to guess from event name
         if let Some(distance_km) = estimate_distance_from_name(&event.name) {
             let estimated_duration =
                 estimate_duration_for_category(distance_km, &event.name, zwift_score);
@@ -822,7 +876,7 @@ fn print_event(event: &ZwiftEvent, _args: &Args, zwift_score: u32) {
         .and_then(|sg| sg.distance_in_meters)
         .or(event.distance_in_meters);
 
-    if let Some(duration) = duration_minutes {
+    if let Some(duration) = duration_minutes.filter(|&d| d > 0) {
         println!(
             "{}: {} (fixed duration)",
             "Duration".bright_blue(),
@@ -832,18 +886,24 @@ fn print_event(event: &ZwiftEvent, _args: &Args, zwift_score: u32) {
         // PRIMARY: Use route_id with actual race distance
         if let Some(route_data) = get_route_data(route_id) {
             // Use subgroup distance if available (for multi-lap races), otherwise base route distance
-            let actual_distance_km = if let Some(dist_m) = distance_meters {
+            let mut actual_distance_km = if let Some(dist_m) = distance_meters {
                 dist_m / 1000.0
             } else {
                 route_data.distance_km
             };
             
-            println!("{}: {:.1} km", "Distance".bright_blue(), actual_distance_km);
-            
-            // Calculate laps if distance differs from base route
-            let laps = (actual_distance_km / route_data.distance_km).round() as u32;
-            if laps > 1 {
-                println!("{}: {} laps of {:.1} km route", "Laps".bright_blue(), laps, route_data.distance_km);
+            // If actual distance is 0 or missing, use base route distance
+            if actual_distance_km > 0.0 {
+                println!("{}: {:.1} km", "Distance".bright_blue(), actual_distance_km);
+                
+                // Calculate laps if distance differs from base route
+                let laps = (actual_distance_km / route_data.distance_km).round() as u32;
+                if laps > 1 {
+                    println!("{}: {} laps of {:.1} km route", "Laps".bright_blue(), laps, route_data.distance_km);
+                }
+            } else {
+                actual_distance_km = route_data.distance_km;
+                println!("{}: {:.1} km", "Distance".bright_blue(), actual_distance_km);
             }
             
             // Use actual distance for estimation, not base route distance
@@ -884,12 +944,40 @@ fn print_event(event: &ZwiftEvent, _args: &Args, zwift_score: u32) {
                 cat_string
             );
         } else {
-            // Unknown route_id - show it for data collection
-            println!(
-                "{}: Route ID {} needs mapping",
-                "Info".yellow(),
-                route_id.to_string().yellow()
-            );
+            // Unknown route_id - try to estimate using fallback methods
+            let user_subgroup = find_user_subgroup(event, zwift_score);
+            let distance_meters = user_subgroup
+                .and_then(|sg| sg.distance_in_meters)
+                .or(event.distance_in_meters)
+                .filter(|&d| d > 0.0);  // Ignore 0.0 distances
+                
+            if let Some(dist_m) = distance_meters {
+                let distance_km = dist_m / 1000.0;
+                let route_name = event.route.as_deref().unwrap_or(&event.name);
+                let estimated_duration = estimate_duration_for_category(distance_km, route_name, zwift_score);
+                
+                println!("{}: {:.1} km", "Distance".bright_blue(), distance_km);
+                let cat_string = match zwift_score {
+                    0..=149 => "D",
+                    150..=189 => "D",
+                    190..=199 => "D+",
+                    200..=249 => "C",
+                    250..=299 => "B",
+                    _ => "A",
+                };
+                println!(
+                    "{}: {} (estimated for Cat {} rider, unknown route)",
+                    "Duration".bright_blue(),
+                    format_duration(estimated_duration).green(),
+                    cat_string
+                );
+            } else {
+                println!(
+                    "{}: Route ID {} needs mapping",
+                    "Info".yellow(),
+                    route_id.to_string().yellow()
+                );
+            }
         }
     } else if let Some(distance) = distance_meters.filter(|&d| d > 0.0) {
         // FALLBACK: Use provided distance (from subgroup or event)
@@ -1146,23 +1234,124 @@ async fn main() -> Result<()> {
     let events = fetch_events().await?;
     println!("Fetched {} upcoming events", events.len());
 
-    // Debug: show race count
+    // Count events by type for informative output
+    let mut event_counts = std::collections::HashMap::new();
+    for event in &events {
+        if event.sport.to_uppercase() == "CYCLING" {
+            *event_counts.entry(event.event_type.as_str()).or_insert(0) += 1;
+        }
+    }
+    
+    // Display event type summary
+    if !event_counts.is_empty() {
+        let mut counts: Vec<_> = event_counts.iter().collect();
+        counts.sort_by_key(|(_, count)| std::cmp::Reverse(**count));
+        
+        print!("Found: ");
+        let formatted_counts: Vec<String> = counts.iter().map(|(event_type, count)| {
+            let readable_type = match event_type.to_lowercase().as_str() {
+                "race" => "races",
+                "time_trial" => "time trials",
+                "group_ride" => "group rides",
+                "group_workout" => "group workouts",
+                _ => event_type,
+            };
+            format!("{} {}", count, readable_type)
+        }).collect();
+        println!("{}", formatted_counts.join(", "));
+    }
+
+    // Debug: show race data
+    if args.debug {
+        let races: Vec<_> = events.iter()
+            .filter(|e| e.sport.to_uppercase() == "CYCLING" && e.event_type == "RACE")
+            .take(5)
+            .collect();
+        
+        println!("\nDebug: First 5 races:");
+        for event in races {
+            println!("  Name: {}", event.name);
+            println!("  Route ID: {:?}", event.route_id);
+            println!("  Distance: {:?} meters", event.distance_in_meters);
+            println!("  Duration: {:?} minutes", event.duration_in_minutes);
+            println!("  Subgroups: {} groups", event.event_sub_groups.len());
+            if !event.event_sub_groups.is_empty() {
+                for sg in &event.event_sub_groups {
+                    println!("    - {}: dist={:?}m, dur={:?}min", 
+                        sg.name, sg.distance_in_meters, sg.duration_in_minutes);
+                }
+            }
+            println!();
+        }
+    }
+    
+    // Always show some debug info when no matches found
+    let race_count = events.iter()
+        .filter(|e| e.sport.to_uppercase() == "CYCLING" && e.event_type == "RACE")
+        .count();
+    
+    if race_count > 0 && !args.debug {
+        println!("\nDebug: Found {} races, checking first few:", race_count);
+        let sample_races: Vec<_> = events.iter()
+            .filter(|e| e.sport.to_uppercase() == "CYCLING" && e.event_type == "RACE")
+            .take(3)
+            .collect();
+            
+        for event in sample_races {
+            println!("  '{}': route_id={:?}, dist={:?}m", 
+                event.name, 
+                event.route_id, 
+                event.distance_in_meters
+            );
+            
+            // Show what duration we would estimate
+            if let Some(route_id) = event.route_id {
+                if let Some(route_data) = get_route_data(route_id) {
+                    let est = estimate_duration_from_route_id(route_id, zwift_score);
+                    println!("    → Known route: {} km, would estimate {:?} min", 
+                        route_data.distance_km, est);
+                } else {
+                    println!("    → Unknown route {}", route_id);
+                }
+            }
+        }
+    }
+
+    // Debug: show race count and raw event data
     if args.debug {
         let race_count = events
             .iter()
             .filter(|e| e.sport == "CYCLING" && e.event_type == "RACE")
             .count();
         println!("Found {} cycling races", race_count);
+        
     }
 
     let filtered = filter_events(events, &args, zwift_score);
 
     if filtered.is_empty() {
         println!("\n{}", "No matching events found!".red());
-        println!("Try adjusting your criteria:");
-        println!("  • Increase tolerance with -t");
-        println!("  • Look further ahead with -n");
-        println!("  • Change event type with -e (all, race, fondo, group, workout, tt)");
+        
+        // Provide specific suggestions based on what was searched for
+        if args.event_type == "race" {
+            println!("\nMost races are short (20-30 minutes). Try:");
+            println!("  • {} for short races", "cargo run -- -d 30 -t 30".yellow());
+            println!("  • {} for any race duration", "cargo run -- -d 60 -t 120".yellow());
+            println!("  • {} for time trials instead", "cargo run -- -e tt".yellow());
+        } else if args.event_type == "tt" || args.event_type == "time_trial" {
+            println!("\nTime trials are less common. Try:");
+            println!("  • {} for regular races", "cargo run -- -e race -d 30 -t 30".yellow());
+            println!("  • {} for all event types", "cargo run -- -e all".yellow());
+        } else {
+            println!("\nNo events match your duration criteria. Try:");
+            println!("  • {} for wider search", format!("cargo run -- -t {}", args.tolerance * 2).yellow());
+            println!("  • {} for all event types", "cargo run -- -e all".yellow());
+        }
+        
+        println!("\nGeneral tips:");
+        println!("  • Look further ahead: {} (next 3 days)", "-n 3".cyan());
+        println!("  • See all available events: {}", "cargo run -- -e all -d 60 -t 180".cyan());
+        println!("  • Most races: 20-30 min | Time trials/Group rides: 60-90 min");
     } else {
         println!(
             "\nFound {} matching events:",

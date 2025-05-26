@@ -1,6 +1,8 @@
 # Zwift Race Finder 🚴
 
-> 🎯 **PRODUCTION READY**: Achieving 25.7% prediction accuracy! This tool predicts Zwift race durations based on your racing score and historical data. Includes pack dynamics modeling and comprehensive test coverage.
+> 🎯 **PRODUCTION READY**: Achieving 23.6% prediction accuracy! This tool predicts Zwift race durations based on your racing score and historical data. Includes pack dynamics modeling and comprehensive test coverage.
+> 
+> ✅ **Latest Update (2025-05-26)**: Enhanced UX with event type counts and smart suggestions when no results found!
 
 A command-line tool to find Zwift races that match your target duration and racing score. Designed for cyclists who want to find races that fit their schedule and fitness level.
 
@@ -22,12 +24,12 @@ This project demonstrates the power of using LLMs (specifically Claude Code) to 
 - Create data analysis and machine learning features
 - Build a tool that actually solves my problem
 
-**The result**: A working tool with 25.7% prediction accuracy, improving with each race!
+**The result**: A working tool with 23.6% prediction accuracy, improving with each race!
 
 ## Features
 
 - 🎯 Filters Zwift events by estimated duration based on your racing score
-- 📊 25.7% prediction accuracy using 151+ real race results
+- 📊 23.6% prediction accuracy using 151+ real race results
 - 🗺️ Route-aware duration estimation considering elevation and surface type
 - 🔄 Strava integration for actual race times (not estimates!)
 - 🏁 Multi-lap race support with per-category distance handling

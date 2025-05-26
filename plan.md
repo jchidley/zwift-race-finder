@@ -1,19 +1,57 @@
 # Zwift Race Finder - Project Plan
 
-## Current Status (Production Ready)
+## Racing Score Event Support - FIXED! (2025-05-26)
+
+### Problem & Solution
+Racing Score events were not showing because they have `distanceInMeters: 0` in the API. Fixed by:
+1. ✅ Added `is_racing_score_event()` to detect these events
+2. ✅ Implemented `parse_distance_from_description()` to extract distance from text
+3. ✅ Updated Three Village Loop route data (was 39.8km, fixed to 10.6km)
+4. ✅ Modified filtering to handle both Traditional and Racing Score events
+5. ✅ Tool now successfully shows races (tested: Three Village Loop showing 20min duration)
+
+### Key Discovery
+Zwift has two mutually exclusive event types:
+- **Traditional**: A/B/C/D categories with `distanceInMeters` populated
+- **Racing Score**: Score ranges (0-650) with `distanceInMeters: 0`, distance only in description
+
+### User Tip
+Jack shared: Use `site:https://whatsonzwift.com` search to find accurate route data!
+
+## UX Improvements - COMPLETE! (2025-05-26)
+
+### Problem & Solution
+Default search (90-120min races) returned no results - poor user experience. Fixed by:
+1. ✅ Added event type summary: "Found: 91 group rides, 52 races, 33 group workouts, 5 time trials"
+2. ✅ Context-aware suggestions when no results found
+3. ✅ Provides working command examples like `cargo run -- -d 30 -t 30`
+4. ✅ Explains event duration patterns (races: 20-30min, TT/groups: 60-90min)
+
+### Key Insight
+Most races are short (20-30 minutes), while users expected longer events. The tool now educates users about typical event durations and guides them to successful searches.
+
+## Current Status (Production Ready - UX Enhanced!)
 ✅ Major cleanup complete - removed 28 dead files
 ✅ Files renamed for clarity (e.g., `zwiftpower_profile_extractor.js`)
 ✅ Successfully imported 151 real race times from Strava
 ✅ Fixed route distances (KISS Racing: 100→35km)
+✅ Event filtering bug FIXED (2025-05-26) - Racing Score events now supported!
 ✅ Updated base speed: 25→30.9 km/h based on actual data
 ✅ Implemented multi-lap race handling using event_sub_groups
-✅ Mean prediction error: 25.7% (below 30% target!)
+✅ Mean prediction error: 23.6% (exceeded 30% target!)
 ✅ Fixed EVO CC mapping issue (was on wrong routes)
 ✅ Added comprehensive test suite with route validation
 ✅ All tests passing - ready for confident refactoring
 ✅ Implemented pack dynamics model with drop probability
-✅ Created accuracy timeline: 92.8% → 31.2% → 25.1% → 36.9% → 25.7%
-⚡ Production ready - physics refinements optional
+✅ Created accuracy timeline: 92.8% → 31.2% → 25.1% → 36.9% → 25.7% → 23.6%
+✅ Fixed Strava import SQL issues (SQLite UPDATE limitations)
+✅ Achieved 80% race matching rate (131/163 races)
+✅ Secured OAuth tokens with .gitignore
+✅ Added Racing Score event support with description parsing
+✅ Implemented hierarchical log management (66KB → <5KB)
+✅ Created project-context-manager tool (extracted to ~/tools/project-context-manager)
+✅ Enhanced UX with event type counts & smart suggestions (2025-05-26)
+⚡ Production ready - published to GitHub
 
 ## Goal
 Create accurate race duration predictions by using ACTUAL race times (not estimates) to calibrate the model.
@@ -46,12 +84,14 @@ Data Sources:
 2. **Wrong route distances** - KISS Racing was 100km instead of 35km
 3. **Multi-lap races** - Different categories race different distances (event_sub_groups)
 4. **Draft benefit** - Races are ~30% faster than solo riding
+5. **Racing Score events** - API returns distanceInMeters: 0, fixed by parsing description text
 
 ## How We Fixed It
 1. ✅ Integrated Strava API for real race times (151 races imported)
 2. ✅ Fixed route distances using actual race data
 3. ✅ Implemented per-category distance handling from event_sub_groups
 4. ✅ Updated base speeds: Cat D = 30.9 km/h (was 25 km/h)
+5. ✅ Handle Racing Score events by parsing description and using route DB
 
 ## Technical Decisions
 - **Why SQLite?** Portable, simple, perfect for this use case
@@ -63,10 +103,11 @@ Data Sources:
 ## Current Accuracy & Next Steps
 
 ### Achievement Unlocked! 🎉
-- **Prediction Error**: 25.7% (was 92.8%)
-- **Target**: Was 30%, now achieved!
-- **Next Target**: <20% with physics model
+- **Prediction Error**: 23.6% (was 92.8%)
+- **Target**: Was 30%, now EXCEEDED!
+- **Race Matching**: 80% (131/163 races matched with Strava)
 - **Test Coverage**: All tests passing ✅
+- **Security**: OAuth tokens protected
 
 ### What Made the Difference
 1. **Real race times from Strava** (not estimates)

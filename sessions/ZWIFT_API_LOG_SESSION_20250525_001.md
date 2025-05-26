@@ -218,6 +218,56 @@ find /mnt/c/Users/YOUR_USERNAME/OneDrive/Library -name "*chung*.pdf" -o -name "*
 curl -L -o filename.pdf "URL"
 ```
 
+## Session 2025-05-26: SQL Fixes and Security Improvements
+
+### Key Achievements
+- **Fixed SQL Errors**: Discovered SQLite doesn't support table aliases in UPDATE statements
+- **Implemented Workaround**: Rewrote queries using temporary table approach
+- **Improved Match Rate**: Successfully matched 131/163 races (80% match rate)
+- **Final Accuracy**: 23.6% mean error (exceeded <30% target)
+- **Security**: Added strava_config.json to .gitignore to protect OAuth tokens
+
+### Technical Discoveries
+
+**SQLite UPDATE Limitations**:
+- Cannot use table aliases in UPDATE statements (e.g., `UPDATE table AS t`)
+- Correlated subqueries referencing outer table are problematic
+- Solution: Use temporary tables to pre-calculate matches
+
+**Data Source Limitations**:
+- ZwiftPower only exports dates, not timestamps
+- Race times stored as "2025-05-25" (midnight)
+- Strava has full timestamps "2025-05-25T16:30:17Z"
+- This creates ~16-17 hour time differences but doesn't affect date matching
+
+**Match Rate Analysis**:
+- 80% match rate (131/163) is excellent
+- Unmatched races are normal:
+  - Races before Strava usage
+  - Technical recording failures
+  - Different platforms used
+  - DNFs not saved
+
+### Security Improvements
+```bash
+# Added to .gitignore
+strava_config.json
+
+# Created template
+strava_config.json.example
+
+# Updated documentation
+README.md - Added security note
+todo.md - Added token security tasks
+```
+
+### Final Project Status
+- ✅ Production ready with 23.6% accuracy
+- ✅ All regression tests passing
+- ✅ OAuth tokens secured
+- ✅ Published to GitHub
+- ✅ Ready for public use
+
 ## Session 2025-05-25: Cycling Physics Research & Enhanced Event Type Filtering
 
 ### Cycling Power Modeling Research Papers
