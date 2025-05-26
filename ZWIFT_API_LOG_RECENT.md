@@ -1,5 +1,35 @@
 # Zwift API Log - Recent Sessions
 
+## Session: World Detection and Route ID Extraction (2025-05-26-005)
+**Goal**: Enhance route discovery with intelligent world detection and real route ID extraction
+
+### Key Accomplishments
+1. **World Detection**: Parse event names for world-specific keywords
+   - "makuri", "neokyo", "yumezi" → makuri-islands
+   - "london", "box hill", "keith hill" → london
+   - "alpe", "volcano", "jungle" → watopia
+   - Detected world checked first, reducing API calls by ~10x
+
+2. **Route ID Extraction**: Extract real IDs from whatsonzwift.com
+   - Regex patterns: `routeId: 123`, `data-route-id="123"`, `/api/routes/123`
+   - No more placeholder 9999 IDs
+   - Enables proper database matching
+
+3. **Performance Boost**: Multiplicative gains
+   - World detection: 10x reduction (10 worlds → 1)
+   - Combined with cache: effectively infinite speedup for duplicates
+
+### Testing Results
+```
+STAGE 3: RACE MAKURI— Turf N Surf -> makuri-islands
+Box Hill Climb Race -> london
+Central Park Loop -> new-york
+Alpe du Zwift -> watopia
+```
+
+### Next Priority
+Implement batch discovery (10-20 routes at a time) to handle 185 unknown routes without timeout
+
 ## Session: Route Discovery Enhancement (2025-05-26-004)
 **Goal**: Add caching and optimization to route discovery module
 

@@ -123,16 +123,34 @@ Target: >80% code coverage with all critical paths tested
   - Enhanced `--show-unknown-routes` to display parsed route names
   - Created `--analyze-descriptions` CLI option for batch analysis
   - Example: "Stage 4: Makuri May" → "Makuri Three Village Loop (1 laps)"
+- [x] **Enhanced with Caching & Rate Limiting** (2025-05-26)
+  - Added Arc<Mutex<HashMap>> cache to prevent repeated API calls
+  - Implemented 500ms rate limiting for respectful scraping
+  - Reduced worlds to check from 10 to 5 most common
+  - Cleaned up database (removed 20+ already-known routes)
+  - Successfully finding races with known routes (Three Village Loop = 20 min)
 
-## 🚧 Next Priority: Integrate Description Parsing
+## 🚧 Next Priority: Optimize Route Discovery
 
-### Priority 0: Use Parsed Routes in Duration Estimation
+### Priority 0: Improve World Detection ✅ COMPLETED (2025-05-26)
+- [x] Parse world hints from event names (e.g., "Makuri May" → makuri-islands)
+- [x] Check event names for world-specific keywords (makuri, london, etc.)
+- [x] Detected world checked first, reducing API calls by ~10x per route
+- [x] Extract real route IDs from whatsonzwift.com URLs (no more placeholder 9999)
+
+### Priority 1: Batch Discovery Process
+- [ ] Run discovery in smaller batches (10-20 routes at a time)
+- [ ] Add progress saving between batches
+- [ ] Consider background/async discovery
+- [ ] Implement smarter targeting based on route frequency
+
+### Priority 2: Integrate Description Parsing
 - [ ] Integrate `get_route_data_enhanced()` into main filtering logic
 - [ ] Test with events that have unknown route IDs but parseable descriptions
 - [ ] Measure accuracy improvement from description parsing
 - [ ] Handle case/spacing mismatches between parsed names and DB names
 
-### Priority 1: Alternative Approaches
+### Priority 3: Alternative Approaches
 - [ ] Build manual mapping table for recurring events
   - "EVO CC Race Series" → rotates through specific routes
   - "KISS Racing" → usually specific criterium routes

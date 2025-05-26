@@ -82,8 +82,17 @@ impl RouteDiscovery {
         // Extract the route name from event name (remove prefixes like "Stage X:", suffixes like "|| Advanced")
         let cleaned_name = self.extract_route_name(event_name);
         
-        // Prioritize common worlds first
-        let worlds = ["watopia", "makuri-islands", "london", "new-york", "france"];
+        // Detect world from event name first
+        let detected_world = self.detect_world_from_event_name(event_name);
+        
+        // Build worlds list with detected world first (if any)
+        let mut worlds = vec!["watopia", "makuri-islands", "london", "new-york", "france"];
+        if let Some(world) = &detected_world {
+            // Remove the detected world from default position and put it first
+            worlds.retain(|&w| w != world.as_str());
+            worlds.insert(0, world.as_str());
+            eprintln!("  Detected world '{}' from event name", self.format_world_name(world));
+        }
         
         eprintln!("  Searching whatsonzwift.com for '{}'...", cleaned_name);
         
@@ -118,6 +127,62 @@ impl RouteDiscovery {
         }
         
         Err(anyhow!("Could not find route on whatsonzwift.com: {}", event_name))
+    }
+    
+    /// Detect world from event name using heuristics
+    pub fn detect_world_from_event_name(&self, event_name: &str) -> Option<String> {
+        let event_lower = event_name.to_lowercase();
+        
+        // Direct world mentions
+        if event_lower.contains("makuri") || event_lower.contains("neokyo") || event_lower.contains("yumezi") {
+            return Some("makuri-islands".to_string());
+        }
+        
+        if event_lower.contains("london") || event_lower.contains("box hill") || event_lower.contains("keith hill") {
+            return Some("london".to_string());
+        }
+        
+        if event_lower.contains("new york") || event_lower.contains("central park") || event_lower.contains("knickerbocker") {
+            return Some("new-york".to_string());
+        }
+        
+        if event_lower.contains("france") || event_lower.contains("ventoux") || event_lower.contains("casse-pattes") {
+            return Some("france".to_string());
+        }
+        
+        if event_lower.contains("richmond") || event_lower.contains("virginia") {
+            return Some("richmond".to_string());
+        }
+        
+        if event_lower.contains("innsbruck") || event_lower.contains("austria") {
+            return Some("innsbruck".to_string());
+        }
+        
+        if event_lower.contains("yorkshire") || event_lower.contains("harrogate") {
+            return Some("yorkshire".to_string());
+        }
+        
+        if event_lower.contains("paris") || event_lower.contains("champs") {
+            return Some("paris".to_string());
+        }
+        
+        if event_lower.contains("scotland") || event_lower.contains("glasgow") {
+            return Some("scotland".to_string());
+        }
+        
+        // Watopia-specific routes (most common, check last)
+        if event_lower.contains("alpe") || event_lower.contains("epic") || event_lower.contains("jungle") 
+            || event_lower.contains("volcano") || event_lower.contains("titan") || event_lower.contains("fuego") {
+            return Some("watopia".to_string());
+        }
+        
+        // Common event series with known worlds
+        if event_lower.contains("tour de zwift") {
+            // Tour de Zwift rotates but often starts in Watopia
+            return Some("watopia".to_string());
+        }
+        
+        None
     }
     
     /// Extract the actual route name from event names
@@ -166,6 +231,20 @@ impl RouteDiscovery {
     
     /// Parse route data from whatsonzwift.com HTML
     fn parse_whatsonzwift_route(&self, html: &str, event_name: &str) -> Result<DiscoveredRoute> {
+        // Extract route ID from the page
+        // whatsonzwift.com includes route IDs in various places:
+        // 1. In JavaScript: routeId: 123
+        // 2. In data attributes: data-route-id="123"
+        // 3. In API calls: /api/routes/123
+        let route_id = if let Ok(route_id_regex) = Regex::new(r#"(?:routeId:\s*|data-route-id="|/api/routes/)(\d+)"#) {
+            route_id_regex.captures(html)
+                .and_then(|cap| cap.get(1))
+                .and_then(|m| m.as_str().parse::<u32>().ok())
+                .unwrap_or(9999)
+        } else {
+            9999
+        };
+        
         // Extract distance (e.g., "Distance: 10.6km")
         let distance_regex = Regex::new(r#"Distance:\s*([0-9.]+)\s*km"#)?;
         let distance_km = distance_regex.captures(html)
@@ -204,10 +283,10 @@ impl RouteDiscovery {
             "road".to_string()
         };
         
-        // For now, use a placeholder route_id - will need to be updated
-        // In production, we'd need to extract this from the URL or page
+        eprintln!("    Found route: {} (ID: {})", name, route_id);
+        
         Ok(DiscoveredRoute {
-            route_id: 9999, // Placeholder, needs proper extraction
+            route_id,
             name,
             distance_km,
             elevation_m,
@@ -472,5 +551,54 @@ mod tests {
         // Test no match
         let result = parse_route_from_description("Just a regular race");
         assert!(result.is_none());
+    }
+    
+    #[test]
+    fn test_detect_world_from_event_name() {
+        let discovery = RouteDiscovery::new().unwrap();
+        
+        // Test Makuri Islands detection
+        assert_eq!(
+            discovery.detect_world_from_event_name("Stage 4: Makuri May"),
+            Some("makuri-islands".to_string())
+        );
+        assert_eq!(
+            discovery.detect_world_from_event_name("Neokyo Crit Racing"),
+            Some("makuri-islands".to_string())
+        );
+        
+        // Test London detection
+        assert_eq!(
+            discovery.detect_world_from_event_name("Box Hill Climb"),
+            Some("london".to_string())
+        );
+        
+        // Test New York detection
+        assert_eq!(
+            discovery.detect_world_from_event_name("Central Park Loop Race"),
+            Some("new-york".to_string())
+        );
+        
+        // Test France detection
+        assert_eq!(
+            discovery.detect_world_from_event_name("Ventoux Challenge"),
+            Some("france".to_string())
+        );
+        
+        // Test Watopia detection
+        assert_eq!(
+            discovery.detect_world_from_event_name("Alpe du Zwift Race"),
+            Some("watopia".to_string())
+        );
+        assert_eq!(
+            discovery.detect_world_from_event_name("Volcano Circuit Race"),
+            Some("watopia".to_string())
+        );
+        
+        // Test no detection
+        assert_eq!(
+            discovery.detect_world_from_event_name("Morning Race"),
+            None
+        );
     }
 }

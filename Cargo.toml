@@ -9,6 +9,10 @@ repository = "https://github.com/jchidley/zwift-race-finder"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 
+[lib]
+name = "zwift_race_finder"
+path = "src/lib.rs"
+
 [lints.rust]
 missing_docs = "warn"
 
