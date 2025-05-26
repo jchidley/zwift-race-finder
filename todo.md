@@ -107,13 +107,43 @@
 
 Target: >80% code coverage with all critical paths tested
 
-## 🚧 In Progress: API Limitation Handling
+## 🚧 In Progress: Auto Route Discovery
 
-### Priority 0: Improve Multi-Day Search UX
-- [ ] Display actual time range covered by fetched events (e.g., "Events through May 26, 11:00 PM")
-- [ ] Show clear message when requested days exceed available data 
-- [ ] Search GitHub for repositories that may have solved the 200 event limit
-- [ ] Research unknown routes (like route_id 1917017591) using external sites
+### Completed Route Discovery Foundation (2025-05-26)
+- [x] Implemented route discovery module with web scraping
+- [x] Added database table for tracking search attempts  
+- [x] Created CLI option --discover-routes
+- [x] Integrated discovery flow into main program
+- [x] Found 189 unknown routes needing discovery
+- [x] Discovered Google search scraping doesn't work (blocked/changed)
+- [x] Implemented direct site search APIs (whatsonzwift.com, zwiftinsider.com)
+- [x] Discovered most "unknown routes" are custom event names, not route names
+
+### Priority 0: Parse Event Descriptions ⭐ NEXT PRIORITY
+- [ ] Parse event descriptions to extract route names and lap counts
+  - Many events mention "3 laps of Volcano Circuit" or "2x Mountain Route"
+  - Could identify actual route names within custom event names
+  - Would solve the event name vs route name mismatch
+- [ ] Create regex patterns to match common formats:
+  - "X laps of [Route Name]"
+  - "[Route Name] x Y"
+  - "Stage X: [Route Name]"
+  - "[Route Name] (Z laps)"
+- [ ] Test on high-frequency unknown events first
+
+### Priority 1: Alternative Approaches
+- [ ] Build manual mapping table for recurring events
+  - "EVO CC Race Series" → rotates through specific routes
+  - "KISS Racing" → usually specific criterium routes
+- [ ] Add community submission process for route mappings
+- [ ] Consider parsing ZwiftPower event pages for route info
+
+### Priority 2: Optimize Discovery for High-Value Routes
+- [ ] Prioritize high-frequency unknown routes
+  - Stage 4: Makuri May (68 occurrences)
+  - Restart Monday Mash (42 occurrences)
+  - TEAM VTO POWERPUSH (37 occurrences)
+  - Focus on routes with >10 occurrences first
 
 ## 🎯 Next Phase: Get Below 20% Error
 

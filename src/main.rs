@@ -8,6 +8,7 @@
 
 mod config;
 mod database;
+mod route_discovery;
 #[cfg(test)]
 mod regression_test;
 
@@ -20,6 +21,7 @@ use database::{Database, RouteData as DbRouteData};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::io::Write;
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
@@ -60,6 +62,10 @@ struct Args {
     /// Record a race result (format: "route_id,minutes,event_name")
     #[arg(long)]
     record_result: Option<String>,
+    
+    /// Discover unknown routes from web sources
+    #[arg(long)]
+    discover_routes: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -875,6 +881,49 @@ fn log_unknown_route(event: &ZwiftEvent) {
     }
 }
 
+// Async function to discover route data from external sources
+async fn discover_route_if_needed(route_id: u32, event_name: &str) -> Result<Option<DbRouteData>> {
+    let db = Database::new()?;
+    
+    // Check if we should attempt discovery (not tried recently)
+    if !db.should_attempt_discovery(route_id)? {
+        return Ok(None);
+    }
+    
+    // Record that we're attempting discovery
+    db.record_discovery_attempt(route_id, event_name)?;
+    
+    // Try to discover route data
+    let discovery = route_discovery::RouteDiscovery::new()?;
+    match discovery.discover_route(event_name).await {
+        Ok(discovered) => {
+            // Save to database
+            db.save_discovered_route(
+                route_id,
+                discovered.distance_km,
+                discovered.elevation_m,
+                &discovered.world,
+                &discovered.surface,
+                &discovered.name,
+            )?;
+            
+            // Return the discovered route data
+            Ok(Some(DbRouteData {
+                route_id,
+                distance_km: discovered.distance_km,
+                elevation_m: discovered.elevation_m,
+                name: discovered.name,
+                world: discovered.world,
+                surface: discovered.surface,
+            }))
+        }
+        Err(e) => {
+            eprintln!("Route discovery failed for {}: {}", event_name, e);
+            Ok(None)
+        }
+    }
+}
+
 fn print_event(event: &ZwiftEvent, _args: &Args, zwift_score: u32) {
     let local_time: DateTime<Local> = event.event_start.into();
 
@@ -1181,6 +1230,70 @@ fn show_unknown_routes() -> Result<()> {
     Ok(())
 }
 
+async fn discover_unknown_routes() -> Result<()> {
+    let db = Database::new()?;
+    let unknown = db.get_unknown_routes()?;
+    
+    if unknown.is_empty() {
+        println!("No unknown routes to discover!");
+        return Ok(());
+    }
+    
+    let total_count = unknown.len();
+    println!("🔍 Starting route discovery for {} unknown routes...\n", total_count);
+    
+    let discovery = route_discovery::RouteDiscovery::new()?;
+    let mut discovered_count = 0;
+    let mut failed_count = 0;
+    
+    for (route_id, event_name, _times_seen) in unknown {
+        // Check if we should attempt discovery (not tried recently)
+        if !db.should_attempt_discovery(route_id)? {
+            println!("⏭️  Skipping {} (recently attempted)", event_name);
+            continue;
+        }
+        
+        print!("🔎 Searching for '{}' (route_id: {})... ", event_name, route_id);
+        std::io::stdout().flush()?;
+        
+        // Record the attempt
+        db.record_discovery_attempt(route_id, &event_name)?;
+        
+        // Try to discover route data
+        match discovery.discover_route(&event_name).await {
+            Ok(discovered) => {
+                // Save to database with the actual route_id
+                db.save_discovered_route(
+                    route_id,
+                    discovered.distance_km,
+                    discovered.elevation_m,
+                    &discovered.world,
+                    &discovered.surface,
+                    &discovered.name,
+                )?;
+                
+                println!("✅ Found! {}km, {}m elevation", 
+                    discovered.distance_km, discovered.elevation_m);
+                discovered_count += 1;
+            }
+            Err(e) => {
+                println!("❌ Failed: {}", e);
+                failed_count += 1;
+            }
+        }
+        
+        // Small delay to be polite to external services
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+    }
+    
+    println!("\n📊 Discovery Summary:");
+    println!("  ✅ Successfully discovered: {}", discovered_count);
+    println!("  ❌ Failed to discover: {}", failed_count);
+    println!("  ⏭️  Skipped (recent attempts): {}", total_count - discovered_count - failed_count);
+    
+    Ok(())
+}
+
 fn record_race_result(input: &str) -> Result<()> {
     // Parse format: "route_id,minutes,event_name"
     let parts: Vec<&str> = input.split(',').collect();
@@ -1253,6 +1366,11 @@ async fn main() -> Result<()> {
         record_race_result(&result_str)?;
         return Ok(());
     }
+    
+    if args.discover_routes {
+        discover_unknown_routes().await?;
+        return Ok(());
+    }
 
     // Load configuration
     let config = FullConfig::load().unwrap_or_default();
@@ -1284,6 +1402,34 @@ async fn main() -> Result<()> {
 
     let events = fetch_events().await?;
     println!("Fetched {} upcoming events", events.len());
+    
+    // Notify if API returns unexpected number of events
+    if events.len() > 250 {
+        println!("\n{} Zwift API returned {} events (expected ~200)", "🎉 Unexpected:".green(), events.len());
+        println!("   The API may have been updated to return more data!");
+        println!("   Please report this at: https://github.com/anthropics/claude-code/issues");
+    }
+    
+    // Display the actual time range covered by the fetched events
+    if !events.is_empty() {
+        let earliest_start = events.iter()
+            .map(|e| e.event_start)
+            .min()
+            .unwrap();
+        let latest_start = events.iter()
+            .map(|e| e.event_start)
+            .max()
+            .unwrap();
+        
+        // Format the time range in user's local timezone
+        let earliest_local = earliest_start.with_timezone(&chrono::Local);
+        let latest_local = latest_start.with_timezone(&chrono::Local);
+        
+        println!("Events from {} to {}", 
+            earliest_local.format("%b %d, %l:%M %p").to_string().trim(),
+            latest_local.format("%b %d, %l:%M %p").to_string().trim()
+        );
+    }
     
     // Warn about API limitation when requesting multiple days
     if args.days > 1 {

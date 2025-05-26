@@ -313,8 +313,10 @@ Route IDs can be found on [ZwiftHacks.com](https://zwifthacks.com/).
 
 ### API Constraints
 - **Event Limit**: Zwift API returns maximum 200 events (~12 hours of data)
-- **Multi-day Searches**: When using `-n 3` for 3 days, you'll only see ~12 hours
-- **No Pagination**: API ignores offset/limit/date parameters
+- **Time Range Display**: Tool shows actual coverage (e.g., "Events from May 26, 12:15 PM to May 27, 12:15 AM")
+- **Multi-day Searches**: When using `-n 3` for 3 days, you'll only see ~12 hours with clear warning
+- **No Pagination**: API ignores offset/limit/date parameters (confirmed via research)
+- **Future Proofing**: Tool will notify if API ever returns >250 events
 - **Workaround**: Search at different times of day for more coverage
 
 ### Other Limitations
@@ -353,6 +355,7 @@ This entire project was built using Claude Code (claude.ai/code) without traditi
 - **Initial version**: 92.8% error (using fake data)
 - **Strava integration**: Dropped to 31.2% error
 - **Multi-lap fix**: Achieved 25.1% error
+- **Current accuracy**: 23.6% error (exceeded 30% target!)
 - **Next goal**: Sub-20% with physics modeling
 
 ### Lessons for Building with AI

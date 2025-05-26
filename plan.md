@@ -41,10 +41,11 @@ Multi-day searches (-n 3) don't show events beyond ~12 hours due to API limit.
 - No alternative endpoints found (/scheduled, /calendar return 404)
 - This is a hard limit on the public API endpoint
 
-### Solution Approach
+### Solution Implemented ✅ (2025-05-26)
 - Added warning when requesting multiple days
-- TODO: Display actual time range covered (e.g., "Events through May 26, 11:00 PM")
-- TODO: Clear message when requested days exceed available data
+- ✅ Display actual time range covered: "Events from May 26, 12:15 PM to May 27, 12:15 AM"
+- ✅ Clear message when requested days exceed available data
+- ✅ Added notification if API returns >250 events (future-proofing)
 - Users can search different time windows throughout the day for more coverage
 
 ## Current Status (Production Ready - UX Enhanced!)
@@ -70,6 +71,11 @@ Multi-day searches (-n 3) don't show events beyond ~12 hours due to API limit.
 ✅ Enhanced UX with event type counts & smart suggestions (2025-05-26)
 ✅ Expanded test coverage: 16→25 tests (+56% increase) - all critical features tested
 ✅ Discovered API limitation: 200 events max (~12 hours), no working pagination
+✅ Added time range display and API behavior monitoring (2025-05-26)
+✅ Researched API workarounds - confirmed 200 event hard limit
+✅ Manually mapped 2 popular routes (Three Village Loop, Glasgow Crit Circuit)
+✅ Implemented route discovery with direct site APIs (2025-05-26)
+🚧 Pivoting to parse event descriptions for route names and lap counts
 ⚡ Production ready - published to GitHub
 
 ## Goal
@@ -331,3 +337,24 @@ Based on our research findings:
 - Account for elevation profiles accurately
 - Personalized predictions based on rider characteristics
 - Better draft modeling (24.7-33% power savings)
+
+## Next Feature: Automatic Route Discovery (Planned)
+
+### Problem
+- 30+ unknown routes encountered during events
+- Manual route mapping is tedious and reactive
+- Users get poor estimates for unknown routes
+
+### Solution Design
+- Detect unknown routes during event processing
+- Automatically search whatsonzwift.com or zwiftinsider.com
+- Parse distance/elevation from search results
+- Update database with discovered route data
+- Rate limit searches (10+ minutes between attempts per route)
+- Use discovered data immediately for better estimates
+
+### Expected Benefits
+- Self-improving route database
+- Better estimates for new/beta routes
+- Reduced manual maintenance
+- Community benefit as routes are discovered

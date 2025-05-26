@@ -2,7 +2,6 @@
 // Stores route information and Jack's actual race completion times
 
 use anyhow::Result;
-use chrono::Utc;
 use rusqlite::{params, Connection, OptionalExtension};
 use std::path::PathBuf;
 
@@ -102,6 +101,22 @@ impl Database {
                 weight_kg REAL,
                 ftp_watts INTEGER,
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )",
+            [],
+        )?;
+        
+        // Route discovery attempts table to avoid repeated searches
+        self.conn.execute(
+            "CREATE TABLE IF NOT EXISTS route_discovery_attempts (
+                route_id INTEGER PRIMARY KEY,
+                event_name TEXT NOT NULL,
+                last_attempt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                found BOOLEAN DEFAULT 0,
+                distance_km REAL,
+                elevation_m INTEGER,
+                world TEXT,
+                surface TEXT,
+                route_name TEXT
             )",
             [],
         )?;
@@ -345,6 +360,61 @@ impl Database {
         ).optional()?;
         
         Ok(result)
+    }
+    
+    /// Check if we've already tried to discover this route recently
+    pub fn should_attempt_discovery(&self, route_id: u32) -> Result<bool> {
+        let result: Option<i64> = self.conn.query_row(
+            "SELECT COUNT(*) FROM route_discovery_attempts 
+             WHERE route_id = ?1 
+             AND datetime(last_attempt) > datetime('now', '-10 minutes')",
+            params![route_id],
+            |row| row.get(0),
+        ).optional()?;
+        
+        // If no recent attempt found, we should try
+        Ok(result.unwrap_or(0) == 0)
+    }
+    
+    /// Record a discovery attempt
+    pub fn record_discovery_attempt(&self, route_id: u32, event_name: &str) -> Result<()> {
+        self.conn.execute(
+            "INSERT INTO route_discovery_attempts (route_id, event_name, found) 
+             VALUES (?1, ?2, 0)
+             ON CONFLICT(route_id) DO UPDATE SET 
+                last_attempt = CURRENT_TIMESTAMP,
+                event_name = ?2",
+            params![route_id, event_name],
+        )?;
+        Ok(())
+    }
+    
+    /// Save discovered route data
+    pub fn save_discovered_route(&self, route_id: u32, distance_km: f64, elevation_m: u32, 
+                                 world: &str, surface: &str, route_name: &str) -> Result<()> {
+        // Update discovery attempts table
+        self.conn.execute(
+            "UPDATE route_discovery_attempts 
+             SET found = 1, distance_km = ?2, elevation_m = ?3, 
+                 world = ?4, surface = ?5, route_name = ?6
+             WHERE route_id = ?1",
+            params![route_id, distance_km, elevation_m, world, surface, route_name],
+        )?;
+        
+        // Insert into routes table
+        self.conn.execute(
+            "INSERT INTO routes (route_id, distance_km, elevation_m, name, world, surface) 
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+             ON CONFLICT(route_id) DO UPDATE SET
+                distance_km = ?2,
+                elevation_m = ?3,
+                name = ?4,
+                world = ?5,
+                surface = ?6",
+            params![route_id, distance_km, elevation_m, route_name, world, surface],
+        )?;
+        
+        Ok(())
     }
 }
 

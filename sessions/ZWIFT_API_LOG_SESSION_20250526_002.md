@@ -98,3 +98,88 @@ Target: >80% code coverage
 1. Implement Racing Score event tests (highest priority)
 2. Add integration tests for UX features
 3. Consider changing default duration to 60 minutes
+
+## Session: API Improvements and Route Research (Part 3)
+
+### Session Overview
+Extended the Zwift Race Finder with better API limitation handling, time range display, and route database improvements. Also cleaned up 11 files from the project context manager development.
+
+### Key Accomplishments
+- ✅ Added time range display showing actual API event coverage
+- ✅ Implemented notification for unexpected API behavior (>250 events)
+- ✅ Researched API workarounds - confirmed 200 event hard limit
+- ✅ Manually mapped 2 major routes to database
+- ✅ Cleaned up 11 files from side project work
+- ✅ Updated all project documentation
+
+### Discoveries
+
+#### API Research Findings
+- No GitHub projects have overcome the 200 event limit
+- zwift-mobile-api (JavaScript) has no pagination workarounds
+- Python implementations use simple GET with no special handling
+- Zwift Developer API requires special access not available to hobbyists
+- Conclusion: 200 event limit is a hard API constraint
+
+#### Route Mapping Results
+Successfully added two popular routes:
+1. **Three Village Loop** (Route ID: 3379779247)
+   - Distance: 10.6km, Elevation: 93m
+   - World: Makuri Islands
+   - Was seen 68 times as unknown
+
+2. **Glasgow Crit Circuit** (Route ID: 3765339356)
+   - Distance: 3.0km, Elevation: 34m
+   - World: Scotland
+   - Popular crit racing route
+
+#### Key Insight
+The auto-route lookup feature should be self-contained - automatically discovering, parsing, and updating the database with new route information, with smart rate limiting to avoid hammering external sites.
+
+### Technical Details
+
+#### Time Range Display Implementation
+```rust
+// Display the actual time range covered by the fetched events
+if !events.is_empty() {
+    let earliest_start = events.iter()
+        .map(|e| e.event_start)
+        .min()
+        .unwrap();
+    let latest_start = events.iter()
+        .map(|e| e.event_start)
+        .max()
+        .unwrap();
+    
+    // Format the time range in user's local timezone
+    let earliest_local = earliest_start.with_timezone(&chrono::Local);
+    let latest_local = latest_start.with_timezone(&chrono::Local);
+    
+    println!("Events from {} to {}", 
+        earliest_local.format("%b %d, %l:%M %p").to_string().trim(),
+        latest_local.format("%b %d, %l:%M %p").to_string().trim()
+    );
+}
+```
+
+#### API Behavior Monitoring
+```rust
+// Notify if API returns unexpected number of events
+if events.len() > 250 {
+    println!("\n{} Zwift API returned {} events (expected ~200)", "🎉 Unexpected:".green(), events.len());
+    println!("   The API may have been updated to return more data!");
+    println!("   Please report this at: https://github.com/anthropics/claude-code/issues");
+}
+```
+
+### Project Cleanup
+Removed 11 files that were created during project context manager development:
+- 4 context management design files
+- 3 implementation shell scripts  
+- 4 log management files
+- Plus the cleanup list file itself
+
+Kept the hierarchical log structure as it's useful for the project.
+
+### Next Session Priority
+Implement automatic route discovery with web scraping that updates the database directly when unknown routes are encountered.
