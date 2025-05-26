@@ -30,6 +30,23 @@ Default search (90-120min races) returned no results - poor user experience. Fix
 ### Key Insight
 Most races are short (20-30 minutes), while users expected longer events. The tool now educates users about typical event durations and guides them to successful searches.
 
+## API Limitation Discovery (2025-05-26)
+
+### Problem
+Multi-day searches (-n 3) don't show events beyond ~12 hours due to API limit.
+
+### Investigation Results
+- Zwift API returns max 200 events (about 12 hours of data)
+- Tested parameters: limit, offset, eventStartsAfter, eventStartsBefore - all ignored
+- No alternative endpoints found (/scheduled, /calendar return 404)
+- This is a hard limit on the public API endpoint
+
+### Solution Approach
+- Added warning when requesting multiple days
+- TODO: Display actual time range covered (e.g., "Events through May 26, 11:00 PM")
+- TODO: Clear message when requested days exceed available data
+- Users can search different time windows throughout the day for more coverage
+
 ## Current Status (Production Ready - UX Enhanced!)
 ✅ Major cleanup complete - removed 28 dead files
 ✅ Files renamed for clarity (e.g., `zwiftpower_profile_extractor.js`)
@@ -51,6 +68,8 @@ Most races are short (20-30 minutes), while users expected longer events. The to
 ✅ Implemented hierarchical log management (66KB → <5KB)
 ✅ Created project-context-manager tool (extracted to ~/tools/project-context-manager)
 ✅ Enhanced UX with event type counts & smart suggestions (2025-05-26)
+✅ Expanded test coverage: 16→25 tests (+56% increase) - all critical features tested
+✅ Discovered API limitation: 200 events max (~12 hours), no working pagination
 ⚡ Production ready - published to GitHub
 
 ## Goal
@@ -106,7 +125,7 @@ Data Sources:
 - **Prediction Error**: 23.6% (was 92.8%)
 - **Target**: Was 30%, now EXCEEDED!
 - **Race Matching**: 80% (131/163 races matched with Strava)
-- **Test Coverage**: All tests passing ✅
+- **Test Coverage**: 25 tests passing ✅ (56% increase from 16)
 - **Security**: OAuth tokens protected
 
 ### What Made the Difference

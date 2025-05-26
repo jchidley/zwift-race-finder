@@ -46,6 +46,14 @@
 - [x] Enhanced UX with event type counts (e.g., "Found: 91 group rides, 52 races...")
 - [x] Added context-aware "no results" suggestions with working examples
 - [x] Tested all scenarios (short races, TT, group rides) - all working
+- [x] **Expanded test coverage** (2025-05-26) - Added 9 new tests (16→25 total, +56%)
+- [x] Implemented comprehensive Racing Score event tests (4 tests)
+- [x] Implemented UX feature tests (5 tests)
+- [x] Fixed debug output showing in normal mode
+- [x] Extracted UX logic into testable functions for better architecture
+- [x] **Investigated API limitation** (2025-05-26) - Confirmed 200 event hard limit (~12 hours)
+- [x] Tested pagination/date parameters - all ignored by API
+- [x] Added warning for multi-day searches explaining limitation
 
 ## 🔒 Security & Privacy Tasks
 
@@ -65,6 +73,47 @@
 - [x] Implemented parse_distance_from_description() with regex
 - [x] Tested with Three Village Loop races - working perfectly!
 - [x] Updated documentation about Racing Score handling
+
+## 🧪 Test Coverage Improvement Plan (2025-05-26) ✅ PHASE 1 COMPLETE!
+
+### Completed Test Areas
+1. **Racing Score Events** (Critical - recent bug fix) ✅ COMPLETE!
+   - [x] Test `is_racing_score_event()` detection
+   - [x] Test `parse_distance_from_description()` parsing
+   - [x] Test events with distanceInMeters: 0
+   - [x] Test full event filtering with Racing Score events
+
+2. **UX Features** (High - new functionality) ✅ COMPLETE!
+   - [x] Test event type counting logic
+   - [x] Test "no results" message generation
+   - [x] Test command example accuracy (via suggestions tests)
+
+### Test Statistics
+- **Total Tests**: 25 (up from 16)
+- **New Tests Added**: 9 (+56% increase)
+- **Coverage Areas**: Racing Score events, UX features, edge cases
+- **All Tests**: ✅ PASSING
+
+### Remaining Test Areas
+3. **Core Functions** (High - no coverage)
+   - [ ] Test distance parsing functions
+   - [ ] Test user subgroup matching
+   - [ ] Test caching mechanisms
+
+4. **Edge Cases** (Medium)
+   - [ ] Test malformed API responses
+   - [ ] Test extreme route data
+   - [ ] Test timezone handling
+
+Target: >80% code coverage with all critical paths tested
+
+## 🚧 In Progress: API Limitation Handling
+
+### Priority 0: Improve Multi-Day Search UX
+- [ ] Display actual time range covered by fetched events (e.g., "Events through May 26, 11:00 PM")
+- [ ] Show clear message when requested days exceed available data 
+- [ ] Search GitHub for repositories that may have solved the 200 event limit
+- [ ] Research unknown routes (like route_id 1917017591) using external sites
 
 ## 🎯 Next Phase: Get Below 20% Error
 
@@ -125,6 +174,7 @@
 7. **Racing Score events different** - API returns distanceInMeters: 0, distance in description only
 8. **Two event systems** - Traditional (A/B/C/D) vs Racing Score (0-650 ranges) are mutually exclusive
 9. **Site search tip** - Use `site:https://whatsonzwift.com` to find accurate route data
+10. **UX matters** - Event type counts and smart suggestions reduce user friction significantly
 
 ### AI Development Insights
 1. **Domain knowledge essential** - Knowing Zwift racing guided better solutions

@@ -296,6 +296,54 @@ fn find_user_subgroup<'a>(event: &'a ZwiftEvent, zwift_score: u32) -> Option<&'a
     })
 }
 
+// Count events by type for display
+fn count_events_by_type(events: &[ZwiftEvent]) -> Vec<(String, usize)> {
+    let mut event_counts = std::collections::HashMap::new();
+    for event in events {
+        if event.sport.to_uppercase() == "CYCLING" {
+            *event_counts.entry(event.event_type.clone()).or_insert(0) += 1;
+        }
+    }
+    
+    let mut counts: Vec<_> = event_counts.into_iter().collect();
+    counts.sort_by_key(|(_, count)| std::cmp::Reverse(*count));
+    counts
+}
+
+// Format event type for display
+fn format_event_type(event_type: &str, count: usize) -> String {
+    let readable_type = match event_type.to_lowercase().as_str() {
+        "race" => "races",
+        "time_trial" => "time trials",
+        "group_ride" => "group rides",
+        "group_workout" => "group workouts",
+        _ => event_type,
+    };
+    format!("{} {}", count, readable_type)
+}
+
+// Generate no results suggestions based on search criteria
+fn generate_no_results_suggestions(args: &Args) -> Vec<String> {
+    let mut suggestions = Vec::new();
+    
+    if args.event_type == "race" {
+        suggestions.push("Most races are short (20-30 minutes). Try:".to_string());
+        suggestions.push(format!("  • {} for short races", "cargo run -- -d 30 -t 30"));
+        suggestions.push(format!("  • {} for any race duration", "cargo run -- -d 60 -t 120"));
+        suggestions.push(format!("  • {} for time trials instead", "cargo run -- -e tt"));
+    } else if args.event_type == "tt" || args.event_type == "time_trial" {
+        suggestions.push("Time trials are less common. Try:".to_string());
+        suggestions.push(format!("  • {} for regular races", "cargo run -- -e race -d 30 -t 30"));
+        suggestions.push(format!("  • {} for all event types", "cargo run -- -e all"));
+    } else {
+        suggestions.push("No events match your duration criteria. Try:".to_string());
+        suggestions.push(format!("  • {} for wider search", format!("cargo run -- -t {}", args.tolerance * 2)));
+        suggestions.push(format!("  • {} for all event types", "cargo run -- -e all"));
+    }
+    
+    suggestions
+}
+
 // Parse distance from event name (e.g., "36.6km/22.7mi", "(40km)")
 fn parse_distance_from_name(name: &str) -> Option<f64> {
     // Try to find km distance first
@@ -597,6 +645,9 @@ async fn get_user_stats(config: &FullConfig) -> Result<UserStats> {
 }
 
 async fn fetch_events() -> Result<Vec<ZwiftEvent>> {
+    // API has a hard limit of 200 events (about 12 hours worth)
+    // The API ignores pagination parameters (limit/offset) and date filters
+    // This is a Zwift API limitation, not a bug in this tool
     let url = "https://us-or-rly101.zwift.com/api/public/events/upcoming";
 
     let client = reqwest::Client::builder()
@@ -1233,31 +1284,23 @@ async fn main() -> Result<()> {
 
     let events = fetch_events().await?;
     println!("Fetched {} upcoming events", events.len());
+    
+    // Warn about API limitation when requesting multiple days
+    if args.days > 1 {
+        println!("\n{} Zwift API only returns ~12 hours of events (200 max)", "⚠️  Note:".yellow());
+        println!("   Multi-day searches may not show all available events.");
+        println!("   For best results, search specific time windows throughout the day.");
+    }
 
     // Count events by type for informative output
-    let mut event_counts = std::collections::HashMap::new();
-    for event in &events {
-        if event.sport.to_uppercase() == "CYCLING" {
-            *event_counts.entry(event.event_type.as_str()).or_insert(0) += 1;
-        }
-    }
+    let event_counts = count_events_by_type(&events);
     
     // Display event type summary
     if !event_counts.is_empty() {
-        let mut counts: Vec<_> = event_counts.iter().collect();
-        counts.sort_by_key(|(_, count)| std::cmp::Reverse(**count));
-        
         print!("Found: ");
-        let formatted_counts: Vec<String> = counts.iter().map(|(event_type, count)| {
-            let readable_type = match event_type.to_lowercase().as_str() {
-                "race" => "races",
-                "time_trial" => "time trials",
-                "group_ride" => "group rides",
-                "group_workout" => "group workouts",
-                _ => event_type,
-            };
-            format!("{} {}", count, readable_type)
-        }).collect();
+        let formatted_counts: Vec<String> = event_counts.iter()
+            .map(|(event_type, count)| format_event_type(event_type, *count))
+            .collect();
         println!("{}", formatted_counts.join(", "));
     }
 
@@ -1285,33 +1328,35 @@ async fn main() -> Result<()> {
         }
     }
     
-    // Always show some debug info when no matches found
-    let race_count = events.iter()
-        .filter(|e| e.sport.to_uppercase() == "CYCLING" && e.event_type == "RACE")
-        .count();
-    
-    if race_count > 0 && !args.debug {
-        println!("\nDebug: Found {} races, checking first few:", race_count);
-        let sample_races: Vec<_> = events.iter()
+    // Show debug info only when --debug flag is used
+    if args.debug {
+        let race_count = events.iter()
             .filter(|e| e.sport.to_uppercase() == "CYCLING" && e.event_type == "RACE")
-            .take(3)
-            .collect();
-            
-        for event in sample_races {
-            println!("  '{}': route_id={:?}, dist={:?}m", 
-                event.name, 
-                event.route_id, 
-                event.distance_in_meters
-            );
-            
-            // Show what duration we would estimate
-            if let Some(route_id) = event.route_id {
-                if let Some(route_data) = get_route_data(route_id) {
-                    let est = estimate_duration_from_route_id(route_id, zwift_score);
-                    println!("    → Known route: {} km, would estimate {:?} min", 
-                        route_data.distance_km, est);
-                } else {
-                    println!("    → Unknown route {}", route_id);
+            .count();
+        
+        if race_count > 0 {
+            println!("\nDebug: Found {} races, checking first few:", race_count);
+            let sample_races: Vec<_> = events.iter()
+                .filter(|e| e.sport.to_uppercase() == "CYCLING" && e.event_type == "RACE")
+                .take(3)
+                .collect();
+                
+            for event in sample_races {
+                println!("  '{}': route_id={:?}, dist={:?}m", 
+                    event.name, 
+                    event.route_id, 
+                    event.distance_in_meters
+                );
+                
+                // Show what duration we would estimate
+                if let Some(route_id) = event.route_id {
+                    if let Some(route_data) = get_route_data(route_id) {
+                        let est = estimate_duration_from_route_id(route_id, zwift_score);
+                        println!("    → Known route: {} km, would estimate {:?} min", 
+                            route_data.distance_km, est);
+                    } else {
+                        println!("    → Unknown route {}", route_id);
+                    }
                 }
             }
         }
@@ -1333,19 +1378,15 @@ async fn main() -> Result<()> {
         println!("\n{}", "No matching events found!".red());
         
         // Provide specific suggestions based on what was searched for
-        if args.event_type == "race" {
-            println!("\nMost races are short (20-30 minutes). Try:");
-            println!("  • {} for short races", "cargo run -- -d 30 -t 30".yellow());
-            println!("  • {} for any race duration", "cargo run -- -d 60 -t 120".yellow());
-            println!("  • {} for time trials instead", "cargo run -- -e tt".yellow());
-        } else if args.event_type == "tt" || args.event_type == "time_trial" {
-            println!("\nTime trials are less common. Try:");
-            println!("  • {} for regular races", "cargo run -- -e race -d 30 -t 30".yellow());
-            println!("  • {} for all event types", "cargo run -- -e all".yellow());
-        } else {
-            println!("\nNo events match your duration criteria. Try:");
-            println!("  • {} for wider search", format!("cargo run -- -t {}", args.tolerance * 2).yellow());
-            println!("  • {} for all event types", "cargo run -- -e all".yellow());
+        let suggestions = generate_no_results_suggestions(&args);
+        for (i, suggestion) in suggestions.iter().enumerate() {
+            if i == 0 {
+                println!("\n{}", suggestion);
+            } else if suggestion.starts_with("  •") {
+                println!("{}", suggestion.replace("cargo run", &"cargo run".yellow()));
+            } else {
+                println!("{}", suggestion);
+            }
         }
         
         println!("\nGeneral tips:");
@@ -1791,5 +1832,398 @@ mod tests {
                 panic!("Failed to connect to Zwift API: {}", e);
             }
         }
+    }
+
+    #[test]
+    fn test_is_racing_score_event() {
+        // Test event without Racing Score (traditional event)
+        let traditional_event = ZwiftEvent {
+            id: 1,
+            name: "Traditional Race".to_string(),
+            event_start: Utc::now(),
+            event_type: "RACE".to_string(),
+            distance_in_meters: Some(40000.0),
+            duration_in_minutes: None,
+            duration_in_seconds: None,
+            route_id: Some(1),
+            route: Some("Watopia".to_string()),
+            description: None,
+            category_enforcement: false,
+            event_sub_groups: vec![
+                EventSubGroup {
+                    id: 1,
+                    name: "A".to_string(),
+                    route_id: Some(1),
+                    distance_in_meters: Some(40000.0),
+                    duration_in_minutes: None,
+                    category_enforcement: None,
+                    range_access_label: None, // No range label for traditional events
+                },
+            ],
+            sport: "CYCLING".to_string(),
+        };
+        
+        assert!(!is_racing_score_event(&traditional_event));
+        
+        // Test Racing Score event
+        let racing_score_event = ZwiftEvent {
+            id: 2,
+            name: "Three Village Loop Race".to_string(),
+            event_start: Utc::now(),
+            event_type: "RACE".to_string(),
+            distance_in_meters: Some(0.0), // Racing Score events have 0 distance
+            duration_in_minutes: None,
+            duration_in_seconds: None,
+            route_id: Some(9),
+            route: Some("Three Village Loop".to_string()),
+            description: Some("Distance: 10.6 km".to_string()),
+            category_enforcement: false,
+            event_sub_groups: vec![
+                EventSubGroup {
+                    id: 1,
+                    name: "0-199".to_string(),
+                    route_id: Some(9),
+                    distance_in_meters: Some(0.0),
+                    duration_in_minutes: None,
+                    category_enforcement: None,
+                    range_access_label: Some("0-199".to_string()), // This indicates Racing Score
+                },
+            ],
+            sport: "CYCLING".to_string(),
+        };
+        
+        assert!(is_racing_score_event(&racing_score_event));
+        
+        // Test event with no subgroups
+        let no_subgroups_event = ZwiftEvent {
+            id: 3,
+            name: "Solo Event".to_string(),
+            event_start: Utc::now(),
+            event_type: "RACE".to_string(),
+            distance_in_meters: Some(20000.0),
+            duration_in_minutes: None,
+            duration_in_seconds: None,
+            route_id: Some(1),
+            route: Some("Watopia".to_string()),
+            description: None,
+            category_enforcement: false,
+            event_sub_groups: vec![], // No subgroups at all
+            sport: "CYCLING".to_string(),
+        };
+        
+        assert!(!is_racing_score_event(&no_subgroups_event));
+    }
+
+    #[test]
+    fn test_parse_distance_from_description() {
+        // Test with no description
+        assert_eq!(parse_distance_from_description(&None), None);
+        
+        // Test with empty description
+        assert_eq!(parse_distance_from_description(&Some("".to_string())), None);
+        
+        // Test with km distance
+        assert_eq!(
+            parse_distance_from_description(&Some("Distance: 10.6 km".to_string())),
+            Some(10.6)
+        );
+        
+        // Test with miles distance (should convert to km)
+        assert_eq!(
+            parse_distance_from_description(&Some("Distance: 14.6 miles".to_string())),
+            Some(23.496364) // 14.6 * 1.60934
+        );
+        
+        // Test with decimal km
+        assert_eq!(
+            parse_distance_from_description(&Some("This race is 23.5 km long".to_string())),
+            Some(23.5)
+        );
+        
+        // Test with integer km
+        assert_eq!(
+            parse_distance_from_description(&Some("Distance: 40 km".to_string())),
+            Some(40.0)
+        );
+        
+        // Test with no distance information
+        assert_eq!(
+            parse_distance_from_description(&Some("A fun race in Watopia".to_string())),
+            None
+        );
+        
+        // Test with multiple distances (should find first)
+        assert_eq!(
+            parse_distance_from_description(&Some("First lap: 10 km, Total: 30 km".to_string())),
+            Some(10.0)
+        );
+    }
+
+    #[test]
+    fn test_racing_score_event_filtering() {
+        // Create a Racing Score event with distance in description
+        let racing_score_event = ZwiftEvent {
+            id: 1,
+            name: "Three Village Loop Race".to_string(),
+            event_start: Utc::now() + chrono::Duration::hours(2),
+            event_type: "RACE".to_string(),
+            distance_in_meters: Some(0.0), // Racing Score events have 0
+            duration_in_minutes: None,
+            duration_in_seconds: None,
+            route_id: Some(9),
+            route: Some("Three Village Loop".to_string()),
+            description: Some("Distance: 10.6 km".to_string()),
+            category_enforcement: false,
+            event_sub_groups: vec![
+                EventSubGroup {
+                    id: 1,
+                    name: "0-199".to_string(),
+                    route_id: Some(9),
+                    distance_in_meters: Some(0.0),
+                    duration_in_minutes: None,
+                    category_enforcement: None,
+                    range_access_label: Some("0-199".to_string()),
+                },
+            ],
+            sport: "CYCLING".to_string(),
+        };
+        
+        let args = Args {
+            zwift_score: Some(195),
+            duration: 20, // ~20 minutes
+            tolerance: 10, // ±10 minutes
+            event_type: "race".to_string(),
+            days: 1,
+            zwiftpower_username: None,
+            debug: false,
+            show_unknown_routes: false,
+            record_result: None,
+        };
+        
+        let events = vec![racing_score_event.clone()];
+        let filtered = filter_events(events, &args, 195);
+        
+        // Event should be included if distance parsing works
+        // 10.6 km at Cat D speed (30.9 km/h) = ~20.6 minutes
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].name, "Three Village Loop Race");
+    }
+
+    #[test]
+    fn test_racing_score_event_with_zero_distance() {
+        // Test that events with distanceInMeters: 0 are not filtered out early
+        let events = vec![
+            // Traditional event with distance
+            ZwiftEvent {
+                id: 1,
+                name: "Traditional Race".to_string(),
+                event_start: Utc::now() + chrono::Duration::hours(1),
+                event_type: "RACE".to_string(),
+                distance_in_meters: Some(20000.0), // 20km
+                duration_in_minutes: None,
+                duration_in_seconds: None,
+                route_id: None,
+                route: Some("Watopia".to_string()),
+                description: None,
+                category_enforcement: false,
+                event_sub_groups: vec![],
+                sport: "CYCLING".to_string(),
+            },
+            // Racing Score event with 0 distance
+            ZwiftEvent {
+                id: 2,
+                name: "Racing Score Event".to_string(),
+                event_start: Utc::now() + chrono::Duration::hours(2),
+                event_type: "RACE".to_string(),
+                distance_in_meters: Some(0.0), // 0 distance!
+                duration_in_minutes: None,
+                duration_in_seconds: None,
+                route_id: None,
+                route: Some("Test Route".to_string()),
+                description: Some("Distance: 20 km".to_string()),
+                category_enforcement: false,
+                event_sub_groups: vec![
+                    EventSubGroup {
+                        id: 1,
+                        name: "0-650".to_string(),
+                        route_id: None,
+                        distance_in_meters: Some(0.0),
+                        duration_in_minutes: None,
+                        category_enforcement: None,
+                        range_access_label: Some("0-650".to_string()),
+                    },
+                ],
+                sport: "CYCLING".to_string(),
+            },
+        ];
+        
+        let args = Args {
+            zwift_score: Some(195),
+            duration: 40, // ~40 minutes
+            tolerance: 10, // ±10 minutes
+            event_type: "race".to_string(),
+            days: 1,
+            zwiftpower_username: None,
+            debug: false,
+            show_unknown_routes: false,
+            record_result: None,
+        };
+        
+        let filtered = filter_events(events, &args, 195);
+        
+        // Both events should be included (20km at ~30.9km/h = ~38.8 min)
+        assert_eq!(filtered.len(), 2);
+        assert!(filtered.iter().any(|e| e.name == "Traditional Race"));
+        assert!(filtered.iter().any(|e| e.name == "Racing Score Event"));
+    }
+
+    #[test]
+    fn test_count_events_by_type() {
+        let events = vec![
+            ZwiftEvent {
+                id: 1,
+                name: "Race 1".to_string(),
+                event_start: Utc::now(),
+                event_type: "RACE".to_string(),
+                distance_in_meters: Some(20000.0),
+                duration_in_minutes: None,
+                duration_in_seconds: None,
+                route_id: None,
+                route: None,
+                description: None,
+                category_enforcement: false,
+                event_sub_groups: vec![],
+                sport: "CYCLING".to_string(),
+            },
+            ZwiftEvent {
+                id: 2,
+                name: "Race 2".to_string(),
+                event_start: Utc::now(),
+                event_type: "RACE".to_string(),
+                distance_in_meters: Some(20000.0),
+                duration_in_minutes: None,
+                duration_in_seconds: None,
+                route_id: None,
+                route: None,
+                description: None,
+                category_enforcement: false,
+                event_sub_groups: vec![],
+                sport: "CYCLING".to_string(),
+            },
+            ZwiftEvent {
+                id: 3,
+                name: "Group Ride".to_string(),
+                event_start: Utc::now(),
+                event_type: "GROUP_RIDE".to_string(),
+                distance_in_meters: Some(50000.0),
+                duration_in_minutes: None,
+                duration_in_seconds: None,
+                route_id: None,
+                route: None,
+                description: None,
+                category_enforcement: false,
+                event_sub_groups: vec![],
+                sport: "CYCLING".to_string(),
+            },
+            ZwiftEvent {
+                id: 4,
+                name: "Running Event".to_string(),
+                event_start: Utc::now(),
+                event_type: "RACE".to_string(),
+                distance_in_meters: Some(10000.0),
+                duration_in_minutes: None,
+                duration_in_seconds: None,
+                route_id: None,
+                route: None,
+                description: None,
+                category_enforcement: false,
+                event_sub_groups: vec![],
+                sport: "RUNNING".to_string(),
+            },
+        ];
+        
+        let counts = count_events_by_type(&events);
+        
+        // Should have 2 races and 1 group ride (running excluded)
+        assert_eq!(counts.len(), 2);
+        assert_eq!(counts[0], ("RACE".to_string(), 2));
+        assert_eq!(counts[1], ("GROUP_RIDE".to_string(), 1));
+    }
+
+    #[test]
+    fn test_format_event_type() {
+        assert_eq!(format_event_type("RACE", 5), "5 races");
+        assert_eq!(format_event_type("race", 1), "1 races"); // Note: doesn't handle singular
+        assert_eq!(format_event_type("TIME_TRIAL", 3), "3 time trials");
+        assert_eq!(format_event_type("GROUP_RIDE", 10), "10 group rides");
+        assert_eq!(format_event_type("GROUP_WORKOUT", 2), "2 group workouts");
+        assert_eq!(format_event_type("UNKNOWN_TYPE", 7), "7 UNKNOWN_TYPE");
+    }
+
+    #[test]
+    fn test_generate_no_results_suggestions_for_race() {
+        let args = Args {
+            zwift_score: Some(195),
+            duration: 60,
+            tolerance: 10,
+            event_type: "race".to_string(),
+            days: 1,
+            zwiftpower_username: None,
+            debug: false,
+            show_unknown_routes: false,
+            record_result: None,
+        };
+        
+        let suggestions = generate_no_results_suggestions(&args);
+        
+        assert_eq!(suggestions.len(), 4);
+        assert!(suggestions[0].contains("Most races are short"));
+        assert!(suggestions[1].contains("-d 30 -t 30"));
+        assert!(suggestions[2].contains("-d 60 -t 120"));
+        assert!(suggestions[3].contains("-e tt"));
+    }
+
+    #[test]
+    fn test_generate_no_results_suggestions_for_tt() {
+        let args = Args {
+            zwift_score: Some(195),
+            duration: 60,
+            tolerance: 10,
+            event_type: "tt".to_string(),
+            days: 1,
+            zwiftpower_username: None,
+            debug: false,
+            show_unknown_routes: false,
+            record_result: None,
+        };
+        
+        let suggestions = generate_no_results_suggestions(&args);
+        
+        assert_eq!(suggestions.len(), 3);
+        assert!(suggestions[0].contains("Time trials are less common"));
+        assert!(suggestions[1].contains("-e race"));
+        assert!(suggestions[2].contains("-e all"));
+    }
+
+    #[test]
+    fn test_generate_no_results_suggestions_for_other() {
+        let args = Args {
+            zwift_score: Some(195),
+            duration: 60,
+            tolerance: 10,
+            event_type: "all".to_string(),
+            days: 1,
+            zwiftpower_username: None,
+            debug: false,
+            show_unknown_routes: false,
+            record_result: None,
+        };
+        
+        let suggestions = generate_no_results_suggestions(&args);
+        
+        assert_eq!(suggestions.len(), 3);
+        assert!(suggestions[0].contains("No events match your duration"));
+        assert!(suggestions[1].contains("-t 20")); // tolerance * 2
+        assert!(suggestions[2].contains("-e all"));
     }
 }

@@ -1,19 +1,20 @@
 # Project: Zwift Race Finder
-Updated: 2025-05-26 16:10 UTC
+Updated: 2025-05-26 11:05 UTC
 
 ## Current State
-Status: UX improvements complete - tool now guides users effectively
-Target: Production ready with helpful output
-Latest: Added event type counts & context-aware "no results" suggestions
+Status: API limitation identified - 200 events max (~12 hours)
+Target: Clear UX communication about API limits
+Latest: Discovered API ignores pagination/date params, always returns 200 events
 
 ## Essential Context
-- Now shows: "Found: 91 group rides, 52 races, 33 group workouts, 5 time trials"
-- Smart suggestions when no results (e.g., "Most races are short (20-30 minutes)")
-- Provides working command examples: `cargo run -- -d 30 -t 30`
-- Tested all scenarios - short races, TT, group rides work perfectly
+- Debug fix working perfectly ✅
+- API hard limit: 200 events (~12 hours of data)
+- No working pagination, offset, or date filters found
+- Added warning for multi-day searches
+- Need to show actual time range covered by events
 
 ## Next Step
-Consider default parameters adjustment (maybe -d 60 -t 60 instead of -d 120)
+Implement display of event time range (e.g., "Events through May 26, 11:00 PM")
 
 ## If Blocked
-N/A - implementation complete
+Search GitHub for other Zwift API solutions that may have workarounds

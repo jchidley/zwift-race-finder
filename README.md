@@ -1,6 +1,6 @@
 # Zwift Race Finder 🚴
 
-> 🎯 **PRODUCTION READY**: Achieving 23.6% prediction accuracy! This tool predicts Zwift race durations based on your racing score and historical data. Includes pack dynamics modeling and comprehensive test coverage.
+> 🎯 **PRODUCTION READY**: Achieving 23.6% prediction accuracy! This tool predicts Zwift race durations based on your racing score and historical data. Includes pack dynamics modeling and comprehensive test coverage (25 tests, all passing).
 > 
 > ✅ **Latest Update (2025-05-26)**: Enhanced UX with event type counts and smart suggestions when no results found!
 
@@ -100,8 +100,17 @@ The `strava_config.json` file contains OAuth tokens and should never be committe
    # Find races using default settings (195 Zwift Score)
    zwift-race-finder
    
-   # Specify your Zwift Score
-   zwift-race-finder --zwift-score 250
+   # The tool will show event counts and guide you:
+   # "Found: 91 group rides, 52 races, 33 group workouts, 5 time trials"
+   
+   # If no results match, you'll get helpful suggestions:
+   # "Most races are short (20-30 minutes). Try:"
+   # "cargo run -- -d 30 -t 30 for short races"
+   
+   # Common searches:
+   zwift-race-finder -d 30 -t 30    # Short races (20-60 min)
+   zwift-race-finder -e tt           # Time trials
+   zwift-race-finder -e all          # All event types
    ```
 
 3. **Optional: Set up personal configuration:**
@@ -299,6 +308,20 @@ Route IDs can be found on [ZwiftHacks.com](https://zwifthacks.com/).
 ├── update_rider_stats.sh    # Update rider weight/FTP for predictions
 └── route_mappings.sql       # Route data mappings
 ```
+
+## Known Limitations
+
+### API Constraints
+- **Event Limit**: Zwift API returns maximum 200 events (~12 hours of data)
+- **Multi-day Searches**: When using `-n 3` for 3 days, you'll only see ~12 hours
+- **No Pagination**: API ignores offset/limit/date parameters
+- **Workaround**: Search at different times of day for more coverage
+
+### Other Limitations
+- **Racing Score Events**: Distance parsed from description text (API returns 0)
+- **Unknown Routes**: New routes need manual mapping (contribute via GitHub!)
+- **Category E**: Currently treated as Category D
+- **Time Zones**: All times shown in local timezone
 
 ## Security
 
