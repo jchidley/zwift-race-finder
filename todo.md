@@ -107,9 +107,9 @@
 
 Target: >80% code coverage with all critical paths tested
 
-## 🚧 In Progress: Auto Route Discovery
+## ✅ Completed: Auto Route Discovery (2025-05-26)
 
-### Completed Route Discovery Foundation (2025-05-26)
+### Route Discovery Implementation
 - [x] Implemented route discovery module with web scraping
 - [x] Added database table for tracking search attempts  
 - [x] Created CLI option --discover-routes
@@ -118,18 +118,19 @@ Target: >80% code coverage with all critical paths tested
 - [x] Discovered Google search scraping doesn't work (blocked/changed)
 - [x] Implemented direct site search APIs (whatsonzwift.com, zwiftinsider.com)
 - [x] Discovered most "unknown routes" are custom event names, not route names
+- [x] **Parse Event Descriptions** - Successfully extracting route names + lap counts
+  - Implemented 5 regex patterns for common formats
+  - Enhanced `--show-unknown-routes` to display parsed route names
+  - Created `--analyze-descriptions` CLI option for batch analysis
+  - Example: "Stage 4: Makuri May" → "Makuri Three Village Loop (1 laps)"
 
-### Priority 0: Parse Event Descriptions ⭐ NEXT PRIORITY
-- [ ] Parse event descriptions to extract route names and lap counts
-  - Many events mention "3 laps of Volcano Circuit" or "2x Mountain Route"
-  - Could identify actual route names within custom event names
-  - Would solve the event name vs route name mismatch
-- [ ] Create regex patterns to match common formats:
-  - "X laps of [Route Name]"
-  - "[Route Name] x Y"
-  - "Stage X: [Route Name]"
-  - "[Route Name] (Z laps)"
-- [ ] Test on high-frequency unknown events first
+## 🚧 Next Priority: Integrate Description Parsing
+
+### Priority 0: Use Parsed Routes in Duration Estimation
+- [ ] Integrate `get_route_data_enhanced()` into main filtering logic
+- [ ] Test with events that have unknown route IDs but parseable descriptions
+- [ ] Measure accuracy improvement from description parsing
+- [ ] Handle case/spacing mismatches between parsed names and DB names
 
 ### Priority 1: Alternative Approaches
 - [ ] Build manual mapping table for recurring events

@@ -59,6 +59,10 @@ struct Args {
     #[arg(long)]
     show_unknown_routes: bool,
     
+    /// Analyze event descriptions to find route names
+    #[arg(long)]
+    analyze_descriptions: bool,
+    
     /// Record a race result (format: "route_id,minutes,event_name")
     #[arg(long)]
     record_result: Option<String>,
@@ -419,6 +423,32 @@ fn get_route_difficulty_multiplier(route_name: &str) -> f64 {
     } else {
         1.0 // Default
     }
+}
+
+// Try to get route data including from description parsing
+fn get_route_data_enhanced(event: &ZwiftEvent) -> Option<(u32, f64)> {
+    // First try the direct route_id lookup
+    if let Some(route_id) = event.route_id {
+        if let Some(route_data) = get_route_data(route_id) {
+            return Some((route_id, route_data.distance_km));
+        }
+    }
+    
+    // If route_id lookup failed, try parsing description for route name
+    if let Some(description) = &event.description {
+        if let Some(parsed) = route_discovery::parse_route_from_description(description) {
+            // Try to find the route by name in our database
+            if let Ok(db) = Database::new() {
+                if let Ok(Some(route)) = db.get_route_by_name(&parsed.route_name) {
+                    // Calculate total distance considering laps
+                    let total_distance = route.distance_km * parsed.laps as f64;
+                    return Some((route.route_id, total_distance));
+                }
+            }
+        }
+    }
+    
+    None
 }
 
 // Primary duration estimation - uses route_id when available
@@ -869,7 +899,24 @@ fn format_duration(minutes: u32) -> String {
 fn log_unknown_route(event: &ZwiftEvent) {
     if let Some(route_id) = event.route_id {
         if get_route_data(route_id).is_none() {
-            // Log to database for future analysis
+            // First try to parse route name from description
+            if let Some(description) = &event.description {
+                if let Some(parsed) = route_discovery::parse_route_from_description(description) {
+                    // Log with parsed route info for manual mapping later
+                    if let Ok(db) = Database::new() {
+                        let event_name_with_route = format!("{} -> {} ({} laps)",
+                            event.name, parsed.route_name, parsed.laps);
+                        let _ = db.record_unknown_route(
+                            route_id,
+                            &event_name_with_route,
+                            &event.event_type
+                        );
+                        return;
+                    }
+                }
+            }
+            
+            // If description parsing failed, log normally
             if let Ok(db) = Database::new() {
                 let _ = db.record_unknown_route(
                     route_id,
@@ -1350,6 +1397,80 @@ fn record_race_result(input: &str) -> Result<()> {
     Ok(())
 }
 
+async fn analyze_event_descriptions() -> Result<()> {
+    println!("\n{}", "Analyzing Event Descriptions for Route Names...".yellow().bold());
+    
+    // Fetch current events
+    let client = reqwest::Client::new();
+    let response = client
+        .get("https://api.zwift.com/api/public/events")
+        .send()
+        .await?;
+    
+    let events: Vec<ZwiftEvent> = response.json().await?;
+    
+    let mut route_patterns: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
+    let mut unknown_routes = 0;
+    let mut parsed_count = 0;
+    
+    for event in &events {
+        // Skip if we already know this route
+        if let Some(route_id) = event.route_id {
+            if get_route_data(route_id).is_some() {
+                continue;
+            }
+        }
+        
+        unknown_routes += 1;
+        
+        // Try to parse description
+        if let Some(description) = &event.description {
+            if let Some(parsed) = route_discovery::parse_route_from_description(description) {
+                parsed_count += 1;
+                let key = format!("{} ({} laps)", parsed.route_name, parsed.laps);
+                route_patterns
+                    .entry(key)
+                    .or_insert_with(Vec::new)
+                    .push(event.name.clone());
+            }
+        }
+    }
+    
+    println!("\n{}: {} unknown routes, {} descriptions parsed", 
+        "Summary".bright_blue(),
+        unknown_routes,
+        parsed_count
+    );
+    
+    if !route_patterns.is_empty() {
+        println!("\n{}", "Discovered Route Patterns:".green().bold());
+        println!("{}", "=".repeat(80));
+        
+        // Sort by frequency
+        let mut patterns: Vec<_> = route_patterns.iter().collect();
+        patterns.sort_by(|a, b| b.1.len().cmp(&a.1.len()));
+        
+        for (route_info, events) in patterns.iter().take(20) {
+            println!("\n{} ({} events)", route_info.yellow(), events.len());
+            for event in events.iter().take(3) {
+                println!("  - {}", event.dimmed());
+            }
+            if events.len() > 3 {
+                println!("  ... and {} more", events.len() - 3);
+            }
+        }
+        
+        if patterns.len() > 20 {
+            println!("\n... and {} more route patterns", patterns.len() - 20);
+        }
+    }
+    
+    println!("\n{}: Use this information to create route mappings", "Next Step".yellow());
+    println!("Look up the actual route names on Zwift Insider or ZwiftHacks");
+    
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
@@ -1359,6 +1480,11 @@ async fn main() -> Result<()> {
     // Handle special commands first
     if args.show_unknown_routes {
         show_unknown_routes()?;
+        return Ok(());
+    }
+    
+    if args.analyze_descriptions {
+        analyze_event_descriptions().await?;
         return Ok(());
     }
     
@@ -1518,6 +1644,13 @@ async fn main() -> Result<()> {
         
     }
 
+    // Log unknown routes (discovery will be done separately)
+    for event in &events {
+        if event.sport.to_uppercase() == "CYCLING" && event.event_type == "RACE" {
+            log_unknown_route(event);
+        }
+    }
+
     let filtered = filter_events(events, &args, zwift_score);
 
     if filtered.is_empty() {
@@ -1598,7 +1731,9 @@ mod tests {
             zwiftpower_username: None,
             debug: false,
             show_unknown_routes: false,
+            analyze_descriptions: false,
             record_result: None,
+            discover_routes: false,
         };
 
         let filtered = filter_events(events, &args, 195);
@@ -1643,7 +1778,9 @@ mod tests {
             zwiftpower_username: None,
             debug: false,
             show_unknown_routes: false,
+            analyze_descriptions: false,
             record_result: None,
+            discover_routes: false,
         };
 
         let filtered = filter_events(events, &args, 195);
@@ -1778,7 +1915,9 @@ mod tests {
             zwiftpower_username: None,
             debug: false,
             show_unknown_routes: false,
+            analyze_descriptions: false,
             record_result: None,
+            discover_routes: false,
         };
 
         let filtered = filter_events(events.clone(), &args, 195);
@@ -2143,7 +2282,9 @@ mod tests {
             zwiftpower_username: None,
             debug: false,
             show_unknown_routes: false,
+            analyze_descriptions: false,
             record_result: None,
+            discover_routes: false,
         };
         
         let events = vec![racing_score_event.clone()];
@@ -2212,7 +2353,9 @@ mod tests {
             zwiftpower_username: None,
             debug: false,
             show_unknown_routes: false,
+            analyze_descriptions: false,
             record_result: None,
+            discover_routes: false,
         };
         
         let filtered = filter_events(events, &args, 195);
@@ -2317,7 +2460,9 @@ mod tests {
             zwiftpower_username: None,
             debug: false,
             show_unknown_routes: false,
+            analyze_descriptions: false,
             record_result: None,
+            discover_routes: false,
         };
         
         let suggestions = generate_no_results_suggestions(&args);
@@ -2340,7 +2485,9 @@ mod tests {
             zwiftpower_username: None,
             debug: false,
             show_unknown_routes: false,
+            analyze_descriptions: false,
             record_result: None,
+            discover_routes: false,
         };
         
         let suggestions = generate_no_results_suggestions(&args);
@@ -2362,7 +2509,9 @@ mod tests {
             zwiftpower_username: None,
             debug: false,
             show_unknown_routes: false,
+            analyze_descriptions: false,
             record_result: None,
+            discover_routes: false,
         };
         
         let suggestions = generate_no_results_suggestions(&args);

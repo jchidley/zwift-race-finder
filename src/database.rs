@@ -4,6 +4,7 @@
 use anyhow::Result;
 use rusqlite::{params, Connection, OptionalExtension};
 use std::path::PathBuf;
+use chrono::Utc;
 
 #[derive(Debug, Clone)]
 pub struct RouteData {
@@ -195,6 +196,30 @@ impl Database {
             ],
         )?;
         Ok(())
+    }
+    
+    pub fn get_route_by_name(&self, name: &str) -> Result<Option<RouteData>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT route_id, distance_km, elevation_m, name, world, surface 
+             FROM routes 
+             WHERE LOWER(name) = LOWER(?1)
+             LIMIT 1"
+        )?;
+        
+        let route = stmt
+            .query_row([name], |row| {
+                Ok(RouteData {
+                    route_id: row.get(0)?,
+                    distance_km: row.get(1)?,
+                    elevation_m: row.get(2)?,
+                    name: row.get(3)?,
+                    world: row.get(4)?,
+                    surface: row.get(5)?,
+                })
+            })
+            .optional()?;
+        
+        Ok(route)
     }
     
     pub fn record_unknown_route(&self, route_id: u32, event_name: &str, event_type: &str) -> Result<()> {

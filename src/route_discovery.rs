@@ -5,6 +5,11 @@ use anyhow::{anyhow, Result};
 use regex::Regex;
 use reqwest;
 use std::time::Duration;
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+
+// No need for re-export since it's already a public function
 
 #[derive(Debug, Clone)]
 pub struct DiscoveredRoute {
@@ -18,6 +23,7 @@ pub struct DiscoveredRoute {
 
 pub struct RouteDiscovery {
     client: reqwest::Client,
+    cache: Arc<Mutex<HashMap<String, Option<DiscoveredRoute>>>>,
 }
 
 impl RouteDiscovery {
@@ -27,20 +33,45 @@ impl RouteDiscovery {
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
             .build()?;
         
-        Ok(Self { client })
+        Ok(Self { 
+            client,
+            cache: Arc::new(Mutex::new(HashMap::new())),
+        })
     }
     
     /// Search for route information on external sites
     pub async fn discover_route(&self, event_name: &str) -> Result<DiscoveredRoute> {
+        // Check cache first
+        {
+            let cache = self.cache.lock().await;
+            if let Some(cached_result) = cache.get(event_name) {
+                if let Some(route) = cached_result {
+                    return Ok(route.clone());
+                } else {
+                    return Err(anyhow!("Route already searched but not found: {}", event_name));
+                }
+            }
+        }
+        
         // Try whatsonzwift.com first
         if let Ok(route) = self.search_whatsonzwift(event_name).await {
+            // Cache successful result
+            let mut cache = self.cache.lock().await;
+            cache.insert(event_name.to_string(), Some(route.clone()));
             return Ok(route);
         }
         
         // Fallback to zwiftinsider.com
         if let Ok(route) = self.search_zwiftinsider(event_name).await {
+            // Cache successful result
+            let mut cache = self.cache.lock().await;
+            cache.insert(event_name.to_string(), Some(route.clone()));
             return Ok(route);
         }
+        
+        // Cache failure to avoid repeated searches
+        let mut cache = self.cache.lock().await;
+        cache.insert(event_name.to_string(), None);
         
         Err(anyhow!("Could not find route information for: {}", event_name))
     }
@@ -51,9 +82,10 @@ impl RouteDiscovery {
         // Extract the route name from event name (remove prefixes like "Stage X:", suffixes like "|| Advanced")
         let cleaned_name = self.extract_route_name(event_name);
         
-        // Try different world/route combinations
-        let worlds = ["watopia", "london", "richmond", "innsbruck", "new-york", "yorkshire", 
-                     "france", "paris", "makuri-islands", "scotland"];
+        // Prioritize common worlds first
+        let worlds = ["watopia", "makuri-islands", "london", "new-york", "france"];
+        
+        eprintln!("  Searching whatsonzwift.com for '{}'...", cleaned_name);
         
         for world in &worlds {
             let route_slug = cleaned_name.to_lowercase()
@@ -63,6 +95,9 @@ impl RouteDiscovery {
                 .replace(")", "");
             
             let route_url = format!("https://whatsonzwift.com/world/{}/route/{}", world, route_slug);
+            
+            // Add small delay to be respectful
+            tokio::time::sleep(Duration::from_millis(500)).await;
             
             match self.client.get(&route_url).send().await {
                 Ok(response) if response.status().is_success() => {
@@ -183,6 +218,8 @@ impl RouteDiscovery {
     
     /// Search zwiftinsider.com for route information
     async fn search_zwiftinsider(&self, event_name: &str) -> Result<DiscoveredRoute> {
+        eprintln!("  Searching zwiftinsider.com...");
+        
         // Try direct URL construction based on route name
         let cleaned_name = self.extract_route_name(event_name);
         let route_slug = cleaned_name.to_lowercase()
@@ -193,6 +230,9 @@ impl RouteDiscovery {
         
         // ZwiftInsider uses simple /route/ROUTE-NAME/ format
         let route_url = format!("https://zwiftinsider.com/route/{}/", route_slug);
+        
+        // Add small delay to be respectful
+        tokio::time::sleep(Duration::from_millis(500)).await;
         
         match self.client.get(&route_url).send().await {
             Ok(response) if response.status().is_success() => {
@@ -291,6 +331,97 @@ impl RouteDiscovery {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct ParsedEventDescription {
+    pub route_name: String,
+    pub laps: u32,
+}
+
+/// Parse event descriptions to extract route names and lap counts
+pub fn parse_route_from_description(description: &str) -> Option<ParsedEventDescription> {
+    // Common patterns in event descriptions:
+    // "3 laps of Volcano Circuit"
+    // "Volcano Circuit x 3"
+    // "Stage 4: Three Village Loop"
+    // "Makuri Three Village Loop (3 laps)"
+    // "2x Mountain Route"
+    
+    // Pattern 1: "X laps of Route Name"
+    let laps_of_regex = Regex::new(r"(\d+)\s*laps?\s+of\s+([^,\(\)]+)").ok()?;
+    if let Some(captures) = laps_of_regex.captures(description) {
+        if let (Some(laps_str), Some(route_name)) = (captures.get(1), captures.get(2)) {
+            if let Ok(laps) = laps_str.as_str().parse::<u32>() {
+                return Some(ParsedEventDescription {
+                    route_name: route_name.as_str().trim().to_string(),
+                    laps,
+                });
+            }
+        }
+    }
+    
+    // Pattern 2: "Route Name x N" or "Route Name xN"
+    let route_x_regex = Regex::new(r"([^,\(\)]+?)\s*x\s*(\d+)").ok()?;
+    if let Some(captures) = route_x_regex.captures(description) {
+        if let (Some(route_name), Some(laps_str)) = (captures.get(1), captures.get(2)) {
+            if let Ok(laps) = laps_str.as_str().parse::<u32>() {
+                // Clean up route name - remove trailing words like "route" if present
+                let mut name = route_name.as_str().trim().to_string();
+                if name.to_lowercase().ends_with(" route") {
+                    name = name[..name.len()-6].trim().to_string();
+                }
+                return Some(ParsedEventDescription {
+                    route_name: name,
+                    laps,
+                });
+            }
+        }
+    }
+    
+    // Pattern 3: "Nx Route Name"
+    let n_x_route_regex = Regex::new(r"(\d+)\s*x\s+([^,\(\)]+)").ok()?;
+    if let Some(captures) = n_x_route_regex.captures(description) {
+        if let (Some(laps_str), Some(route_name)) = (captures.get(1), captures.get(2)) {
+            if let Ok(laps) = laps_str.as_str().parse::<u32>() {
+                // Clean up route name
+                let mut name = route_name.as_str().trim().to_string();
+                if name.to_lowercase().ends_with(" route") {
+                    name = name[..name.len()-6].trim().to_string();
+                }
+                return Some(ParsedEventDescription {
+                    route_name: name,
+                    laps,
+                });
+            }
+        }
+    }
+    
+    // Pattern 4: "Route Name (N laps)"
+    let route_laps_paren_regex = Regex::new(r"([^,\(\)]+?)\s*\((\d+)\s*laps?\)").ok()?;
+    if let Some(captures) = route_laps_paren_regex.captures(description) {
+        if let (Some(route_name), Some(laps_str)) = (captures.get(1), captures.get(2)) {
+            if let Ok(laps) = laps_str.as_str().parse::<u32>() {
+                return Some(ParsedEventDescription {
+                    route_name: route_name.as_str().trim().to_string(),
+                    laps,
+                });
+            }
+        }
+    }
+    
+    // Pattern 5: "Stage X: Route Name" (assume 1 lap for stages)
+    let stage_regex = Regex::new(r"Stage\s+\d+:\s+([^,\(\)]+)").ok()?;
+    if let Some(captures) = stage_regex.captures(description) {
+        if let Some(route_name) = captures.get(1) {
+            return Some(ParsedEventDescription {
+                route_name: route_name.as_str().trim().to_string(),
+                laps: 1,
+            });
+        }
+    }
+    
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -301,6 +432,45 @@ mod tests {
         assert!(discovery.is_ok());
     }
     
-    // More tests would be added here for the actual discovery functions
-    // These would need mock responses or integration tests
+    #[test]
+    fn test_parse_route_from_description() {
+        // Test "X laps of Route" pattern
+        let result = parse_route_from_description("3 laps of Volcano Circuit");
+        assert!(result.is_some());
+        let parsed = result.unwrap();
+        assert_eq!(parsed.route_name, "Volcano Circuit");
+        assert_eq!(parsed.laps, 3);
+        
+        // Test "Route x N" pattern
+        let result = parse_route_from_description("Mountain Route x 2");
+        assert!(result.is_some());
+        let parsed = result.unwrap();
+        assert_eq!(parsed.route_name, "Mountain");
+        assert_eq!(parsed.laps, 2);
+        
+        // Test "Nx Route" pattern
+        let result = parse_route_from_description("2x Bell Lap");
+        assert!(result.is_some());
+        let parsed = result.unwrap();
+        assert_eq!(parsed.route_name, "Bell Lap");
+        assert_eq!(parsed.laps, 2);
+        
+        // Test "Route (N laps)" pattern
+        let result = parse_route_from_description("Three Village Loop (3 laps)");
+        assert!(result.is_some());
+        let parsed = result.unwrap();
+        assert_eq!(parsed.route_name, "Three Village Loop");
+        assert_eq!(parsed.laps, 3);
+        
+        // Test "Stage X: Route" pattern
+        let result = parse_route_from_description("Stage 4: Makuri May");
+        assert!(result.is_some());
+        let parsed = result.unwrap();
+        assert_eq!(parsed.route_name, "Makuri May");
+        assert_eq!(parsed.laps, 1);
+        
+        // Test no match
+        let result = parse_route_from_description("Just a regular race");
+        assert!(result.is_none());
+    }
 }
