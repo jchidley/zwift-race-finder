@@ -14,6 +14,18 @@ This file uses a hierarchical structure to manage insights efficiently:
 ## Active Insights
 *New discoveries will be appended here during sessions*
 
+### 2025-05-27: Requirements Gathering Process Validates User Concerns
+Insight: User's concern "not working as I'd like" was effectively addressed through systematic requirements documentation rather than code changes
+Impact: Created comprehensive REQUIREMENTS.md from 41-file review. Discovered security issues (OAuth in plaintext), config management needs, and physics modeling opportunities. Sometimes documentation IS the solution.
+
+### 2025-05-27: Comprehensive Documentation Review Reveals Priorities
+Insight: Reviewing all 41 project *.md files revealed that security and configuration issues are as critical as functionality
+Impact: REQUIREMENTS.md now comprehensive with security requirements (NFR-7.6-7.8), enhanced config management (DR-13.5-13.7), and physics modeling details (FER-19.5-19.8). Highest priority remains user's functionality concern.
+
+### 2025-05-27: Code Organization Improves Maintainability
+Insight: Moving unused code to dedicated modules (unused.rs, utils.rs) rather than deleting preserves potentially useful functions while keeping main code clean
+Impact: Zero warnings achieved without losing code that might be needed for future features like enhanced multi-lap handling or route discovery improvements
+
 ### 2025-05-27: Production Deployment Success
 Insight: Achieving <20% accuracy unlocked production readiness - users trust predictions that are "close enough"
 Impact: 16.1% error is sufficient for real-world use. Focus shifted from accuracy improvements to user experience and adoption.

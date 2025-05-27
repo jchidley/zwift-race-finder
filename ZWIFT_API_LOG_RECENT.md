@@ -1,5 +1,58 @@
 # Zwift API Log - Recent Sessions
 
+## Session: Comprehensive Requirements Review (2025-05-27-008)
+**Goal**: Review all project documentation and update REQUIREMENTS.md based on latest user needs
+
+### Summary
+Systematically reviewed all 41 *.md files in the project to capture requirements, with the most recent user needs taking precedence. User clarified that creating comprehensive requirements documentation WAS the solution to their "not working as I'd like" concern. Tool verified working correctly with all tests passing.
+
+**Key Results**:
+- Created FILES_REVIEW_LIST.md to track systematic review of 41 files
+- Created comprehensive REQUIREMENTS.md addressing all concerns
+- Identified security issues: OAuth tokens in plain text (HIGH priority)
+- Tool functionality verified: runs correctly, 26/26 tests pass
+- Committed requirements documentation to git
+
+**Status**: Requirements gathering complete, awaiting user direction on priorities
+
+### Key Accomplishments
+1. **Systematic File Review**:
+   - Listed all 41 *.md files sorted by modification time
+   - Reviewed each file from newest to oldest
+   - Captured all requirements with recent needs taking precedence
+
+2. **Security Requirements Added**:
+   - Bitwarden integration for OAuth token storage
+   - Pre-commit hooks to prevent secret commits
+   - Sanitization scripts for public release
+   - Multiple secure config options
+
+3. **Critical Discoveries Documented**:
+   - Pack dynamics explain 82.6% of variance
+   - Two event type systems (Traditional vs Racing Score)
+   - Manual mapping more effective than automated discovery
+   - AI + human expertise = successful development
+
+### Discoveries
+- **Highest Priority**: User stated "I'm not convinced that the program is working as I'd like"
+- **Security Issues**: OAuth tokens in plain text, hardcoded personal IDs
+- **Configuration Gaps**: Need seamless personal config that survives updates
+- **Underutilized Data**: Height/weight collected but not fully used in predictions
+- **API Communication**: 200 event limit needs better user education
+
+### Technical Details
+Updated REQUIREMENTS.md sections:
+- Priority update section highlighting user concern
+- Security requirements (7.6-7.8) for token storage and sanitization
+- Configuration requirements (13.5-13.7) for loading hierarchy
+- Physics modeling requirements (19.5-19.8) for height/weight utilization
+- Critical discoveries section documenting key insights
+
+### Next Session Priority
+**Investigate specific user functionality concerns** - need concrete examples of what's not working as expected to address the highest priority issue.
+
+[Full session details in sessions/ZWIFT_API_LOG_SESSION_20250527_008.md]
+
 ## Session: Production Deployment (2025-05-27-006)
 **Goal**: Deploy to production with comprehensive documentation
 

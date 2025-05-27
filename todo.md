@@ -1,5 +1,24 @@
 # Zwift Race Finder - TODO
 
+## 🚨 HIGHEST PRIORITY - User Functionality Concerns (2025-05-27)
+**User stated**: "I'm not convinced that the program is working as I'd like"
+**Resolution**: User clarified this is being addressed by building comprehensive REQUIREMENTS.md
+
+### Completed (2025-05-27):
+- [x] Comprehensive review of all 41 project *.md files
+- [x] Created REQUIREMENTS.md with all functional/non-functional requirements
+- [x] Created FILES_REVIEW_LIST.md for systematic tracking
+- [x] Documented security, configuration, and physics requirements
+- [x] Verified tool functionality - runs correctly, all tests passing
+- [x] Committed requirements documentation to git
+
+### Next Development Priorities (from REQUIREMENTS.md):
+1. **Security**: OAuth token storage in plain text files (HIGH)
+2. **Configuration**: Personal data management that survives updates
+3. **Physics**: Utilize height/weight data for better predictions
+4. **API**: Better handling/communication of 200 event limit
+5. **UX**: Enhanced error messages and guidance
+
 ## 📊 Current Status
 - **Prediction Error**: 16.1% (down from 92.8%!) ✅ EXCEEDED <20% TARGET!
 - **Real Race Data**: 131 matched races from Strava (80% match rate)
@@ -9,6 +28,7 @@
 - **Security**: OAuth tokens protected with .gitignore
 - **Repository**: Published to GitHub with all fixes
 - **Production Status**: ✅ DEPLOYED - Binary installed, documentation complete, ready for users
+- **User Satisfaction**: ❓ NEEDS INVESTIGATION - User has concerns about functionality
 
 ## ✅ Completed Tasks
 - [x] Major cleanup: removed 28 dead files
