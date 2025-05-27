@@ -18,6 +18,10 @@ This file uses a hierarchical structure to manage insights efficiently:
 Insight: User's concern "not working as I'd like" was effectively addressed through systematic requirements documentation rather than code changes
 Impact: Created comprehensive REQUIREMENTS.md from 41-file review. Discovered security issues (OAuth in plaintext), config management needs, and physics modeling opportunities. Sometimes documentation IS the solution.
 
+### 2025-05-27: Security Vulnerability Discovery Through Documentation
+Insight: Comprehensive file review revealed OAuth tokens stored in plain text files - a critical security issue that wasn't apparent from normal usage
+Impact: Security requirements now documented as HIGH priority. Shows value of systematic documentation reviews for uncovering non-obvious issues.
+
 ### 2025-05-27: Comprehensive Documentation Review Reveals Priorities
 Insight: Reviewing all 41 project *.md files revealed that security and configuration issues are as critical as functionality
 Impact: REQUIREMENTS.md now comprehensive with security requirements (NFR-7.6-7.8), enhanced config management (DR-13.5-13.7), and physics modeling details (FER-19.5-19.8). Highest priority remains user's functionality concern.

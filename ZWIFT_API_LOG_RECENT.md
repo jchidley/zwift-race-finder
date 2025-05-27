@@ -49,7 +49,7 @@ Updated REQUIREMENTS.md sections:
 - Critical discoveries section documenting key insights
 
 ### Next Session Priority
-**Investigate specific user functionality concerns** - need concrete examples of what's not working as expected to address the highest priority issue.
+**Implement security improvements for OAuth token storage** - HIGH priority issue identified during requirements review.
 
 [Full session details in sessions/ZWIFT_API_LOG_SESSION_20250527_008.md]
 
