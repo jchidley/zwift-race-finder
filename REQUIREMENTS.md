@@ -7,7 +7,10 @@ This document specifies the functional and non-functional requirements for the Z
 **User Concern**: "I'm not convinced that the program is working as I'd like" - This is the highest priority issue to investigate and resolve.
 
 ### Additional Recent Priorities (from file review)
-1. **Security**: OAuth token storage in plain text files (HIGH - from SECURITY_AUDIT.md)
+1. **Security**: ✅ OAuth token storage in plain text files (HIGH - from SECURITY_AUDIT.md) - COMPLETED 2025-05-27
+   - Implemented secure storage module with environment variables, system keyring, and file options
+   - Created migration scripts and documentation
+   - Maintained backward compatibility
 2. **Personal Data**: Multiple files contain hardcoded personal IDs that need sanitization
 3. **Configuration Management**: Need seamless personal config that survives updates
 4. **Physics Modeling**: Height/weight stats affect predictions but aren't fully utilized

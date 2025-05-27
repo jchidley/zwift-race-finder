@@ -2,3 +2,4 @@
 pub mod config;
 pub mod database;
 pub mod route_discovery;
+pub mod secure_storage;

@@ -266,6 +266,36 @@ To calibrate predictions with your actual performance:
    ./apply_route_mappings.sh
    ```
 
+## Secure Token Storage 🔒
+
+The tool now supports secure storage for OAuth tokens (Strava integration):
+
+### Storage Options
+
+1. **Environment Variables** (Recommended for CI/CD)
+   ```bash
+   export STRAVA_CLIENT_ID="your_client_id"
+   export STRAVA_ACCESS_TOKEN="your_token"
+   # See SECURE_TOKEN_MIGRATION.md for full list
+   ```
+
+2. **System Keyring** (Recommended for Desktop)
+   - Uses your OS's secure credential storage
+   - Encrypted at rest with OS-level protection
+
+3. **File Storage** (Backward Compatible)
+   - Improved with restrictive permissions (600)
+   - Clear migration path to secure options
+
+### Migration
+
+For existing users with `strava_config.json`:
+```bash
+./strava_auth_secure.sh  # Offers migration options
+```
+
+See [SECURE_TOKEN_MIGRATION.md](SECURE_TOKEN_MIGRATION.md) for detailed instructions.
+
 ## Development
 
 ### Building
