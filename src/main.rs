@@ -24,7 +24,7 @@ use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
 struct Args {
     /// Target Zwift racing score (auto-detected from ZwiftPower if available)
@@ -1589,6 +1589,30 @@ async fn main() -> Result<()> {
     // Load configuration
     let config = FullConfig::load().unwrap_or_default();
     
+    // Apply config defaults to args where not specified
+    // For duration and tolerance, we need to check if they were explicitly set
+    // Since clap sets defaults, we'll use Option types in Args instead
+    let duration = if args.duration == 120 && config.config.preferences.default_duration.is_some() {
+        // If using clap's default and config has a preference, use config
+        config.config.preferences.default_duration.unwrap_or(120)
+    } else {
+        args.duration
+    };
+    
+    let tolerance = if args.tolerance == 30 && config.config.preferences.default_tolerance.is_some() {
+        // If using clap's default and config has a preference, use config
+        config.config.preferences.default_tolerance.unwrap_or(30)
+    } else {
+        args.tolerance
+    };
+    
+    let days = if args.days == 1 && config.config.preferences.default_days.is_some() {
+        // If using clap's default and config has a preference, use config
+        config.config.preferences.default_days.unwrap_or(1)
+    } else {
+        args.days
+    };
+    
     // Get user stats (auto-detected or from command line)
     let user_stats = get_user_stats(&config).await?;
     let zwift_score = args.zwift_score.unwrap_or(user_stats.zwift_score);
@@ -1605,8 +1629,8 @@ async fn main() -> Result<()> {
         );
     }
 
-    let min_duration = args.duration.saturating_sub(args.tolerance);
-    let max_duration = args.duration + args.tolerance;
+    let min_duration = duration.saturating_sub(tolerance);
+    let max_duration = duration + tolerance;
 
     println!(
         "Looking for events {} to {}...\n",
@@ -1646,7 +1670,7 @@ async fn main() -> Result<()> {
     }
     
     // Warn about API limitation when requesting multiple days
-    if args.days > 1 {
+    if days > 1 {
         println!("\n{} Zwift API only returns ~12 hours of events (200 max)", "⚠️  Note:".yellow());
         println!("   Multi-day searches may not show all available events.");
         println!("   For best results, search specific time windows throughout the day.");
@@ -1739,7 +1763,13 @@ async fn main() -> Result<()> {
         }
     }
 
-    let filtered = filter_events(events, &args, zwift_score);
+    // Create modified args with config-based defaults
+    let mut effective_args = args.clone();
+    effective_args.duration = duration;
+    effective_args.tolerance = tolerance;
+    effective_args.days = days;
+    
+    let filtered = filter_events(events, &effective_args, zwift_score);
 
     if filtered.is_empty() {
         println!("\n{}", "No matching events found!".red());

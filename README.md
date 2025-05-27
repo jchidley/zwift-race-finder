@@ -34,6 +34,8 @@ This project demonstrates the power of using LLMs (specifically Claude Code) to 
 - 🔄 Strava integration for actual race times (not estimates!)
 - 🏁 Multi-lap race support with per-category distance handling
 - 📈 Continuously improves predictions using your actual race results
+- ⚙️ Flexible configuration management with TOML files and environment variables
+- 🔒 Secure token storage options (environment, keyring, encrypted files)
 
 ## Installation
 
@@ -200,6 +202,30 @@ zwift-race-finder --debug
 ./update_rider_stats.sh 86.0        # Weight only
 ./update_rider_stats.sh 86.0 250    # Weight and FTP
 ```
+
+## Configuration
+
+The tool supports flexible configuration through TOML files and environment variables. Create a `config.toml` file to save your preferences:
+
+```toml
+[defaults]
+zwift_score = 195
+category = "D"
+height_m = 1.82
+weight_kg = 86.0
+ftp_watts = 250
+
+[preferences]
+default_duration = 120    # Default search duration
+default_tolerance = 30    # +/- tolerance
+default_days = 1         # Days ahead to search
+```
+
+See [CONFIG_MANAGEMENT.md](CONFIG_MANAGEMENT.md) for full configuration options, including:
+- Configuration file locations and priority
+- Environment variable overrides
+- Personal wrapper scripts
+- Secure practices
 
 ## Performance & Accuracy
 

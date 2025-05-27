@@ -33,3 +33,17 @@ Impact: Found Racing Score pattern in minutes vs hours
 ### Hierarchical Log Management
 Insight: Large logs (66KB+) slow LLM loading - use Summary/Recent/Archives
 Impact: 13x context reduction while preserving all history
+
+## Recent Discoveries (2025-05-27)
+
+### Secure Storage Design Pattern
+Insight: Support multiple storage backends with automatic fallback (env → keyring → file)
+Impact: Users get best available security without configuration burden
+
+### Backward Compatibility First
+Insight: Security improvements should never break existing workflows
+Impact: New secure scripts alongside originals, migration at user's pace
+
+### Environment Variables for CI/CD
+Insight: CI/CD environments need stateless token storage
+Impact: Env vars as primary option enables GitHub Actions integration

@@ -13,7 +13,7 @@
 - [x] Committed requirements documentation to git
 
 ### Next Development Priorities (from REQUIREMENTS.md):
-1. **Security**: OAuth token storage in plain text files (HIGH)
+1. **Security**: ✅ OAuth token storage in plain text files (HIGH) - COMPLETED 2025-05-27
 2. **Configuration**: Personal data management that survives updates
 3. **Physics**: Utilize height/weight data for better predictions
 4. **API**: Better handling/communication of 200 event limit
@@ -25,7 +25,7 @@
 - **Multi-Lap Handling**: FIXED - pattern matching enables flexible event detection
 - **Pack Model**: Implemented - recognizes draft dominance in racing
 - **Test Suite**: Complete with route validation - all tests passing ✅
-- **Security**: OAuth tokens protected with .gitignore
+- **Security**: ✅ OAuth tokens now have secure storage options (env vars, keyring, files)
 - **Repository**: Published to GitHub with all fixes
 - **Production Status**: ✅ DEPLOYED - Binary installed, documentation complete, ready for users
 - **User Satisfaction**: ❓ NEEDS INVESTIGATION - User has concerns about functionality
@@ -76,14 +76,16 @@
 - [x] Tested pagination/date parameters - all ignored by API
 - [x] Added warning for multi-day searches explaining limitation
 
-## 🔒 Security & Privacy Tasks
+## 🔒 Security & Privacy Tasks ✅ COMPLETED (2025-05-27)
 
 ### Priority 0: Secure Token Storage
-- [ ] Implement environment variable support for Strava tokens
-- [ ] Add token encryption at rest
-- [ ] Create secure token refresh mechanism
-- [ ] Document secure deployment practices
-- [ ] Consider using system keyring for token storage
+- [x] Implement environment variable support for Strava tokens
+- [x] Add system keyring integration (optional feature)
+- [x] Create secure token refresh mechanism in scripts
+- [x] Document secure deployment practices (SECURE_TOKEN_MIGRATION.md)
+- [x] Maintain backward compatibility with existing setups
+- [x] Create migration scripts (strava_auth_secure.sh, strava_fetch_activities_secure.sh)
+- [x] Add comprehensive tests for all storage backends
 
 ## ✅ Racing Score Events - FIXED! (2025-05-26)
 

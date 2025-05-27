@@ -4,6 +4,9 @@
 [defaults]
 zwift_score = 195
 category = "D"
+height_m = 1.82      # Height in meters (used for aerodynamics)
+weight_kg = 86.0     # Weight in kilograms  
+ftp_watts = 250      # Functional Threshold Power (optional)
 
 [import]
 # For WSL users - set your Windows username here
