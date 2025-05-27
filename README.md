@@ -473,6 +473,22 @@ For personal settings, copy `config.example.json` to `config.json` and update wi
 - Browser extraction scripts should only be used on your own ZwiftPower profile
 - This tool only uses public Zwift APIs and does not store credentials
 
+## Development & Testing
+
+### Simulation Tools
+For automated testing and development, see [SIMULATION_TOOLS.md](SIMULATION_TOOLS.md) for a comprehensive list of Bluetooth/ANT+ device simulators that can be used to:
+- Test race predictions without manual riding
+- Create repeatable test scenarios
+- Simulate different rider categories and power profiles
+- Test edge cases (getting dropped, sprints, equipment failure)
+
+### Contributing
+Contributions are welcome! Please:
+- Run `./check_secrets.sh` before committing
+- Add tests for new features
+- Update documentation as needed
+- Follow the existing code style
+
 ## Privacy
 
 This tool stores all data locally on your machine. No data is sent to external servers.
