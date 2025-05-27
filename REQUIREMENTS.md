@@ -243,52 +243,62 @@ Zwift shows race distances but not expected durations. A 40km race might take 60
 - **FER-19.7**: Factor power-to-weight ratio for climbing predictions
 - **FER-19.8**: Consider bike choice effects (TT vs road bike)
 
+### 20. Automated Testing with Simulation Tools
+
+- **FER-20.1**: Integrate with Zwift simulation tools that provide Bluetooth data
+- **FER-20.2**: Create test scenarios with controlled power output profiles
+- **FER-20.3**: Validate duration predictions against simulated race completions
+- **FER-20.4**: Test edge cases (getting dropped, rejoining pack, sprint finishes)
+- **FER-20.5**: Automate regression testing with multiple rider profiles
+- **FER-20.6**: Compare simulated results across different routes and conditions
+- **FER-20.7**: Build database of simulated race data for model training
+
 ## Success Metrics
 
-### 20. Key Performance Indicators
+### 21. Key Performance Indicators
 
-- **KPI-20.1**: Prediction accuracy <20% MAE ✅ (Currently 16.1%)
-- **KPI-20.2**: Race matching rate >75% ✅ (Currently 80%)
-- **KPI-20.3**: User satisfaction (via feedback)
-- **KPI-20.4**: Route coverage >90% of common races
-- **KPI-20.5**: Zero security incidents
+- **KPI-21.1**: Prediction accuracy <20% MAE ✅ (Currently 16.1%)
+- **KPI-21.2**: Race matching rate >75% ✅ (Currently 80%)
+- **KPI-21.3**: User satisfaction (via feedback)
+- **KPI-21.4**: Route coverage >90% of common races
+- **KPI-21.5**: Zero security incidents
 
 ## Constraints and Assumptions
 
-### 21. Technical Constraints
+### 22. Technical Constraints
 
-- **TC-21.1**: Zwift API returns maximum 200 events
-- **TC-21.2**: No official Zwift results API available
-- **TC-21.3**: Racing Score events have distance=0 in API
-- **TC-21.4**: Route IDs are stable but undocumented
+- **TC-22.1**: Zwift API returns maximum 200 events
+- **TC-22.2**: No official Zwift results API available
+- **TC-22.3**: Racing Score events have distance=0 in API
+- **TC-22.4**: Route IDs are stable but undocumented
 
-### 22. Assumptions
+### 23. Assumptions
 
-- **A-22.1**: Users know their Zwift Racing Score
-- **A-22.2**: Draft benefit is ~30% in races
-- **A-22.3**: Category speeds are relatively consistent
-- **A-22.4**: Route characteristics affect all riders similarly
-- **A-22.5**: Historical performance predicts future results
+- **A-23.1**: Users know their Zwift Racing Score
+- **A-23.2**: Draft benefit is ~30% in races
+- **A-23.3**: Category speeds are relatively consistent
+- **A-23.4**: Route characteristics affect all riders similarly
+- **A-23.5**: Historical performance predicts future results
 
 ## Compliance Requirements
 
-### 23. Legal and Ethical
+### 24. Legal and Ethical
 
-- **CR-23.1**: Respect Zwift's terms of service
-- **CR-23.2**: Only access public APIs
-- **CR-23.3**: Don't store other users' data
-- **CR-23.4**: Open source under MIT/Apache license
-- **CR-23.5**: Credit data sources appropriately
+- **CR-24.1**: Respect Zwift's terms of service
+- **CR-24.2**: Only access public APIs
+- **CR-24.3**: Don't store other users' data
+- **CR-24.4**: Open source under MIT/Apache license
+- **CR-24.5**: Credit data sources appropriately
 
 ## Development Methodology
 
-### 24. AI-Assisted Development
+### 25. AI-Assisted Development
 
-- **DM-24.1**: Built using Claude Code for implementation
-- **DM-24.2**: Human provides domain expertise and testing
-- **DM-24.3**: Iterative refinement based on real data
-- **DM-24.4**: Transparent development with clear reasoning
-- **DM-24.5**: Version control for all changes
+- **DM-25.1**: Built using Claude Code for implementation
+- **DM-25.2**: Human provides domain expertise and testing
+- **DM-25.3**: Iterative refinement based on real data
+- **DM-25.4**: Transparent development with clear reasoning
+- **DM-25.5**: Version control for all changes
 
 ---
 
