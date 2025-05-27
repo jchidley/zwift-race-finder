@@ -1,5 +1,44 @@
 # Project Wisdom - Recent Insights
 
+## Recent Discoveries (2025-05-27)
+
+### Configuration Management Success
+Insight: Multi-level config with environment overrides provides maximum flexibility
+Impact: Users can configure via files, env vars, or wrapper scripts
+Key Pattern: env → local → ~/.config → ~/.local/share → defaults
+
+### Data Directory Strategy
+Insight: ~/.local/share/ survives system updates better than ~/.config/
+Impact: User settings persist across tool updates
+Lesson: Separate volatile config from persistent user data
+
+### TOML Over JSON
+Insight: TOML more readable for end users with clear comments
+Impact: Better user experience for configuration files
+Trade-off: Slightly more complex parsing but worth it
+
+### Testing Configuration Systems
+Insight: Config systems need real-world testing beyond unit tests
+Impact: Discovered edge cases with default value handling
+Pattern: Create test config → Run tool → Verify behavior → Test env overrides
+
+### Documentation Types Matter
+Insight: Different audiences need different documentation
+Impact: Created CONFIG_MANAGEMENT.md (users) vs SIMULATION_TOOLS.md (developers)
+Best Practice: Clear examples and security warnings in user docs
+
+### Secure Storage Design Pattern
+Insight: Support multiple storage backends with automatic fallback (env → keyring → file)
+Impact: Users get best available security without configuration burden
+
+### Backward Compatibility First
+Insight: Security improvements should never break existing workflows
+Impact: New secure scripts alongside originals, migration at user's pace
+
+### Environment Variables for CI/CD
+Insight: CI/CD environments need stateless token storage
+Impact: Env vars as primary option enables GitHub Actions integration
+
 ## Recent Discoveries (2025-05-26)
 
 ### Racing Score vs Traditional Categories
@@ -33,17 +72,3 @@ Impact: Found Racing Score pattern in minutes vs hours
 ### Hierarchical Log Management
 Insight: Large logs (66KB+) slow LLM loading - use Summary/Recent/Archives
 Impact: 13x context reduction while preserving all history
-
-## Recent Discoveries (2025-05-27)
-
-### Secure Storage Design Pattern
-Insight: Support multiple storage backends with automatic fallback (env → keyring → file)
-Impact: Users get best available security without configuration burden
-
-### Backward Compatibility First
-Insight: Security improvements should never break existing workflows
-Impact: New secure scripts alongside originals, migration at user's pace
-
-### Environment Variables for CI/CD
-Insight: CI/CD environments need stateless token storage
-Impact: Env vars as primary option enables GitHub Actions integration
