@@ -363,3 +363,16 @@ Zwift shows race distances but not expected durations. A 40km race might take 60
   - Added AI development insights from AI_DEVELOPMENT.md
 - Based on: Production deployment with 16.1% accuracy achieved
 - Status: Requirements now comprehensive, reflecting all documented needs and discoveries
+### 19. Route Name Extraction Enhancement
+
+#### 19.9 Enhanced Route Detection from Event Names
+- **FER-19.9.1**: Extract route names from event titles using common delimiters (-, :,  < /dev/null | )
+- **FER-19.9.2**: Search database for extracted route names before marking as unknown
+- **FER-19.9.3**: Parse route names from event descriptions (e.g., \Route: Turf N Surf\)
+- **FER-19.9.4**: Use extracted route names for web searches when route ID unknown
+- **FER-19.9.5**: Support pattern variations:
+  - vent Name - Route Name\ (e.g., \Zwift Epic Race - Sacre Bleu\)
+  - vent Name: Route Name\ (e.g., \Stage 1: Turf N Surf\)
+  - \Route: [name]\ in descriptions
+  - \on [route name]\ in descriptions
+- **FER-19.9.6**: Normalize route names for matching (case-insensitive, handle spacing)
