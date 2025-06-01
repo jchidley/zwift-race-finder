@@ -1,0 +1,77 @@
+  Name: Stage 4: Makuri May: Three Village Loop
+  Route ID: Some(3379779247)
+  Distance: Some(0.0) meters
+  Duration: None minutes
+  Subgroups: 5 groups
+    - Stage 4: Makuri May: Three Village Loop (A): dist=Some(0.0)m, dur=Nonemin, laps=Some(2), range=Some("510-650")
+    - Stage 4: Makuri May: Three Village Loop (B): dist=Some(0.0)m, dur=Nonemin, laps=Some(2), range=Some("390-510")
+    - Stage 4: Makuri May: Three Village Loop (C): dist=Some(0.0)m, dur=Nonemin, laps=Some(2), range=Some("270-390")
+    - Stage 4: Makuri May: Three Village Loop (D): dist=Some(0.0)m, dur=Nonemin, laps=Some(2), range=Some("160-270")
+    - Stage 4: Makuri May: Three Village Loop (E): dist=Some(0.0)m, dur=Nonemin, laps=Some(2), range=Some("0-160")
+
+  Name: Stage 4: Makuri May: Three Village Loop || Advanced
+  Route ID: Some(3379779247)
+  Distance: Some(0.0) meters
+  Duration: None minutes
+  Subgroups: 1 groups
+    - Stage 4: Makuri May: Three Village Loop || Advanced (A): dist=Some(0.0)m, dur=Nonemin, laps=Some(2), range=Some("650-1000")
+
+  Name: EVO CC Sprint Race Series 
+  Route ID: Some(1793712753)
+  Distance: Some(0.0) meters
+  Duration: None minutes
+  Subgroups: 5 groups
+    - EVO CC Sprint Race Series  (A): dist=Some(0.0)m, dur=Nonemin, laps=Some(1), range=Some("690-1000")
+    - EVO CC Sprint Race Series  (B): dist=Some(0.0)m, dur=Nonemin, laps=Some(1), range=Some("520-690")
+    - EVO CC Sprint Race Series  (C): dist=Some(0.0)m, dur=Nonemin, laps=Some(1), range=Some("350-520")
+    - EVO CC Sprint Race Series  (D): dist=Some(0.0)m, dur=Nonemin, laps=Some(1), range=Some("180-350")
+    - EVO CC Sprint Race Series  (E): dist=Some(0.0)m, dur=Nonemin, laps=Some(1), range=Some("0-180")
+
+  Name: Stage 4: Makuri May: Three Village Loop
+  Route ID: Some(3379779247)
+  Distance: Some(0.0) meters
+  Duration: None minutes
+  Subgroups: 5 groups
+    - Stage 4: Makuri May: Three Village Loop (A): dist=Some(0.0)m, dur=Nonemin, laps=Some(2), range=Some("570-725")
+    - Stage 4: Makuri May: Three Village Loop (B): dist=Some(0.0)m, dur=Nonemin, laps=Some(2), range=Some("450-570")
+    - Stage 4: Makuri May: Three Village Loop (C): dist=Some(0.0)m, dur=Nonemin, laps=Some(2), range=Some("330-450")
+    - Stage 4: Makuri May: Three Village Loop (D): dist=Some(0.0)m, dur=Nonemin, laps=Some(2), range=Some("210-330")
+    - Stage 4: Makuri May: Three Village Loop (E): dist=Some(0.0)m, dur=Nonemin, laps=Some(2), range=Some("0-210")
+
+  Name: Stage 4: Makuri May: Three Village Loop
+  Route ID: Some(3379779247)
+  Distance: Some(0.0) meters
+  Duration: None minutes
+  Subgroups: 5 groups
+    - Stage 4: Makuri May: Three Village Loop (A): dist=Some(0.0)m, dur=Nonemin, laps=Some(2), range=Some("510-650")
+    - Stage 4: Makuri May: Three Village Loop (B): dist=Some(0.0)m, dur=Nonemin, laps=Some(2), range=Some("390-510")
+    - Stage 4: Makuri May: Three Village Loop (C): dist=Some(0.0)m, dur=Nonemin, laps=Some(2), range=Some("270-390")
+    - Stage 4: Makuri May: Three Village Loop (D): dist=Some(0.0)m, dur=Nonemin, laps=Some(2), range=Some("160-270")
+    - Stage 4: Makuri May: Three Village Loop (E): dist=Some(0.0)m, dur=Nonemin, laps=Some(2), range=Some("0-160")
+
+
+Debug: Found 47 races, checking first few:
+  'Stage 4: Makuri May: Three Village Loop': route_id=Some(3379779247), dist=Some(0.0)m
+    → Known route: 10.6 km, would estimate Some(20) min
+  'Stage 4: Makuri May: Three Village Loop || Advanced': route_id=Some(3379779247), dist=Some(0.0)m
+    → Known route: 10.6 km, would estimate Some(20) min
+  'EVO CC Sprint Race Series ': route_id=Some(1793712753), dist=Some(0.0)m
+    → Unknown route 1793712753
+Found 47 cycling races
+Debug: Starting with 200 events
+Debug: 175 events after sport filter
+Debug: 175 events after time filter
+Debug: 47 events after event type filter
+Debug: 0 events after duration filter
+
+No matching events found!
+
+Most races are short (20-30 minutes). Try:
+  • cargo run -- -d 30 -t 30 for short races
+  • cargo run -- -d 60 -t 120 for any race duration
+  • cargo run -- -e tt for time trials instead
+
+General tips:
+  • Look further ahead: -n 3 (next 3 days)
+  • See all available events: cargo run -- -e all -d 60 -t 180
+  • Most races: 20-30 min | Time trials/Group rides: 60-90 min

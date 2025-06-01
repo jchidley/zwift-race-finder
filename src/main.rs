@@ -89,7 +89,7 @@ struct ZwiftEvent {
     description: Option<String>,
     #[serde(default)]
     category_enforcement: bool,
-    #[serde(default)]
+    #[serde(default, rename = "eventSubgroups")]
     event_sub_groups: Vec<EventSubGroup>,
     #[serde(default = "default_sport")]
     sport: String,
@@ -106,7 +106,30 @@ fn is_racing_score_event(event: &ZwiftEvent) -> bool {
 
 fn parse_distance_from_description(description: &Option<String>) -> Option<f64> {
     if let Some(desc) = description {
-        // Look for patterns like "Distance: 23.5 km" or "Distance: 14.6 miles"
+        // Look for patterns like "Distance: X km" or "Distance: X miles"
+        // This is common in Racing Score events and stage events
+        let distance_re = Regex::new(r"Distance:\s*(\d+(?:\.\d+)?)\s*(km|miles?)").unwrap();
+        if let Some(caps) = distance_re.captures(desc) {
+            if let (Some(value), Some(unit)) = (caps.get(1), caps.get(2)) {
+                let distance = value.as_str().parse::<f64>().ok()?;
+                // Convert miles to km if necessary
+                return Some(if unit.as_str().contains("mile") {
+                    distance * 1.60934
+                } else {
+                    distance
+                });
+            }
+        }
+        
+        // Also check for lap information in description
+        // Examples: "2 laps", "3 lap race", etc.
+        let lap_re = Regex::new(r"(\d+)\s*laps?\b").unwrap();
+        if lap_re.is_match(desc) {
+            // If we find lap info, we'll need the route distance to calculate total
+            // For now, just try to parse any distance mentioned
+        }
+        
+        // Fallback to general distance parsing
         parse_distance_from_name(desc)
     } else {
         None
@@ -123,6 +146,7 @@ struct EventSubGroup {
     duration_in_minutes: Option<u32>,
     category_enforcement: Option<bool>,
     range_access_label: Option<String>,
+    laps: Option<u32>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -765,12 +789,27 @@ fn filter_events(mut events: Vec<ZwiftEvent>, args: &Args, zwift_score: u32) -> 
         
         // PRIMARY METHOD: Use route_id with actual distance for most accurate estimation
         if let Some(route_id) = event.route_id {
-            // Check if user's subgroup has a specific distance (multi-lap races)
+            // Check if user's subgroup has specific info (multi-lap races)
             let user_subgroup = find_user_subgroup(event, zwift_score);
+            
+            // First check if subgroup has laps info (for Racing Score events)
+            if let Some(sg) = user_subgroup {
+                if let Some(laps) = sg.laps {
+                    // We have lap count - calculate based on route distance * laps
+                    if let Some(route_data) = get_route_data(route_id) {
+                        let total_distance_km = route_data.distance_km * laps as f64;
+                        if let Some(estimated_duration) = estimate_duration_with_distance(route_id, total_distance_km, zwift_score) {
+                            let diff = (estimated_duration as i32 - args.duration as i32).abs();
+                            return diff <= args.tolerance as i32;
+                        }
+                    }
+                }
+            }
+            
+            // Try to get distance from subgroup or event
             let distance_meters = user_subgroup
                 .and_then(|sg| sg.distance_in_meters)
                 .or(event.distance_in_meters);
-                
                 
             if let Some(dist_m) = distance_meters.filter(|&d| d > 0.0) {
                 let distance_km = dist_m / 1000.0;
@@ -803,16 +842,6 @@ fn filter_events(mut events: Vec<ZwiftEvent>, args: &Args, zwift_score: u32) -> 
                     if let Some(estimated_duration) = estimate_duration_with_distance(route_id, distance_km, zwift_score) {
                         let diff = (estimated_duration as i32 - args.duration as i32).abs();
                         return diff <= args.tolerance as i32;
-                    }
-                }
-            } else {
-                // Try harder for Three Village Loop races which we know have distance in description
-                if event.name.contains("Three Village Loop") {
-                    if let Some(distance_km) = parse_distance_from_description(&event.description) {
-                        if let Some(estimated_duration) = estimate_duration_with_distance(route_id, distance_km, zwift_score) {
-                            let diff = (estimated_duration as i32 - args.duration as i32).abs();
-                            return diff <= args.tolerance as i32;
-                        }
                     }
                 }
             }
@@ -1041,41 +1070,48 @@ fn print_event(event: &ZwiftEvent, _args: &Args, zwift_score: u32) {
     } else if let Some(route_id) = event.route_id {
         // PRIMARY: Use route_id with actual race distance
         if let Some(route_data) = get_route_data(route_id) {
-            // Use subgroup distance if available (for multi-lap races), otherwise base route distance
-            let mut actual_distance_km = if let Some(dist_m) = distance_meters {
-                dist_m / 1000.0
-            } else {
-                route_data.distance_km
-            };
+            let mut actual_distance_km;
+            let mut lap_count = 1;
             
-            // If actual distance is 0 or missing, check for multi-lap events
-            if actual_distance_km > 0.0 {
-                println!("{}: {:.1} km", "Distance".bright_blue(), actual_distance_km);
-                
-                // Calculate laps if distance differs from base route
-                let laps = (actual_distance_km / route_data.distance_km).round() as u32;
-                if laps > 1 {
-                    println!("{}: {} laps of {:.1} km route", "Laps".bright_blue(), laps, route_data.distance_km);
+            // Check if subgroup has lap information (for Racing Score events)
+            if let Some(sg) = user_subgroup {
+                if let Some(laps) = sg.laps {
+                    lap_count = laps;
+                    actual_distance_km = route_data.distance_km * laps as f64;
+                } else if let Some(dist_m) = sg.distance_in_meters.filter(|&d| d > 0.0) {
+                    // Subgroup has explicit distance
+                    actual_distance_km = dist_m / 1000.0;
+                    lap_count = (actual_distance_km / route_data.distance_km).round() as u32;
+                } else {
+                    // No lap info in subgroup, use event distance or route distance
+                    actual_distance_km = distance_meters.map(|d| d / 1000.0)
+                        .unwrap_or(route_data.distance_km);
                 }
             } else {
-                // Check if this is a known multi-lap event
-                let mut lap_count = 1;
-                if let Ok(db) = Database::new() {
-                    if let Ok(Some(laps)) = db.get_multi_lap_info(&event.name) {
-                        lap_count = laps;
-                    }
-                }
-                
-                actual_distance_km = route_data.distance_km * lap_count as f64;
-                if lap_count > 1 {
-                    println!("{}: {:.1} km ({} laps of {:.1} km)", 
-                             "Distance".bright_blue(), 
-                             actual_distance_km, 
-                             lap_count, 
-                             route_data.distance_km);
+                // No subgroup - use event distance or check database for multi-lap info
+                if let Some(dist_m) = distance_meters.filter(|&d| d > 0.0) {
+                    actual_distance_km = dist_m / 1000.0;
+                    lap_count = (actual_distance_km / route_data.distance_km).round() as u32;
                 } else {
-                    println!("{}: {:.1} km", "Distance".bright_blue(), actual_distance_km);
+                    // Check if this is a known multi-lap event
+                    if let Ok(db) = Database::new() {
+                        if let Ok(Some(laps)) = db.get_multi_lap_info(&event.name) {
+                            lap_count = laps;
+                        }
+                    }
+                    actual_distance_km = route_data.distance_km * lap_count as f64;
                 }
+            }
+            
+            // Display distance and laps
+            if lap_count > 1 {
+                println!("{}: {:.1} km ({} laps of {:.1} km)", 
+                         "Distance".bright_blue(), 
+                         actual_distance_km, 
+                         lap_count, 
+                         route_data.distance_km);
+            } else {
+                println!("{}: {:.1} km", "Distance".bright_blue(), actual_distance_km);
             }
             
             // Use actual distance for estimation, not base route distance
@@ -1704,8 +1740,8 @@ async fn main() -> Result<()> {
             println!("  Subgroups: {} groups", event.event_sub_groups.len());
             if !event.event_sub_groups.is_empty() {
                 for sg in &event.event_sub_groups {
-                    println!("    - {}: dist={:?}m, dur={:?}min", 
-                        sg.name, sg.distance_in_meters, sg.duration_in_minutes);
+                    println!("    - {}: dist={:?}m, dur={:?}min, laps={:?}, range={:?}", 
+                        sg.name, sg.distance_in_meters, sg.duration_in_minutes, sg.laps, sg.range_access_label);
                 }
             }
             println!();
@@ -2261,6 +2297,7 @@ mod tests {
                     duration_in_minutes: None,
                     category_enforcement: None,
                     range_access_label: None, // No range label for traditional events
+                    laps: None,
                 },
             ],
             sport: "CYCLING".to_string(),
@@ -2290,6 +2327,7 @@ mod tests {
                     duration_in_minutes: None,
                     category_enforcement: None,
                     range_access_label: Some("0-199".to_string()), // This indicates Racing Score
+                    laps: None,
                 },
             ],
             sport: "CYCLING".to_string(),
@@ -2386,6 +2424,7 @@ mod tests {
                     duration_in_minutes: None,
                     category_enforcement: None,
                     range_access_label: Some("0-199".to_string()),
+                    laps: None,
                 },
             ],
             sport: "CYCLING".to_string(),
@@ -2456,6 +2495,7 @@ mod tests {
                         duration_in_minutes: None,
                         category_enforcement: None,
                         range_access_label: Some("0-650".to_string()),
+                        laps: None,
                     },
                 ],
                 sport: "CYCLING".to_string(),

@@ -14,6 +14,14 @@ This file uses a hierarchical structure to manage insights efficiently:
 ## Active Insights
 *New discoveries will be appended here during sessions*
 
+### 2025-01-06: Event Descriptions Contain Complete Race Information
+Insight: The description field in events contains distance and elevation data that mirrors what the companion app shows
+Impact: Rather than relying solely on API fields (which return 0.0 for Racing Score events), we should parse descriptions to extract the complete race information including distance in km and elevation gain in meters. This data is already being shown in the companion app.
+
+### 2025-01-06: API Data Structure Contains Complete Race Information
+Insight: All racing events contain lap count and racing score ranges in their subgroups, not in the main event data
+Impact: Distance calculations must check subgroup.laps field and multiply by route distance. The API provides 0.0 for event distance but complete lap info in subgroups. This explains why some races show correct multi-lap distances (they use the subgroup data) while others don't.
+
 ### 2025-05-27: Requirements Gathering Process Validates User Concerns
 Insight: User's concern "not working as I'd like" was effectively addressed through systematic requirements documentation rather than code changes
 Impact: Created comprehensive REQUIREMENTS.md from 41-file review. Discovered security issues (OAuth in plaintext), config management needs, and physics modeling opportunities. Sometimes documentation IS the solution.

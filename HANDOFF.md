@@ -1,27 +1,27 @@
 # Project: Zwift Race Finder
-Updated: 2025-05-27 18:30 UTC
+Updated: 2025-01-06 20:19 UTC
 
 ## Current State
-Status: ✅ Secure OAuth token storage implemented and tested
-Target: Continue implementing priority requirements from REQUIREMENTS.md
-Latest: Created flexible token storage with env vars, keyring, and secure files
+Status: Lap handling working; user notes description field has distance/elevation
+Target: Understand how companion app shows distance/elevation for all events
+Latest: User emphasized description field contains race data (not API fields)
 
 ## Essential Context
-- Security requirement COMPLETE: 3 storage options (env, keyring, file)
-- Backward compatible - existing users unaffected
-- All tests passing, ready for production use
-- Next priorities: config management, physics modeling, API limits
+- Lap calculation working: Shows "21.2 km (2 laps)" correctly
+- API returns 0.0 for distance in Racing Score events
+- We calculate from route DB + lap count successfully
+- User: "description field often contains this data" (distance/elevation)
+- Need to parse description for complete race information
 
 ## Next Step
-Decide next priority: personal config management or physics improvements
+Parse event descriptions to extract distance/elevation data
 
 ## If Blocked
-Review REQUIREMENTS.md priorities 2-5 for next implementation
+None - need to examine description field contents
 
 ## Related Documents
 - todo.md - Active tasks and project status
-- REQUIREMENTS.md - Comprehensive requirements document (security ✅)
-- SECURE_TOKEN_MIGRATION.md - New migration guide for users
+- REQUIREMENTS.md - Comprehensive requirements document
 - PROJECT_WISDOM.md - Technical insights and patterns
 - CLAUDE.md - Project-specific AI instructions
-- sessions/ZWIFT_API_LOG_SESSION_20250527_009.md - Latest work session
+- sessions/ZWIFT_API_LOG_SESSION_20250527_*.md - Recent work sessions
