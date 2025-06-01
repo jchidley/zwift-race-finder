@@ -457,7 +457,12 @@ at your option.
 ## Acknowledgments
 
 - Route data from [ZwiftHacks](https://zwifthacks.com/) and [Zwift Insider](https://zwiftinsider.com/)
+- Event filtering and data presentation techniques inspired by [ZwiftHacks](https://zwifthacks.com/)
+- This project respects ZwiftHacks' [terms of use](https://zwifthacks.com/about/) - non-commercial use only
 - Zwift and ZwiftPower are trademarks of Zwift, Inc.
+
+### Attribution Note
+This is a non-commercial, open-source project. Any techniques or approaches inspired by ZwiftHacks are used with respect for their terms of use. We encourage users to also check out ZwiftHacks' excellent tools for additional Zwift functionality.
 ## Configuration
 
 For personal settings, copy `config.example.json` to `config.json` and update with your values:

@@ -18,6 +18,14 @@ This file uses a hierarchical structure to manage insights efficiently:
 Insight: The description field in events contains distance and elevation data that mirrors what the companion app shows
 Impact: Rather than relying solely on API fields (which return 0.0 for Racing Score events), we should parse descriptions to extract the complete race information including distance in km and elevation gain in meters. This data is already being shown in the companion app.
 
+### 2025-01-06: Route Discovery Pattern - Event Titles Contain Route Names
+Insight: Event titles often contain route names after delimiters (-, :, |) - "Zwift Epic Race - Sacre Bleu" indicates the route is "Sacre Bleu"
+Impact: Extracting route names from event titles enables automatic route discovery. The tool can parse titles, extract potential route names, and search the database or web for matching routes before marking them as unknown.
+
+### 2025-01-06: Web Search Effectiveness for Route Discovery
+Insight: Searching for route names directly (e.g., "Zwift Sacre Bleu route") yields better results than searching by numeric route ID
+Impact: When implementing automated route discovery, use extracted route names in web searches rather than route IDs. Route IDs are internal identifiers not commonly referenced in public documentation.
+
 ### 2025-01-06: API Data Structure Contains Complete Race Information
 Insight: All racing events contain lap count and racing score ranges in their subgroups, not in the main event data
 Impact: Distance calculations must check subgroup.laps field and multiply by route distance. The API provides 0.0 for event distance but complete lap info in subgroups. This explains why some races show correct multi-lap distances (they use the subgroup data) while others don't.
@@ -98,3 +106,11 @@ Impact: Manual mapping SQL scripts more effective than automated discovery for t
 Insight: Wrong route mapping causes massive prediction errors (EVO CC: 21 min for 75 min race = 72% error)
 Impact: Must match route distance to typical race duration. EVO CC needed 40.8km route, not 12.1km. Always verify with actual race times.
 Impact: Discovery will fail for these; need manual mapping table for recurring high-frequency events like "Restart Monday Mash" (55x)
+
+### 2025-01-06: Description Parsing Patterns for Racing Score Events
+Insight: Zwift API returns 0.0 for distance in Racing Score events, but includes the data in description text
+Impact: Implemented parse_description_data() to extract "Distance: X km/miles", "Elevation: Y m/ft", and "N laps" patterns. Supports both metric and imperial units with automatic conversion. This complements route database lookups for complete race information.
+
+### 2025-01-06: Development Testing Strategies
+Insight: DNS connectivity issues can prevent API testing during development
+Impact: Consider creating offline test data fixtures or mock API responses for development. Real API testing should be separate from unit tests to ensure development can continue without network dependencies.

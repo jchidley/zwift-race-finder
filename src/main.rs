@@ -70,6 +70,18 @@ struct Args {
     /// Discover unknown routes from web sources
     #[arg(long)]
     discover_routes: bool,
+    
+    /// Filter by event tags (e.g., "ranked", "zracing", "jerseyunlock")
+    #[arg(long, value_delimiter = ',')]
+    tags: Vec<String>,
+    
+    /// Exclude events with specific tags
+    #[arg(long, value_delimiter = ',')]
+    exclude_tags: Vec<String>,
+    
+    /// Load filters from URL parameters (e.g., "tags=ranked&duration=30")
+    #[arg(long)]
+    from_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -93,6 +105,8 @@ struct ZwiftEvent {
     event_sub_groups: Vec<EventSubGroup>,
     #[serde(default = "default_sport")]
     sport: String,
+    #[serde(default)]
+    tags: Vec<String>,
 }
 
 fn default_sport() -> String {
@@ -102,6 +116,61 @@ fn default_sport() -> String {
 fn is_racing_score_event(event: &ZwiftEvent) -> bool {
     // Racing Score events have range_access_label in subgroups
     event.event_sub_groups.iter().any(|sg| sg.range_access_label.is_some())
+}
+
+// Parse distance and elevation from event description
+#[derive(Debug, Clone)]
+struct DescriptionData {
+    distance_km: Option<f64>,
+    elevation_m: Option<u32>,
+    laps: Option<u32>,
+}
+
+fn parse_description_data(description: &Option<String>) -> DescriptionData {
+    let mut data = DescriptionData {
+        distance_km: None,
+        elevation_m: None,
+        laps: None,
+    };
+    
+    if let Some(desc) = description {
+        // Parse distance
+        data.distance_km = parse_distance_from_description(description);
+        
+        // Parse elevation - look for patterns like "Elevation: X m" or "X meters elevation"
+        let elevation_patterns = vec![
+            r"Elevation:\s*(\d+(?:\.\d+)?)\s*(m|meters?|ft|feet)",
+            r"(\d+(?:\.\d+)?)\s*(m|meters?)\s*elevation",
+            r"(\d+(?:\.\d+)?)\s*(m|meters?)\s*of\s*climbing",
+            r"Elevation\s*Gain:\s*(\d+(?:\.\d+)?)\s*(m|meters?|ft|feet)",
+        ];
+        
+        for pattern in elevation_patterns {
+            let re = Regex::new(pattern).unwrap();
+            if let Some(caps) = re.captures(desc) {
+                if let (Some(value), Some(unit)) = (caps.get(1), caps.get(2)) {
+                    let elevation = value.as_str().parse::<f64>().ok().unwrap_or(0.0);
+                    // Convert feet to meters if necessary
+                    data.elevation_m = Some(if unit.as_str().contains("ft") || unit.as_str().contains("feet") {
+                        (elevation / 3.28084) as u32
+                    } else {
+                        elevation as u32
+                    });
+                    break;
+                }
+            }
+        }
+        
+        // Parse lap count
+        let lap_re = Regex::new(r"(\d+)\s*laps?\b").unwrap();
+        if let Some(caps) = lap_re.captures(desc) {
+            if let Some(value) = caps.get(1) {
+                data.laps = value.as_str().parse().ok();
+            }
+        }
+    }
+    
+    data
 }
 
 fn parse_distance_from_description(description: &Option<String>) -> Option<f64> {
@@ -119,14 +188,6 @@ fn parse_distance_from_description(description: &Option<String>) -> Option<f64> 
                     distance
                 });
             }
-        }
-        
-        // Also check for lap information in description
-        // Examples: "2 laps", "3 lap race", etc.
-        let lap_re = Regex::new(r"(\d+)\s*laps?\b").unwrap();
-        if lap_re.is_match(desc) {
-            // If we find lap info, we'll need the route distance to calculate total
-            // For now, just try to parse any distance mentioned
         }
         
         // Fallback to general distance parsing
@@ -773,6 +834,26 @@ fn filter_events(mut events: Vec<ZwiftEvent>, args: &Args, zwift_score: u32) -> 
         eprintln!("Debug: {} events after event type filter", events.len());
     }
 
+    // Tag filtering
+    if !args.tags.is_empty() {
+        events.retain(|event| {
+            args.tags.iter().any(|tag| event.tags.iter().any(|etag| etag.contains(tag)))
+        });
+        if args.debug {
+            eprintln!("Debug: {} events after tag filter", events.len());
+        }
+    }
+    
+    // Exclude tags filtering
+    if !args.exclude_tags.is_empty() {
+        events.retain(|event| {
+            !args.exclude_tags.iter().any(|tag| event.tags.iter().any(|etag| etag.contains(tag)))
+        });
+        if args.debug {
+            eprintln!("Debug: {} events after exclude tag filter", events.len());
+        }
+    }
+
     // Duration filter
     events.retain(|event| {
         // Duration filter - prioritize route_id for accuracy
@@ -1297,16 +1378,38 @@ fn print_event(event: &ZwiftEvent, _args: &Args, zwift_score: u32) {
         }
     }
 
-    if let Some(desc) = &event.description {
-        let cleaned_desc = desc
-            .lines()
-            .take(2)
-            .collect::<Vec<_>>()
-            .join(" ")
-            .trim()
-            .to_string();
-        if !cleaned_desc.is_empty() {
-            println!("{}: {}", "Info".bright_blue(), cleaned_desc.dimmed());
+    // Parse and display description data
+    if event.description.is_some() {
+        let desc_data = parse_description_data(&event.description);
+        
+        // Show parsed distance/elevation from description
+        let mut parsed_info = Vec::new();
+        if let Some(dist) = desc_data.distance_km {
+            parsed_info.push(format!("{:.1} km", dist));
+        }
+        if let Some(elev) = desc_data.elevation_m {
+            parsed_info.push(format!("{} m elevation", elev));
+        }
+        if let Some(laps) = desc_data.laps {
+            parsed_info.push(format!("{} laps", laps));
+        }
+        
+        if !parsed_info.is_empty() {
+            println!("{}: {}", "From description".bright_blue(), parsed_info.join(", ").cyan());
+        }
+        
+        // Show first 2 lines of description as before
+        if let Some(desc) = &event.description {
+            let cleaned_desc = desc
+                .lines()
+                .take(2)
+                .collect::<Vec<_>>()
+                .join(" ")
+                .trim()
+                .to_string();
+            if !cleaned_desc.is_empty() {
+                println!("{}: {}", "Info".bright_blue(), cleaned_desc.dimmed());
+            }
         }
     }
 }
@@ -1595,9 +1698,52 @@ async fn analyze_event_descriptions() -> Result<()> {
     Ok(())
 }
 
+fn parse_url_params(args: &mut Args, url_params: &str) -> Result<()> {
+    // Parse URL-style parameters like "tags=ranked,zracing&duration=30"
+    for param in url_params.split('&') {
+        if let Some((key, value)) = param.split_once('=') {
+            match key {
+                "tags" => {
+                    args.tags = value.split(',').map(|s| s.to_string()).collect();
+                }
+                "exclude_tags" => {
+                    args.exclude_tags = value.split(',').map(|s| s.to_string()).collect();
+                }
+                "duration" => {
+                    if let Ok(d) = value.parse() {
+                        args.duration = d;
+                    }
+                }
+                "tolerance" => {
+                    if let Ok(t) = value.parse() {
+                        args.tolerance = t;
+                    }
+                }
+                "event_type" => {
+                    args.event_type = value.to_string();
+                }
+                "zwift_score" => {
+                    if let Ok(s) = value.parse() {
+                        args.zwift_score = Some(s);
+                    }
+                }
+                _ => {
+                    eprintln!("Warning: Unknown URL parameter: {}", key);
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
-    let args = Args::parse();
+    let mut args = Args::parse();
+    
+    // Parse URL parameters if provided
+    if let Some(url_params) = args.from_url.clone() {
+        parse_url_params(&mut args, &url_params)?;
+    }
 
     println!("🚴 {} {}", "Zwift Race Finder".bold(), "v0.1.0".dimmed());
     
@@ -2398,6 +2544,40 @@ mod tests {
             parse_distance_from_description(&Some("First lap: 10 km, Total: 30 km".to_string())),
             Some(10.0)
         );
+    }
+    
+    #[test]
+    fn test_parse_description_data() {
+        // Test comprehensive parsing
+        let desc1 = Some("Distance: 23.5 km\nElevation: 450 m\n3 laps race".to_string());
+        let data1 = parse_description_data(&desc1);
+        assert_eq!(data1.distance_km, Some(23.5));
+        assert_eq!(data1.elevation_m, Some(450));
+        assert_eq!(data1.laps, Some(3));
+        
+        // Test with feet elevation
+        let desc2 = Some("Distance: 10 miles, Elevation: 1000 feet".to_string());
+        let data2 = parse_description_data(&desc2);
+        assert_eq!(data2.distance_km, Some(16.0934)); // 10 * 1.60934
+        assert_eq!(data2.elevation_m, Some(304)); // 1000 / 3.28084
+        assert_eq!(data2.laps, None);
+        
+        // Test elevation gain pattern
+        let desc3 = Some("Elevation Gain: 250 m".to_string());
+        let data3 = parse_description_data(&desc3);
+        assert_eq!(data3.elevation_m, Some(250));
+        
+        // Test "meters of climbing" pattern
+        let desc4 = Some("This route has 350 meters of climbing".to_string());
+        let data4 = parse_description_data(&desc4);
+        assert_eq!(data4.elevation_m, Some(350));
+        
+        // Test no data
+        let desc5 = Some("A fun race in Watopia!".to_string());
+        let data5 = parse_description_data(&desc5);
+        assert_eq!(data5.distance_km, None);
+        assert_eq!(data5.elevation_m, None);
+        assert_eq!(data5.laps, None);
     }
 
     #[test]
