@@ -1,3 +1,5 @@
+//! Debug tool for analyzing event tags from Zwift API data
+
 use std::collections::HashMap;
 use serde_json::Value;
 

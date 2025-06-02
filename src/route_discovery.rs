@@ -1,5 +1,6 @@
-// Route discovery module for automatically finding route data from external sources
-// Searches whatsonzwift.com and zwiftinsider.com for unknown routes
+//! Route discovery module for automatically finding route data from external sources
+//! 
+//! Searches whatsonzwift.com and zwiftinsider.com for unknown routes
 
 use anyhow::{anyhow, Result};
 use regex::Regex;
@@ -11,22 +12,31 @@ use tokio::sync::Mutex;
 
 // No need for re-export since it's already a public function
 
+/// Discovered route information
 #[derive(Debug, Clone)]
 pub struct DiscoveredRoute {
+    /// Route ID
     pub route_id: u32,
+    /// Route name
     pub name: String,
+    /// Distance in kilometers
     pub distance_km: f64,
+    /// Elevation gain in meters
     pub elevation_m: u32,
+    /// Zwift world
     pub world: String,
+    /// Surface type
     pub surface: String,
 }
 
+/// Route discovery service
 pub struct RouteDiscovery {
     client: reqwest::Client,
     cache: Arc<Mutex<HashMap<String, Option<DiscoveredRoute>>>>,
 }
 
 impl RouteDiscovery {
+    /// Create a new route discovery service
     pub fn new() -> Result<Self> {
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(10))
@@ -410,9 +420,12 @@ impl RouteDiscovery {
     }
 }
 
+/// Parsed event description with route name and lap count
 #[derive(Debug, Clone)]
 pub struct ParsedEventDescription {
+    /// Extracted route name
     pub route_name: String,
+    /// Number of laps
     pub laps: u32,
 }
 

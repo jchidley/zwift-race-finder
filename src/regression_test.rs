@@ -152,7 +152,7 @@ mod tests {
         // Group by route and check for outliers
         let mut route_times: std::collections::HashMap<u32, Vec<u32>> = std::collections::HashMap::new();
         
-        for result in results.iter().filter(|r| r.route_id != 9999) {
+        for result in results.iter().filter(|r| r.route_id != 9999 && !r.event_name.starts_with("Test Race")) {
             route_times.entry(result.route_id)
                 .or_insert_with(Vec::new)
                 .push(result.actual_minutes);

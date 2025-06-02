@@ -9,11 +9,17 @@ use std::fs;
 /// Strava OAuth tokens and credentials
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StravaTokens {
+    /// Strava API client ID
     pub client_id: String,
+    /// Strava API client secret
     pub client_secret: String,
+    /// OAuth access token
     pub access_token: String,
+    /// OAuth refresh token
     pub refresh_token: String,
+    /// Token expiration timestamp
     pub expires_at: i64,
+    /// Strava athlete ID
     pub athlete_id: Option<i64>,
 }
 
@@ -31,6 +37,7 @@ pub enum StorageBackend {
 /// Secure storage manager for OAuth tokens
 pub struct SecureStorage {
     backend: StorageBackend,
+    #[allow(dead_code)] // Used with keyring feature
     service_name: String,
 }
 

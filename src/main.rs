@@ -386,6 +386,7 @@ fn get_route_data(route_id: u32) -> Option<RouteData> {
 
 // Get just the distance for backward compatibility
 // Parse lap count from event name (e.g., "3 Laps", "6 laps")
+#[cfg(test)]
 fn parse_lap_count(name: &str) -> Option<u32> {
     let re = Regex::new(r"(\d+)\s*[Ll]aps?").unwrap();
     if let Some(caps) = re.captures(name) {
@@ -532,32 +533,6 @@ fn get_route_difficulty_multiplier(route_name: &str) -> f64 {
     } else {
         1.0 // Default
     }
-}
-
-// Try to get route data including from description parsing
-fn get_route_data_enhanced(event: &ZwiftEvent) -> Option<(u32, f64)> {
-    // First try the direct route_id lookup
-    if let Some(route_id) = event.route_id {
-        if let Some(route_data) = get_route_data(route_id) {
-            return Some((route_id, route_data.distance_km));
-        }
-    }
-    
-    // If route_id lookup failed, try parsing description for route name
-    if let Some(description) = &event.description {
-        if let Some(parsed) = route_discovery::parse_route_from_description(description) {
-            // Try to find the route by name in our database
-            if let Ok(db) = Database::new() {
-                if let Ok(Some(route)) = db.get_route_by_name(&parsed.route_name) {
-                    // Calculate total distance considering laps
-                    let total_distance = route.distance_km * parsed.laps as f64;
-                    return Some((route.route_id, total_distance));
-                }
-            }
-        }
-    }
-    
-    None
 }
 
 // Primary duration estimation - uses route_id when available
@@ -1088,56 +1063,6 @@ fn log_unknown_route(event: &ZwiftEvent) {
                     &event.event_type
                 );
             }
-        }
-    }
-}
-
-// Async function to discover route data from external sources
-async fn discover_route_if_needed(route_id: u32, event_name: &str) -> Result<Option<DbRouteData>> {
-    let db = Database::new()?;
-    
-    // Check if we should attempt discovery (not tried recently)
-    if !db.should_attempt_discovery(route_id)? {
-        return Ok(None);
-    }
-    
-    // Record that we're attempting discovery
-    db.record_discovery_attempt(route_id, event_name)?;
-    
-    // Try to discover route data
-    let discovery = route_discovery::RouteDiscovery::new()?;
-    match discovery.discover_route(event_name).await {
-        Ok(discovered) => {
-            // Save to database
-            db.save_discovered_route(
-                route_id,
-                discovered.distance_km,
-                discovered.elevation_m,
-                &discovered.world,
-                &discovered.surface,
-                &discovered.name,
-            )?;
-            
-            // Return the discovered route data
-            Ok(Some(DbRouteData {
-                route_id,
-                distance_km: discovered.distance_km,
-                elevation_m: discovered.elevation_m,
-                name: discovered.name,
-                world: discovered.world,
-                surface: discovered.surface,
-                lead_in_distance_km: 0.3,  // Default lead-in for discovered routes
-                lead_in_elevation_m: 0,
-                lead_in_distance_free_ride_km: None,
-                lead_in_elevation_free_ride_m: None,
-                lead_in_distance_meetups_km: None,
-                lead_in_elevation_meetups_m: None,
-                slug: None,
-            }))
-        }
-        Err(e) => {
-            eprintln!("Route discovery failed for {}: {}", event_name, e);
-            Ok(None)
         }
     }
 }
@@ -1826,7 +1751,7 @@ fn show_route_progress() -> Result<()> {
     
     // Progress bar
     let bar_width: usize = 30;
-    let filled = (bar_width * completed as usize / total.max(1) as usize);
+    let filled = bar_width * completed as usize / total.max(1) as usize;
     let bar = "█".repeat(filled) + &"░".repeat(bar_width - filled);
     println!("{}", bar.bright_green());
     println!();
@@ -1840,7 +1765,7 @@ fn show_route_progress() -> Result<()> {
         } else { 
             0 
         };
-        let world_filled = (10 * world_completed as usize / world_total.max(1) as usize);
+        let world_filled = 10 * world_completed as usize / world_total.max(1) as usize;
         let world_bar = "▓".repeat(world_filled) + &"░".repeat(10 - world_filled);
         println!("  {:<15} {}/{} {} {}%", 
             world, world_completed, world_total, world_bar, world_percentage);

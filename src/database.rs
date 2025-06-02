@@ -1,50 +1,88 @@
-// Database module for managing Zwift route data and race results
-// Stores route information and Jack's actual race completion times
+//! Database module for managing Zwift route data and race results
+//! 
+//! Stores route information and actual race completion times
 
 use anyhow::Result;
 use rusqlite::{params, Connection, OptionalExtension};
 use std::path::PathBuf;
 
+/// Route data including distance, elevation, and lead-in information
 #[derive(Debug, Clone)]
 pub struct RouteData {
+    /// Unique route identifier
+    #[allow(dead_code)]
     pub route_id: u32,
+    /// Route distance in kilometers
     pub distance_km: f64,
+    /// Total elevation gain in meters
     pub elevation_m: u32,
+    /// Route name
     pub name: String,
+    /// Zwift world (Watopia, London, etc.)
     pub world: String,
-    pub surface: String, // "road", "gravel", "mixed"
+    /// Surface type (road, gravel, mixed)
+    pub surface: String,
+    /// Lead-in distance in kilometers
     pub lead_in_distance_km: f64,
+    /// Lead-in elevation in meters
+    #[allow(dead_code)]
     pub lead_in_elevation_m: u32,
+    /// Lead-in distance for free ride mode
+    #[allow(dead_code)]
     pub lead_in_distance_free_ride_km: Option<f64>,
+    /// Lead-in elevation for free ride mode
+    #[allow(dead_code)]
     pub lead_in_elevation_free_ride_m: Option<u32>,
+    /// Lead-in distance for meetups
+    #[allow(dead_code)]
     pub lead_in_distance_meetups_km: Option<f64>,
+    /// Lead-in elevation for meetups
+    #[allow(dead_code)]
     pub lead_in_elevation_meetups_m: Option<u32>,
+    /// URL slug for WhatsOnZwift
     pub slug: Option<String>,
 }
 
+/// Race result with actual completion time
 #[derive(Debug, Clone)]
 pub struct RaceResult {
+    /// Database ID
+    #[allow(dead_code)]
     pub id: Option<i64>,
+    /// Route ID
     pub route_id: u32,
+    /// Event name
     pub event_name: String,
+    /// Actual race duration in minutes
     pub actual_minutes: u32,
+    /// Zwift Racing Score at time of race
     pub zwift_score: u32,
-    pub race_date: String,  // Stored as text in database
+    /// Race date (YYYY-MM-DD format)
+    pub race_date: String,
+    /// Optional notes
     pub notes: Option<String>,
 }
 
+/// Rider physical stats for physics calculations
 #[derive(Debug, Clone)]
 pub struct RiderStats {
+    /// Height in meters
+    #[allow(dead_code)]
     pub height_m: f64,
+    /// Weight in kilograms
     pub weight_kg: f64,
+    /// Functional Threshold Power in watts
+    #[allow(dead_code)]
     pub ftp_watts: Option<u32>,
 }
 
+/// Database connection and operations
 pub struct Database {
     conn: Connection,
 }
 
 impl Database {
+    /// Create a new database connection
     pub fn new() -> Result<Self> {
         let db_path = get_database_path()?;
         let conn = Connection::open(db_path)?;
@@ -188,6 +226,7 @@ impl Database {
         Ok(())
     }
     
+    /// Get route data by ID
     pub fn get_route(&self, route_id: u32) -> Result<Option<RouteData>> {
         let mut stmt = self.conn.prepare(
             "SELECT route_id, distance_km, elevation_m, name, world, surface,
@@ -218,6 +257,8 @@ impl Database {
         Ok(route)
     }
     
+    /// Add a new route to the database
+    #[allow(dead_code)]
     pub fn add_route(&self, route: &RouteData) -> Result<()> {
         self.conn.execute(
             "INSERT OR REPLACE INTO routes (route_id, distance_km, elevation_m, name, world, surface,
@@ -244,6 +285,8 @@ impl Database {
         Ok(())
     }
     
+    /// Get route data by name
+    #[allow(dead_code)]
     pub fn get_route_by_name(&self, name: &str) -> Result<Option<RouteData>> {
         let mut stmt = self.conn.prepare(
             "SELECT route_id, distance_km, elevation_m, name, world, surface,
@@ -278,6 +321,7 @@ impl Database {
         Ok(route)
     }
     
+    /// Record an unknown route for future investigation
     pub fn record_unknown_route(&self, route_id: u32, event_name: &str, event_type: &str) -> Result<()> {
         self.conn.execute(
             "INSERT INTO unknown_routes (route_id, event_name, event_type) 
@@ -290,6 +334,7 @@ impl Database {
         Ok(())
     }
     
+    /// Add a race result
     pub fn add_race_result(&self, result: &RaceResult) -> Result<()> {
         self.conn.execute(
             "INSERT INTO race_results (route_id, event_name, actual_minutes, zwift_score, race_date, notes) 
@@ -306,6 +351,8 @@ impl Database {
         Ok(())
     }
     
+    /// Get race results for a specific route
+    #[allow(dead_code)]
     pub fn get_race_results_for_route(&self, route_id: u32, zwift_score: u32) -> Result<Vec<RaceResult>> {
         let mut stmt = self.conn.prepare(
             "SELECT id, route_id, event_name, actual_minutes, zwift_score, race_date, notes 
@@ -330,6 +377,8 @@ impl Database {
         Ok(results)
     }
     
+    /// Get average race time for a route
+    #[allow(dead_code)]
     pub fn get_average_race_time(&self, route_id: u32, _zwift_score: u32) -> Result<Option<u32>> {
         // Get average from recent results (last 3 months are most reliable)
         // But if no recent results, use all historical data
@@ -358,6 +407,8 @@ impl Database {
         Ok(result.map(|avg| avg.round() as u32))
     }
     
+    /// Get all routes from the database
+    #[allow(dead_code)]
     pub fn get_all_routes(&self) -> Result<Vec<RouteData>> {
         let mut stmt = self.conn.prepare(
             "SELECT route_id, distance_km, elevation_m, name, world, surface,
@@ -388,6 +439,8 @@ impl Database {
         Ok(routes)
     }
 
+    /// Get all race results
+    #[cfg(test)]
     pub fn get_all_race_results(&self) -> Result<Vec<RaceResult>> {
         let mut stmt = self.conn.prepare(
             "SELECT id, route_id, event_name, actual_minutes, zwift_score, race_date, notes 
@@ -422,6 +475,7 @@ impl Database {
         Ok(results)
     }
     
+    /// Get unknown routes that need mapping
     pub fn get_unknown_routes(&self) -> Result<Vec<(u32, String, i32)>> {
         let mut stmt = self.conn.prepare(
             "SELECT route_id, event_name, times_seen 
@@ -437,6 +491,7 @@ impl Database {
         Ok(routes)
     }
     
+    /// Get rider stats from the database
     pub fn get_rider_stats(&self) -> Result<Option<RiderStats>> {
         let result = self.conn.query_row(
             "SELECT height_m, weight_kg, ftp_watts FROM rider_stats WHERE id = 1",
@@ -534,6 +589,7 @@ impl Database {
     }
     
     // Route completion tracking methods
+    /// Mark a route as completed
     pub fn mark_route_complete(&self, route_id: u32, time_minutes: Option<u32>, notes: Option<&str>) -> Result<()> {
         self.conn.execute(
             "INSERT OR REPLACE INTO route_completion (route_id, actual_time_minutes, notes, completed_at) 
@@ -543,6 +599,7 @@ impl Database {
         Ok(())
     }
     
+    /// Check if a route has been completed
     pub fn is_route_completed(&self, route_id: u32) -> Result<bool> {
         let count: i64 = self.conn.query_row(
             "SELECT COUNT(*) FROM route_completion WHERE route_id = ?1",
@@ -552,6 +609,7 @@ impl Database {
         Ok(count > 0)
     }
     
+    /// Get route completion statistics (completed, total)
     pub fn get_completion_stats(&self) -> Result<(u32, u32)> {
         let total: u32 = self.conn.query_row(
             "SELECT COUNT(*) FROM routes",
@@ -568,6 +626,7 @@ impl Database {
         Ok((completed, total))
     }
     
+    /// Get route completion statistics by world
     pub fn get_world_completion_stats(&self) -> Result<Vec<(String, u32, u32)>> {
         let mut stmt = self.conn.prepare(
             "SELECT r.world, 

@@ -1,3 +1,5 @@
+//! Generate ZwiftHacks-compatible filter URLs from command line arguments
+
 use std::env;
 
 fn main() {

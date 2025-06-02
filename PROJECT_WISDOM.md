@@ -49,3 +49,45 @@ Impact: Differentiate event types without explicit type field
 ### 2025-05-26: Browser DevTools Power
 Insight: Browser tools reveal undocumented API behavior quickly
 Impact: Found Racing Score pattern in minutes vs hours
+
+### 2025-06-02: WhatsOnZwift Data Sources Discovery
+Insight: WhatsOnZwift has permission from Zwift to display route/workout data but provides no public API
+Impact: Third-party tools must parse web pages or use indirect sources like zwift-data npm package
+Key Learning: Popular services often have special agreements unavailable to indie developers
+Details:
+- Zwift's developer API requires special accounts not available to hobby developers
+- WhatsOnZwift likely has privileged access through their partnership
+- Our approach: Use zwift-data package + public Zwift endpoints + manual curation
+- Web scraping tools exist (wozzwo) but check ToS first
+
+### 2025-06-02: Strava as Accurate Zwift Route Data Source
+Insight: Zwift exports completed rides to Strava with accurate route information embedded
+Impact: Strava activities provide ground truth data for route details, distances, and elevation
+Key Learning: Sometimes the best API is an indirect one - use data exhaust from integrations
+Details:
+- Zwift automatically syncs rides to Strava (when connected)
+- Strava activities contain actual route names, distances, elevation profiles
+- Can download activity data via Strava API with proper authentication
+- Our project uses this: strava_auth.sh → strava_fetch_activities.sh → import to DB
+- This gives us real-world validation data for route predictions
+
+### 2025-06-02: Club Events as Route Discovery Tool
+Insight: Zwift Companion app allows creating club events with specific routes for controlled testing
+Impact: Can systematically map all routes by creating events and analyzing the exported data
+Key Learning: When APIs are locked down, create your own data through controlled experiments
+Details:
+- Club owners can create events on any free-ride route
+- Participants' rides export to Strava/Garmin with full route data
+- Captures actual distances including lead-in variations
+- Different event types (race/ride/meetup) may have different lead-ins
+- Strategy: Create "Route Discovery" club events to map entire Zwift ecosystem
+
+### 2025-06-02: WhatsOnZwift Route URL Patterns
+Insight: WhatsOnZwift has accurate route data but reverse routes don't have separate pages
+Impact: Need to map reverse routes to their forward equivalents for data lookup
+Key Learning: External data sources may have different organization than internal models
+Details:
+- URL pattern: https://whatsonzwift.com/world/{world}/route/{slug}
+- Reverse routes (e.g., "hilly-route-rev") must map to base route ("hilly-route")
+- Data includes: distance, elevation, lead-in distance, lead-in elevation
+- Most comprehensive public source for Zwift route data

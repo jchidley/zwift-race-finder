@@ -1,5 +1,6 @@
-// ABOUTME: Analyze event descriptions to find distance/elevation patterns
-// This tool fetches recent events and extracts patterns from descriptions
+//! Analyze event descriptions to find distance/elevation patterns
+//! 
+//! This tool fetches recent events and extracts patterns from descriptions
 
 use anyhow::Result;
 use chrono::Utc;
