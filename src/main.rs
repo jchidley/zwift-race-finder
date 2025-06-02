@@ -1194,7 +1194,7 @@ fn print_event(event: &ZwiftEvent, _args: &Args, zwift_score: u32) {
     } else if let Some(route_id) = event.route_id {
         // PRIMARY: Use route_id with actual race distance
         if let Some(route_data) = get_route_data(route_id) {
-            let mut actual_distance_km;
+            let actual_distance_km;
             let mut lap_count = 1;
             
             // Check if subgroup has lap information (for Racing Score events)
@@ -2120,6 +2120,7 @@ mod tests {
             category_enforcement: false,
             event_sub_groups: vec![],
             sport: sport.to_string(),
+            tags: vec![],
         }
     }
 
@@ -2143,6 +2144,12 @@ mod tests {
             analyze_descriptions: false,
             record_result: None,
             discover_routes: false,
+            tags: vec![],
+            exclude_tags: vec![],
+            from_url: None,
+            mark_complete: None,
+            show_progress: false,
+            new_routes_only: false,
         };
 
         let filtered = filter_events(events, &args, 195);
@@ -2190,6 +2197,12 @@ mod tests {
             analyze_descriptions: false,
             record_result: None,
             discover_routes: false,
+            tags: vec![],
+            exclude_tags: vec![],
+            from_url: None,
+            mark_complete: None,
+            show_progress: false,
+            new_routes_only: false,
         };
 
         let filtered = filter_events(events, &args, 195);
@@ -2327,6 +2340,12 @@ mod tests {
             analyze_descriptions: false,
             record_result: None,
             discover_routes: false,
+            tags: vec![],
+            exclude_tags: vec![],
+            from_url: None,
+            mark_complete: None,
+            show_progress: false,
+            new_routes_only: false,
         };
 
         let filtered = filter_events(events.clone(), &args, 195);
@@ -2556,6 +2575,7 @@ mod tests {
                 },
             ],
             sport: "CYCLING".to_string(),
+            tags: vec![],
         };
         
         assert!(!is_racing_score_event(&traditional_event));
@@ -2586,6 +2606,7 @@ mod tests {
                 },
             ],
             sport: "CYCLING".to_string(),
+            tags: vec![],
         };
         
         assert!(is_racing_score_event(&racing_score_event));
@@ -2605,6 +2626,7 @@ mod tests {
             category_enforcement: false,
             event_sub_groups: vec![], // No subgroups at all
             sport: "CYCLING".to_string(),
+            tags: vec![],
         };
         
         assert!(!is_racing_score_event(&no_subgroups_event));
@@ -2717,6 +2739,7 @@ mod tests {
                 },
             ],
             sport: "CYCLING".to_string(),
+            tags: vec![],
         };
         
         let args = Args {
@@ -2731,6 +2754,12 @@ mod tests {
             analyze_descriptions: false,
             record_result: None,
             discover_routes: false,
+            tags: vec![],
+            exclude_tags: vec![],
+            from_url: None,
+            mark_complete: None,
+            show_progress: false,
+            new_routes_only: false,
         };
         
         let events = vec![racing_score_event.clone()];
@@ -2761,6 +2790,7 @@ mod tests {
                 category_enforcement: false,
                 event_sub_groups: vec![],
                 sport: "CYCLING".to_string(),
+                tags: vec![],
             },
             // Racing Score event with 0 distance
             ZwiftEvent {
@@ -2788,6 +2818,7 @@ mod tests {
                     },
                 ],
                 sport: "CYCLING".to_string(),
+                tags: vec![],
             },
         ];
         
@@ -2803,6 +2834,12 @@ mod tests {
             analyze_descriptions: false,
             record_result: None,
             discover_routes: false,
+            tags: vec![],
+            exclude_tags: vec![],
+            from_url: None,
+            mark_complete: None,
+            show_progress: false,
+            new_routes_only: false,
         };
         
         let filtered = filter_events(events, &args, 195);
@@ -2830,6 +2867,7 @@ mod tests {
                 category_enforcement: false,
                 event_sub_groups: vec![],
                 sport: "CYCLING".to_string(),
+                tags: vec![],
             },
             ZwiftEvent {
                 id: 2,
@@ -2845,6 +2883,7 @@ mod tests {
                 category_enforcement: false,
                 event_sub_groups: vec![],
                 sport: "CYCLING".to_string(),
+                tags: vec![],
             },
             ZwiftEvent {
                 id: 3,
@@ -2860,6 +2899,7 @@ mod tests {
                 category_enforcement: false,
                 event_sub_groups: vec![],
                 sport: "CYCLING".to_string(),
+                tags: vec![],
             },
             ZwiftEvent {
                 id: 4,
@@ -2875,6 +2915,7 @@ mod tests {
                 category_enforcement: false,
                 event_sub_groups: vec![],
                 sport: "RUNNING".to_string(),
+                tags: vec![],
             },
         ];
         
@@ -2910,6 +2951,12 @@ mod tests {
             analyze_descriptions: false,
             record_result: None,
             discover_routes: false,
+            tags: vec![],
+            exclude_tags: vec![],
+            from_url: None,
+            mark_complete: None,
+            show_progress: false,
+            new_routes_only: false,
         };
         
         let suggestions = generate_no_results_suggestions(&args);
@@ -2935,6 +2982,12 @@ mod tests {
             analyze_descriptions: false,
             record_result: None,
             discover_routes: false,
+            tags: vec![],
+            exclude_tags: vec![],
+            from_url: None,
+            mark_complete: None,
+            show_progress: false,
+            new_routes_only: false,
         };
         
         let suggestions = generate_no_results_suggestions(&args);
@@ -2959,6 +3012,12 @@ mod tests {
             analyze_descriptions: false,
             record_result: None,
             discover_routes: false,
+            tags: vec![],
+            exclude_tags: vec![],
+            from_url: None,
+            mark_complete: None,
+            show_progress: false,
+            new_routes_only: false,
         };
         
         let suggestions = generate_no_results_suggestions(&args);

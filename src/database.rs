@@ -4,7 +4,6 @@
 use anyhow::Result;
 use rusqlite::{params, Connection, OptionalExtension};
 use std::path::PathBuf;
-use chrono::Utc;
 
 #[derive(Debug, Clone)]
 pub struct RouteData {
@@ -550,6 +549,7 @@ fn get_database_path() -> Result<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::Utc;
     
     #[test]
     fn test_database_creation() {
