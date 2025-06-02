@@ -251,6 +251,7 @@ struct RouteData {
     #[allow(dead_code)]
     world: &'static str,
     surface: &'static str, // "road", "gravel", "mixed"
+    lead_in_distance_km: f64,
 }
 
 // Get route data from database
@@ -277,6 +278,7 @@ fn get_route_data(route_id: u32) -> Option<RouteData> {
                 "mixed" => "mixed",
                 _ => "road",
             },
+            lead_in_distance_km: db_route.lead_in_distance_km,
         });
     }
     
@@ -289,6 +291,7 @@ fn get_route_data(route_id: u32) -> Option<RouteData> {
             name: "Bell Lap",
             world: "Crit City",
             surface: "road",
+            lead_in_distance_km: 0.5,  // Default lead-in for crit races
         }),
         
         // Common race routes
@@ -298,6 +301,7 @@ fn get_route_data(route_id: u32) -> Option<RouteData> {
             name: "Watopia Flat Route",
             world: "Watopia",
             surface: "road",
+            lead_in_distance_km: 0.3,
         }),
         
         2927651296 => Some(RouteData {
@@ -306,6 +310,7 @@ fn get_route_data(route_id: u32) -> Option<RouteData> {
             name: "Makuri Pretzel",
             world: "Makuri Islands",
             surface: "road",
+            lead_in_distance_km: 2.0,
         }),
         
         3742187716 => Some(RouteData {
@@ -314,6 +319,7 @@ fn get_route_data(route_id: u32) -> Option<RouteData> {
             name: "Castle to Castle",
             world: "Makuri Islands",
             surface: "road",
+            lead_in_distance_km: 2.0,
         }),
         
         // Crit Racing Club routes
@@ -323,6 +329,7 @@ fn get_route_data(route_id: u32) -> Option<RouteData> {
             name: "Downtown Dolphin",
             world: "Crit City",
             surface: "road",
+            lead_in_distance_km: 0.5,
         }),
         
         // Mt. Fuji Hill Climb
@@ -332,6 +339,7 @@ fn get_route_data(route_id: u32) -> Option<RouteData> {
             name: "Mt. Fuji",
             world: "Makuri Islands",
             surface: "road",
+            lead_in_distance_km: 1.0,
         }),
         
         // Common race routes discovered from API
@@ -341,6 +349,7 @@ fn get_route_data(route_id: u32) -> Option<RouteData> {
             name: "eRacing Course",
             world: "Various",
             surface: "road",
+            lead_in_distance_km: 0.3,
         }),
         
         1656629976 => Some(RouteData {
@@ -349,6 +358,7 @@ fn get_route_data(route_id: u32) -> Option<RouteData> {
             name: "Ottawa TopSpeed",
             world: "Various",
             surface: "road",
+            lead_in_distance_km: 0.3,
         }),
         
         2474227587 => Some(RouteData {
@@ -357,6 +367,7 @@ fn get_route_data(route_id: u32) -> Option<RouteData> {
             name: "KISS 100",
             world: "Watopia",
             surface: "road",
+            lead_in_distance_km: 0.5,
         }),
         
         3395698268 => Some(RouteData {
@@ -365,6 +376,7 @@ fn get_route_data(route_id: u32) -> Option<RouteData> {
             name: "R3R 60km",
             world: "Various",
             surface: "road",
+            lead_in_distance_km: 0.5,
         }),
         
         // Add more routes as we discover them
@@ -551,7 +563,9 @@ fn get_route_data_enhanced(event: &ZwiftEvent) -> Option<(u32, f64)> {
 // Primary duration estimation - uses route_id when available
 fn estimate_duration_from_route_id(route_id: u32, zwift_score: u32) -> Option<u32> {
     let route_data = get_route_data(route_id)?;
-    estimate_duration_with_distance(route_id, route_data.distance_km, zwift_score)
+    // For races, include lead-in distance
+    let total_distance = route_data.distance_km + route_data.lead_in_distance_km;
+    estimate_duration_with_distance(route_id, total_distance, zwift_score)
 }
 
 // Duration estimation with explicit distance (for multi-lap races)
@@ -907,9 +921,9 @@ fn filter_events(mut events: Vec<ZwiftEvent>, args: &Args, zwift_score: u32) -> 
             // First check if subgroup has laps info (for Racing Score events)
             if let Some(sg) = user_subgroup {
                 if let Some(laps) = sg.laps {
-                    // We have lap count - calculate based on route distance * laps
+                    // We have lap count - calculate based on route distance * laps + lead-in
                     if let Some(route_data) = get_route_data(route_id) {
-                        let total_distance_km = route_data.distance_km * laps as f64;
+                        let total_distance_km = route_data.lead_in_distance_km + (route_data.distance_km * laps as f64);
                         if let Some(estimated_duration) = estimate_duration_with_distance(route_id, total_distance_km, zwift_score) {
                             let diff = (estimated_duration as i32 - args.duration as i32).abs();
                             return diff <= args.tolerance as i32;
@@ -1112,6 +1126,13 @@ async fn discover_route_if_needed(route_id: u32, event_name: &str) -> Result<Opt
                 name: discovered.name,
                 world: discovered.world,
                 surface: discovered.surface,
+                lead_in_distance_km: 0.3,  // Default lead-in for discovered routes
+                lead_in_elevation_m: 0,
+                lead_in_distance_free_ride_km: None,
+                lead_in_elevation_free_ride_m: None,
+                lead_in_distance_meetups_km: None,
+                lead_in_elevation_meetups_m: None,
+                slug: None,
             }))
         }
         Err(e) => {
@@ -1238,6 +1259,11 @@ fn print_event(event: &ZwiftEvent, _args: &Args, zwift_score: u32) {
                 println!("{}: {:.1} km", "Distance".bright_blue(), actual_distance_km);
             }
             
+            // Show lead-in distance if significant
+            if route_data.lead_in_distance_km > 0.1 {
+                println!("{}: {:.1} km", "Lead-in".bright_blue(), route_data.lead_in_distance_km);
+            }
+            
             // Use actual distance for estimation, not base route distance
             let effective_speed = match zwift_score {
                 0..=199 => CAT_D_SPEED,
@@ -1259,7 +1285,9 @@ fn print_event(event: &ZwiftEvent, _args: &Args, zwift_score: u32) {
             };
             
             let adjusted_speed = effective_speed * difficulty_multiplier * surface_multiplier;
-            let estimated_duration = ((actual_distance_km / adjusted_speed) * 60.0) as u32;
+            // Include lead-in distance in total duration calculation
+            let total_distance = actual_distance_km + route_data.lead_in_distance_km;
+            let estimated_duration = ((total_distance / adjusted_speed) * 60.0) as u32;
             
             let cat_string = match zwift_score {
                 0..=149 => "D",
@@ -1452,6 +1480,30 @@ fn print_event(event: &ZwiftEvent, _args: &Args, zwift_score: u32) {
                 .to_string();
             if !cleaned_desc.is_empty() {
                 println!("{}: {}", "Info".bright_blue(), cleaned_desc.dimmed());
+            }
+        }
+    }
+    
+    // Show external URL if we have route slug
+    if let Some(route_id) = event.route_id {
+        if let Some(db_route) = get_route_data_from_db(route_id) {
+            if let Some(slug) = db_route.slug {
+                let world_slug = match db_route.world.as_str() {
+                    "Watopia" => "watopia",
+                    "London" => "london",
+                    "New York" => "new-york",
+                    "Innsbruck" => "innsbruck",
+                    "Yorkshire" => "yorkshire",
+                    "France" => "france",
+                    "Paris" => "paris",
+                    "Makuri Islands" => "makuri-islands",
+                    "Scotland" => "scotland",
+                    "Bologna" => "bologna",
+                    "Crit City" => "crit-city",
+                    _ => "watopia", // Default
+                };
+                let url = format!("https://whatsonzwift.com/world/{}/route/{}", world_slug, slug);
+                println!("{}: {}", "Route Info".bright_blue(), url.dimmed());
             }
         }
     }

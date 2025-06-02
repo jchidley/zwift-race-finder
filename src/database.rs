@@ -13,6 +13,13 @@ pub struct RouteData {
     pub name: String,
     pub world: String,
     pub surface: String, // "road", "gravel", "mixed"
+    pub lead_in_distance_km: f64,
+    pub lead_in_elevation_m: u32,
+    pub lead_in_distance_free_ride_km: Option<f64>,
+    pub lead_in_elevation_free_ride_m: Option<u32>,
+    pub lead_in_distance_meetups_km: Option<f64>,
+    pub lead_in_elevation_meetups_m: Option<u32>,
+    pub slug: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -59,6 +66,13 @@ impl Database {
                 name TEXT NOT NULL,
                 world TEXT NOT NULL,
                 surface TEXT NOT NULL DEFAULT 'road',
+                lead_in_distance_km REAL DEFAULT 0.0,
+                lead_in_elevation_m INTEGER DEFAULT 0,
+                lead_in_distance_free_ride_km REAL,
+                lead_in_elevation_free_ride_m INTEGER,
+                lead_in_distance_meetups_km REAL,
+                lead_in_elevation_meetups_m INTEGER,
+                slug TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )",
@@ -164,9 +178,10 @@ impl Database {
         
         for (id, dist, elev, name, world, surface) in routes {
             self.conn.execute(
-                "INSERT OR IGNORE INTO routes (route_id, distance_km, elevation_m, name, world, surface) 
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-                params![id, dist, elev, name, world, surface],
+                "INSERT OR IGNORE INTO routes (route_id, distance_km, elevation_m, name, world, surface,
+                                              lead_in_distance_km, lead_in_elevation_m) 
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                params![id, dist, elev, name, world, surface, 0.3, 0],
             )?;
         }
         
@@ -175,7 +190,10 @@ impl Database {
     
     pub fn get_route(&self, route_id: u32) -> Result<Option<RouteData>> {
         let mut stmt = self.conn.prepare(
-            "SELECT route_id, distance_km, elevation_m, name, world, surface 
+            "SELECT route_id, distance_km, elevation_m, name, world, surface,
+                    lead_in_distance_km, lead_in_elevation_m,
+                    lead_in_distance_free_ride_km, lead_in_elevation_free_ride_m,
+                    lead_in_distance_meetups_km, lead_in_elevation_meetups_m, slug
              FROM routes WHERE route_id = ?1"
         )?;
         
@@ -187,6 +205,13 @@ impl Database {
                 name: row.get(3)?,
                 world: row.get(4)?,
                 surface: row.get(5)?,
+                lead_in_distance_km: row.get(6).unwrap_or(0.0),
+                lead_in_elevation_m: row.get(7).unwrap_or(0),
+                lead_in_distance_free_ride_km: row.get(8).ok(),
+                lead_in_elevation_free_ride_m: row.get(9).ok(),
+                lead_in_distance_meetups_km: row.get(10).ok(),
+                lead_in_elevation_meetups_m: row.get(11).ok(),
+                slug: row.get(12).ok(),
             })
         }).optional()?;
         
@@ -195,15 +220,25 @@ impl Database {
     
     pub fn add_route(&self, route: &RouteData) -> Result<()> {
         self.conn.execute(
-            "INSERT OR REPLACE INTO routes (route_id, distance_km, elevation_m, name, world, surface) 
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            "INSERT OR REPLACE INTO routes (route_id, distance_km, elevation_m, name, world, surface,
+                                           lead_in_distance_km, lead_in_elevation_m,
+                                           lead_in_distance_free_ride_km, lead_in_elevation_free_ride_m,
+                                           lead_in_distance_meetups_km, lead_in_elevation_meetups_m, slug) 
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
             params![
                 route.route_id,
                 route.distance_km,
                 route.elevation_m,
                 route.name,
                 route.world,
-                route.surface
+                route.surface,
+                route.lead_in_distance_km,
+                route.lead_in_elevation_m,
+                route.lead_in_distance_free_ride_km,
+                route.lead_in_elevation_free_ride_m,
+                route.lead_in_distance_meetups_km,
+                route.lead_in_elevation_meetups_m,
+                route.slug
             ],
         )?;
         Ok(())
@@ -211,7 +246,10 @@ impl Database {
     
     pub fn get_route_by_name(&self, name: &str) -> Result<Option<RouteData>> {
         let mut stmt = self.conn.prepare(
-            "SELECT route_id, distance_km, elevation_m, name, world, surface 
+            "SELECT route_id, distance_km, elevation_m, name, world, surface,
+                    lead_in_distance_km, lead_in_elevation_m,
+                    lead_in_distance_free_ride_km, lead_in_elevation_free_ride_m,
+                    lead_in_distance_meetups_km, lead_in_elevation_meetups_m, slug
              FROM routes 
              WHERE LOWER(name) = LOWER(?1)
              LIMIT 1"
@@ -226,6 +264,13 @@ impl Database {
                     name: row.get(3)?,
                     world: row.get(4)?,
                     surface: row.get(5)?,
+                    lead_in_distance_km: row.get(6).unwrap_or(0.0),
+                    lead_in_elevation_m: row.get(7).unwrap_or(0),
+                    lead_in_distance_free_ride_km: row.get(8).ok(),
+                    lead_in_elevation_free_ride_m: row.get(9).ok(),
+                    lead_in_distance_meetups_km: row.get(10).ok(),
+                    lead_in_elevation_meetups_m: row.get(11).ok(),
+                    slug: row.get(12).ok(),
                 })
             })
             .optional()?;
@@ -315,7 +360,10 @@ impl Database {
     
     pub fn get_all_routes(&self) -> Result<Vec<RouteData>> {
         let mut stmt = self.conn.prepare(
-            "SELECT route_id, distance_km, elevation_m, name, world, surface 
+            "SELECT route_id, distance_km, elevation_m, name, world, surface,
+                    lead_in_distance_km, lead_in_elevation_m,
+                    lead_in_distance_free_ride_km, lead_in_elevation_free_ride_m,
+                    lead_in_distance_meetups_km, lead_in_elevation_meetups_m, slug
              FROM routes"
         )?;
         
@@ -327,6 +375,13 @@ impl Database {
                 name: row.get(3)?,
                 world: row.get(4)?,
                 surface: row.get(5)?,
+                lead_in_distance_km: row.get(6).unwrap_or(0.0),
+                lead_in_elevation_m: row.get(7).unwrap_or(0),
+                lead_in_distance_free_ride_km: row.get(8).ok(),
+                lead_in_elevation_free_ride_m: row.get(9).ok(),
+                lead_in_distance_meetups_km: row.get(10).ok(),
+                lead_in_elevation_meetups_m: row.get(11).ok(),
+                slug: row.get(12).ok(),
             })
         })?.collect::<Result<Vec<_>, _>>()?;
         

@@ -1,27 +1,39 @@
 # Project: Zwift Race Finder
-Updated: 2025-06-02 00:10 UTC
+Updated: 2025-06-02 23:30 UTC
 
 ## Current State
-Status: Requirements enhanced with insights from all reference sources
-Target: Implement lead-in distance handling for improved accuracy
-Latest: Added 15+ new requirements based on zwiftmap, zwift-data, and zwift-client analysis
+Status: Lead-in distance and route URLs implemented successfully
+Target: Continue improving accuracy and user experience
+Latest: Imported 264 routes from zwift-data with lead-in distances
 
 ## Essential Context
-- Lead-in distance varies by event type - critical missing piece for accuracy
-- Hidden event tags enable advanced filtering (from ZwiftHacks analysis)
-- Route slugs needed for external URL generation
-- Three MIT-licensed repos cloned locally for reference
-- REQUIREMENTS.md now comprehensive with all discovered insights
-- Previous session left uncommitted: database.rs, main.rs changes
+- Lead-in distance now displayed for all races (e.g., "Lead-in: 0.2 km")
+- WhatsOnZwift URLs generated for routes with slugs
+- 250 new routes imported from zwift-data-reference
+- Database schema updated with lead-in fields (6 new columns)
+- Duration calculations now include lead-in distance
+- Tests need fixing due to schema changes
 
-## Next Step
-1. Review and commit pending database.rs, main.rs changes
-2. Implement lead-in distance handling (FR-2.1.6) - highest impact on accuracy
-3. Add route slug support (DR-11.6) for external URL integration
-4. Consider importing zwift-data route database
+## Completed Today
+1. ✅ Implemented lead-in distance handling (FR-2.1.6)
+   - Updated database schema with 6 lead-in columns
+   - Modified duration calculations to include lead-in
+   - Display lead-in distance in race output
+2. ✅ Added route slug support (DR-11.6)
+   - Store route slugs in database
+   - Generate WhatsOnZwift URLs for known routes
+3. ✅ Imported zwift-data route database
+   - Created import_zwift_data_routes.py script
+   - Imported 264 routes with accurate lead-in data
+
+## Next Steps
+1. Fix failing database tests (schema mismatch)
+2. Run regression tests to verify accuracy improvements
+3. Consider implementing route-specific physics (FR-2.1.7)
+4. Push changes to origin
 
 ## If Blocked
-Check reference repos: zwift-data-reference/src/routes.ts for data structure
+Check test failures with: cargo test database::tests::test_database_creation -- --nocapture
 
 ## If Blocked
 Check PROJECT_WISDOM.md for tag discovery and URL parsing patterns
