@@ -54,6 +54,8 @@ Zwift shows race distances but not expected durations. A 40km race might take 60
 - **FR-2.1.3**: Parse distance from event descriptions for Racing Score events
 - **FR-2.1.4**: Apply elevation-based difficulty multipliers
 - **FR-2.1.5**: Apply surface-type penalties (gravel, mixed surfaces)
+- **FR-2.1.6**: Account for lead-in distance variations by event type (race, workout, group ride)
+- **FR-2.1.7**: Consider route-specific physics (e.g., jungle has different draft dynamics)
 
 #### 2.2 Speed Calculation
 - **FR-2.2.1**: Use category-based average speeds:
@@ -84,6 +86,9 @@ Zwift shows race distances but not expected durations. A 40km race might take 60
 - **FR-3.2.2**: Support manual route mapping via SQL scripts
 - **FR-3.2.3**: Web scraping for route data from whatsonzwift.com
 - **FR-3.2.4**: Parse route information from event descriptions
+- **FR-3.2.5**: Extract and utilize hidden event tags for advanced filtering
+- **FR-3.2.6**: Support route slug mapping for external URL generation
+- **FR-3.2.7**: Track event-only routes that aren't available in free ride
 
 #### 3.3 Data Import
 - **FR-3.3.1**: Import race history from ZwiftPower via browser extraction
@@ -99,6 +104,9 @@ Zwift shows race distances but not expected durations. A 40km race might take 60
 - **FR-4.1.3**: Support debug mode showing filtering details
 - **FR-4.1.4**: Show unknown routes that need mapping
 - **FR-4.1.5**: Record race results for calibration
+- **FR-4.1.6**: Support URL-based filter parameters for sharing searches
+- **FR-4.1.7**: Filter events by tags (e.g., --tags ranked,zracing)
+- **FR-4.1.8**: Show route completion status when tracking enabled
 
 #### 4.2 Output Format
 - **FR-4.2.1**: Display events with estimated duration for rider's score
@@ -138,6 +146,7 @@ Zwift shows race distances but not expected durations. A 40km race might take 60
 - **NFR-7.6**: Pre-commit hooks to prevent accidental secret commits
 - **NFR-7.7**: Replace personal data with placeholders before public release
 - **NFR-7.8**: Support multiple secure configuration options for different user preferences
+- **NFR-7.9**: Implement OAuth token refresh to prevent authentication failures
 
 ### 8. Usability
 
@@ -170,6 +179,11 @@ Zwift shows race distances but not expected durations. A 40km race might take 60
 - **DR-11.3**: Track elevation gain in meters
 - **DR-11.4**: Track surface type (road, gravel, mixed)
 - **DR-11.5**: Store route name and world
+- **DR-11.6**: Store route slug for URL generation
+- **DR-11.7**: Track lead-in distances (race, free ride, meetup variants)
+- **DR-11.8**: Store external URLs (Strava segment, Zwift Insider, What's on Zwift)
+- **DR-11.9**: Flag event-only routes vs free ride available
+- **DR-11.10**: Track lap route indicator and time trial support
 
 ### 12. Race Results
 
@@ -242,6 +256,17 @@ Zwift shows race distances but not expected durations. A 40km race might take 60
 - **FER-19.6**: Adjust draft benefit based on rider height
 - **FER-19.7**: Factor power-to-weight ratio for climbing predictions
 - **FER-19.8**: Consider bike choice effects (TT vs road bike)
+- **FER-19.9**: Import complete route data from zwift-data npm package (MIT licensed) including:
+  - Route IDs, slugs, names, distances, elevation, lead-in distances
+  - Surface type variations (cobbles, dirt, wood, brick, grass, snow)
+  - External references (Strava segments, Zwift Insider, What's on Zwift)
+  - Event-only routes, lap routes, time trial support flags
+- **FER-19.10**: Map between different route identification systems for better matching
+- **FER-19.11**: Consider zwiftmap.com architecture patterns for future visualization features
+- **FER-19.12**: Track route completion history for gamification and variety scoring
+- **FER-19.13**: Generate shareable configuration URLs for team/club setups
+- **FER-19.14**: Support world availability schedule for event filtering
+- **FER-19.15**: Implement protobuf support for certain Zwift API endpoints
 
 ### 20. Automated Testing with Simulation Tools
 
@@ -363,16 +388,16 @@ Zwift shows race distances but not expected durations. A 40km race might take 60
   - Added AI development insights from AI_DEVELOPMENT.md
 - Based on: Production deployment with 16.1% accuracy achieved
 - Status: Requirements now comprehensive, reflecting all documented needs and discoveries
-### 19. Route Name Extraction Enhancement
-
-#### 19.9 Enhanced Route Detection from Event Names
-- **FER-19.9.1**: Extract route names from event titles using common delimiters (-, :,  < /dev/null | )
-- **FER-19.9.2**: Search database for extracted route names before marking as unknown
-- **FER-19.9.3**: Parse route names from event descriptions (e.g., \Route: Turf N Surf\)
-- **FER-19.9.4**: Use extracted route names for web searches when route ID unknown
-- **FER-19.9.5**: Support pattern variations:
-  - vent Name - Route Name\ (e.g., \Zwift Epic Race - Sacre Bleu\)
-  - vent Name: Route Name\ (e.g., \Stage 1: Turf N Surf\)
-  - \Route: [name]\ in descriptions
-  - \on [route name]\ in descriptions
-- **FER-19.9.6**: Normalize route names for matching (case-insensitive, handle spacing)
+- 2025-06-01: Added discovery insights from zwiftmap and zwift-data projects
+  - Found comprehensive route database in zwift-data npm package (MIT licensed)
+  - Identified need for mapping between route IDs, slugs, and names
+  - Added consideration for surface types (cobbles, dirt, wood, etc.)
+  - Note: Future enhancements should be added to existing sections without renumbering
+- 2025-06-01: Comprehensive review against all reference sources
+  - Added lead-in distance handling requirements (critical for accuracy)
+  - Enhanced route data requirements with slugs, external URLs, flags
+  - Added hidden event tags and URL-based filtering from ZwiftHacks
+  - Included OAuth token refresh from zwift-client analysis
+  - Added route completion tracking and shareable configurations
+- Based on: Production deployment with 16.1% accuracy achieved
+- Status: Requirements now complete with insights from all reference sources

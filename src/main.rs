@@ -82,6 +82,18 @@ struct Args {
     /// Load filters from URL parameters (e.g., "tags=ranked&duration=30")
     #[arg(long)]
     from_url: Option<String>,
+    
+    /// Mark a route as completed (by route ID)
+    #[arg(long)]
+    mark_complete: Option<u32>,
+    
+    /// Show route completion progress
+    #[arg(long)]
+    show_progress: bool,
+    
+    /// Only show events with routes you haven't completed
+    #[arg(long)]
+    new_routes_only: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -853,6 +865,25 @@ fn filter_events(mut events: Vec<ZwiftEvent>, args: &Args, zwift_score: u32) -> 
             eprintln!("Debug: {} events after exclude tag filter", events.len());
         }
     }
+    
+    // New routes only filter
+    if args.new_routes_only {
+        let db = Database::new().ok();
+        if let Some(db) = db {
+            events.retain(|event| {
+                if let Some(route_id) = event.route_id {
+                    // Keep events with routes we haven't completed
+                    !db.is_route_completed(route_id).unwrap_or(false)
+                } else {
+                    // Keep events without route IDs (they might be new)
+                    true
+                }
+            });
+            if args.debug {
+                eprintln!("Debug: {} events after new routes filter", events.len());
+            }
+        }
+    }
 
     // Duration filter
     events.retain(|event| {
@@ -1112,12 +1143,24 @@ fn print_event(event: &ZwiftEvent, _args: &Args, zwift_score: u32) {
     
     // Show route ID for debugging and data collection
     if let Some(route_id) = event.route_id {
+        // Check completion status
+        let completion_marker = if let Ok(db) = Database::new() {
+            if db.is_route_completed(route_id).unwrap_or(false) {
+                " ✓".green().to_string()
+            } else {
+                "".to_string()
+            }
+        } else {
+            "".to_string()
+        };
+        
         if let Some(route_data) = get_route_data(route_id) {
             println!(
-                "{}: {} ({}m elevation)",
+                "{}: {} ({}m elevation){}",
                 "Route ID".bright_blue().dimmed(),
                 route_id.to_string().dimmed(),
-                route_data.elevation_m
+                route_data.elevation_m,
+                completion_marker
             );
         } else {
             println!(
@@ -1698,6 +1741,62 @@ async fn analyze_event_descriptions() -> Result<()> {
     Ok(())
 }
 
+fn mark_route_complete(route_id: u32) -> Result<()> {
+    let db = Database::new()?;
+    
+    // Check if route exists
+    if let Some(route) = db.get_route(route_id)? {
+        // Mark as complete
+        db.mark_route_complete(route_id, None, None)?;
+        println!("✅ Marked route {} ({}) as completed!", route.name, route.world);
+        
+        // Show updated progress
+        let (completed, total) = db.get_completion_stats()?;
+        println!("Progress: {}/{} routes completed ({}%)", 
+            completed, total, (completed * 100) / total);
+    } else {
+        eprintln!("Error: Route {} not found in database", route_id);
+    }
+    
+    Ok(())
+}
+
+fn show_route_progress() -> Result<()> {
+    let db = Database::new()?;
+    
+    // Overall stats
+    let (completed, total) = db.get_completion_stats()?;
+    let percentage = if total > 0 { (completed * 100) / total } else { 0 };
+    
+    println!("🏆 {} {}", "Route Completion Progress".bold(), format!("v0.1.0").dimmed());
+    println!();
+    println!("Overall: {}/{} routes ({}%)", completed, total, percentage);
+    
+    // Progress bar
+    let bar_width: usize = 30;
+    let filled = (bar_width * completed as usize / total.max(1) as usize);
+    let bar = "█".repeat(filled) + &"░".repeat(bar_width - filled);
+    println!("{}", bar.bright_green());
+    println!();
+    
+    // World stats
+    println!("By World:");
+    let world_stats = db.get_world_completion_stats()?;
+    for (world, world_completed, world_total) in world_stats {
+        let world_percentage = if world_total > 0 { 
+            (world_completed * 100) / world_total 
+        } else { 
+            0 
+        };
+        let world_filled = (10 * world_completed as usize / world_total.max(1) as usize);
+        let world_bar = "▓".repeat(world_filled) + &"░".repeat(10 - world_filled);
+        println!("  {:<15} {}/{} {} {}%", 
+            world, world_completed, world_total, world_bar, world_percentage);
+    }
+    
+    Ok(())
+}
+
 fn parse_url_params(args: &mut Args, url_params: &str) -> Result<()> {
     // Parse URL-style parameters like "tags=ranked,zracing&duration=30"
     for param in url_params.split('&') {
@@ -1765,6 +1864,16 @@ async fn main() -> Result<()> {
     
     if args.discover_routes {
         discover_unknown_routes().await?;
+        return Ok(());
+    }
+    
+    if let Some(route_id) = args.mark_complete {
+        mark_route_complete(route_id)?;
+        return Ok(());
+    }
+    
+    if args.show_progress {
+        show_route_progress()?;
         return Ok(());
     }
 

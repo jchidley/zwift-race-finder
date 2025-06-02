@@ -82,6 +82,18 @@ impl Database {
             [],
         )?;
         
+        // Route completion tracking
+        self.conn.execute(
+            "CREATE TABLE IF NOT EXISTS route_completion (
+                route_id INTEGER PRIMARY KEY,
+                completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                actual_time_minutes INTEGER,
+                notes TEXT,
+                FOREIGN KEY (route_id) REFERENCES routes(route_id)
+            )",
+            [],
+        )?;
+        
         // Unknown routes table for data collection
         self.conn.execute(
             "CREATE TABLE IF NOT EXISTS unknown_routes (
@@ -465,6 +477,64 @@ impl Database {
         )?;
         
         Ok(())
+    }
+    
+    // Route completion tracking methods
+    pub fn mark_route_complete(&self, route_id: u32, time_minutes: Option<u32>, notes: Option<&str>) -> Result<()> {
+        self.conn.execute(
+            "INSERT OR REPLACE INTO route_completion (route_id, actual_time_minutes, notes, completed_at) 
+             VALUES (?1, ?2, ?3, CURRENT_TIMESTAMP)",
+            params![route_id, time_minutes, notes],
+        )?;
+        Ok(())
+    }
+    
+    pub fn is_route_completed(&self, route_id: u32) -> Result<bool> {
+        let count: i64 = self.conn.query_row(
+            "SELECT COUNT(*) FROM route_completion WHERE route_id = ?1",
+            params![route_id],
+            |row| row.get(0),
+        )?;
+        Ok(count > 0)
+    }
+    
+    pub fn get_completion_stats(&self) -> Result<(u32, u32)> {
+        let total: u32 = self.conn.query_row(
+            "SELECT COUNT(*) FROM routes",
+            [],
+            |row| row.get(0),
+        )?;
+        
+        let completed: u32 = self.conn.query_row(
+            "SELECT COUNT(*) FROM route_completion",
+            [],
+            |row| row.get(0),
+        )?;
+        
+        Ok((completed, total))
+    }
+    
+    pub fn get_world_completion_stats(&self) -> Result<Vec<(String, u32, u32)>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT r.world, 
+                    COUNT(DISTINCT r.route_id) as total,
+                    COUNT(DISTINCT rc.route_id) as completed
+             FROM routes r
+             LEFT JOIN route_completion rc ON r.route_id = rc.route_id
+             GROUP BY r.world
+             ORDER BY r.world"
+        )?;
+        
+        let stats = stmt.query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, u32>(2)?,  // completed
+                row.get::<_, u32>(1)?,  // total
+            ))
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+        
+        Ok(stats)
     }
 }
 

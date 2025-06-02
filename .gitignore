@@ -74,3 +74,8 @@ perf.data
 perf.data.old
 flamegraph.svg
 *.profdata
+
+# Reference repositories
+zwiftmap-reference/
+zwift-data-reference/
+zwift-client-reference/

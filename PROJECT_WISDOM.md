@@ -114,3 +114,27 @@ Impact: Implemented parse_description_data() to extract "Distance: X km/miles", 
 ### 2025-01-06: Development Testing Strategies
 Insight: DNS connectivity issues can prevent API testing during development
 Impact: Consider creating offline test data fixtures or mock API responses for development. Real API testing should be separate from unit tests to ensure development can continue without network dependencies.
+
+### 2025-01-06: Hidden Event Tags Discovery
+Insight: Found that Zwift API includes 148+ hidden tags not documented anywhere, accessible via the tags field. These enable powerful filtering like "ranked" for competitive races or series-specific tags like "zracing"
+Impact: Implemented tag filtering with --tags and --exclude-tags CLI arguments. Users can now filter for specific race series, competitive events, or exclude certain types. Tags are preserved in API response but not documented.
+
+### 2025-01-06: URL Parameter Pattern for CLI Tools
+Insight: Implementing URL-style parameters (--from-url "key=value&key2=value2") enables easy sharing of complex filter configurations without creating config files
+Impact: Users can share their filter settings as simple text strings. Parse URL parameters into CLI arguments for seamless configuration sharing. Enables community sharing of useful filter combinations.
+
+### 2025-01-06: Route Completion Tracking Without User Accounts
+Insight: Following ZwiftHacks' approach of local-first storage with optional sync URLs provides privacy-friendly progress tracking
+Impact: Implemented local SQLite table for route completion tracking with --mark-complete and --show-progress commands. No personal data required, optional sync capability planned for Phase 2. Respects user privacy while enabling gamification.
+
+### 2025-06-01: Lead-in Distance Critical for Accuracy
+Insight: Lead-in distances vary by event type (race vs workout vs group ride) and significantly impact total race duration predictions
+Impact: Missing lead-in distance handling explains some prediction errors. zwift-data package shows lead-in can add 0.5-2km which at race speeds adds 1-4 minutes. Must account for event-specific lead-in variations for accurate predictions.
+
+### 2025-06-01: Reference Repository Pattern for Development
+Insight: Cloning MIT-licensed reference repos locally (added to .gitignore) enables deep code analysis without violating licenses
+Impact: Created zwiftmap-reference, zwift-data-reference, and zwift-client-reference directories for local searching. Provides implementation patterns, data structures, and API insights while keeping repos out of version control. Valuable development pattern for learning from open source.
+
+### 2025-06-01: Comprehensive Route Metadata Exists
+Insight: zwift-data npm package contains 500+ routes with complete metadata including slugs, external URLs, surface types, and flags
+Impact: Rather than building route database from scratch, can import comprehensive data from MIT-licensed source. Includes Strava segments, Zwift Insider URLs, event-only flags - everything needed for enhanced route matching and external integrations.
