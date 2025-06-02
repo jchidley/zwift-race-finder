@@ -1,10 +1,10 @@
 # Project: Zwift Race Finder
-Updated: 2025-06-02 23:30 UTC
+Updated: 2025-06-03 00:00 UTC
 
 ## Current State
-Status: Lead-in distance and route URLs implemented successfully
-Target: Continue improving accuracy and user experience
-Latest: Imported 264 routes from zwift-data with lead-in distances
+Status: Lead-in distance feature complete, PROJECT_WISDOM consolidated
+Target: Fix tests and verify accuracy improvements
+Latest: Consolidated all WISDOM files per wrap-session process
 
 ## Essential Context
 - Lead-in distance now displayed for all races (e.g., "Lead-in: 0.2 km")
@@ -26,20 +26,12 @@ Latest: Imported 264 routes from zwift-data with lead-in distances
    - Created import_zwift_data_routes.py script
    - Imported 264 routes with accurate lead-in data
 
-## Next Steps
-1. Fix failing database tests (schema mismatch)
-2. Run regression tests to verify accuracy improvements
-3. Consider implementing route-specific physics (FR-2.1.7)
-4. Push changes to origin
+## Next Step
+Fix failing database tests due to schema changes, then run regression tests to measure accuracy improvement from lead-in distance implementation
 
 ## If Blocked
 Check test failures with: cargo test database::tests::test_database_creation -- --nocapture
 
-## If Blocked
-Check PROJECT_WISDOM.md for tag discovery and URL parsing patterns
-
-## Failed Approaches
-Initial API endpoint missing /upcoming - fixed in debug script
 
 ## Related Documents
 - REQUIREMENTS.md - Updated with ZwiftHacks integration requirements (FER-20)
