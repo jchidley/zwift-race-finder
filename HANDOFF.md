@@ -15,6 +15,18 @@ Latest: Table format optimized for compactness and clarity
 
 ## Recent Sessions
 
+### 2025-01-06 Evening: Filter Clarity and Duration Format
+1. **Comprehensive Filter Display** ✅ COMPLETED
+   - Shows ALL active filters including defaults
+   - "Found 49 races | 0-60 min | next 24h matching:"
+   - Event type, duration range, time range always visible
+   - Tag filters and exclusions when active
+
+2. **Duration Format Standardization** ✅ COMPLETED  
+   - Changed from variable (39m, 1h32m) to fixed hh:mm
+   - All durations now display as 00:39, 01:32, etc.
+   - Consistent column width for easier scanning
+
 ### 2025-06-03 Afternoon: Table Format Refinements
 1. **Compact Table** ✅ COMPLETED
    - Columns: Event | Time | Distance | Elev | Duration
