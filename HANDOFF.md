@@ -1,54 +1,80 @@
 # Project: Zwift Race Finder
-Updated: 2025-06-03 UTC
+Updated: 2025-06-03
 
 ## Current State
-Status: Production ready - project structure cleaned up
-Target: Ready for deployment and continued feature development
-Latest: Reorganized project structure, separating core app from development tools
+Status: Production ready with refined table UI
+Target: Research simulation models and performance modeling
+Latest: Table format optimized for compactness and clarity
 
 ## Essential Context
-- All 264 routes populated with accurate lead-in distance data
-- Regression tests passing with 16.1% accuracy (exceeded <20% target)
-- Code builds cleanly with no warnings
-- Documentation added for all public APIs
-- Project structure now clearly organized
-
-## Completed Today
-1. ✅ Cleaned up redundant files
-   - Removed obsolete test files from root directory
-   - Removed debug output files
-   - Kept all documentation and session files for AI context
-   - Preserved .gitignore'd files as requested
-2. ✅ Reorganized project structure
-   - Created tools/ directory with import/, debug/, and utils/ subdirectories
-   - Moved 40+ scripts into appropriate locations
-   - Created sql/ directory with migrations/, mappings/, and analysis/ subdirectories
-   - Organized all SQL files by purpose
-3. ✅ Updated README.md
-   - Cleaner, more focused on core functionality
-   - Clear project structure documentation
-   - Updated all paths to reflect new organization
-   - Simplified user guide vs developer documentation
-
-## Next Step
-Project has clean structure and is deployment ready. Consider:
-- Committing reorganization with clear message
-- Publishing to crates.io with the clean repository
-- Creating GitHub release with organized structure
-- Implementing additional features from REQUIREMENTS.md
+- Core zwift-race-finder: 16.1% accuracy, production ready
+- Table output: ✅ Compact format with elevation data
+- Filter statistics: ✅ Shows why events filtered with actionable fixes
+- Advanced features defined: simulation, video analysis, live telemetry
+- Key insight: GPL licensing requires clean-room implementations
 
 ## Recent Sessions
-- 2025-06-02: Fixed all compiler warnings, achieved clean build
-- 2025-06-03 AM: Reorganized documentation into docs/ directory
-- 2025-06-03 PM: Cleaned up files and reorganized project structure
+
+### 2025-06-03 Afternoon: Table Format Refinements
+1. **Compact Table** ✅ COMPLETED
+   - Columns: Event | Time | Distance | Elev | Duration
+   - 24h time format (13:30 vs 1:30 PM)
+   - No lap indicators in distance
+   - Elevation gain in meters
+   - Auto day separators for multi-day views
+
+2. **Space Optimization** ✅ COMPLETED
+   - Removed Route ✓ column (redundant)
+   - Compressed duration (1h32m vs 1h 32m)
+   - Day only shown via separators
+   - ~20% reduction in table width
+
+### 2025-06-03 Morning: Table Output Implementation
+1. **Table Format** ✅ COMPLETED
+   - Default table view, --verbose for details
+   - Filter statistics with actionable fixes
+   - Works with all event types
+
+### 2025-01-06 Evening: Requirements Expansion
+1. **Performance Modeling** (FER-19.16-17)
+   - GoldenCheetah GPL prevents integration
+   - Must reimplement from published papers
+   - Focus: CP models, TSS/CTL/ATL metrics
+
+2. **Simulation & Analysis** (FER-20.8-12)
+   - Monte Carlo race simulations
+   - Video analysis with OBS Studio
+   - Live telemetry via AI/OCR
+   - Research open-source models (MIT/Apache)
+
+## Next Priorities
+1. **Research Simulation Models**: Find MIT/Apache licensed cycling simulators
+2. **Study CP Models**: From academic papers for performance prediction
+3. **Proof of Concept**: Video analysis on race recordings
+4. **Route Discovery**: Continue mapping unknown routes (538x Downtown Dolphin!)
+
+## Development Approach
+Continue AI-assisted development:
+- Clear requirements before implementation
+- Test with real Zwift data
+- Iterate based on results
+- Maintain compliance awareness
 
 ## If Blocked
-Run `cargo test` to verify all tests pass
-Run `cargo build --all-targets` to check for warnings
-Check sessions/SESSION_20250603_CLEANUP.md for reorganization details
+- Review REQUIREMENTS.md Section 21 for live telemetry specs
+- Check sessions/SESSION_20250106_210000.md for session details
+- Remember: Screen capture only, no game interaction
 
-## Related Documents
-- REQUIREMENTS.md - Feature requirements and roadmap
-- sessions/SESSION_20250603_CLEANUP.md - Details of project reorganization
-- README.md - Updated with new project structure
-- CLAUDE.md - Project-specific AI instructions
+## Project Structure
+```
+zwift-race-finder/        # Core duration prediction tool
+├── src/                  # Rust application
+├── tools/               # Import and utility scripts
+├── sql/                 # Database scripts
+└── docs/                # Documentation
+
+zwift-live-telemetry/    # Future companion tool (not yet created)
+├── capture/             # Screen capture modules
+├── ocr/                 # Text extraction
+└── streaming/           # Live data output
+```

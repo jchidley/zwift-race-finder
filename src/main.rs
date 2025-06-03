@@ -1112,15 +1112,7 @@ fn filter_events(mut events: Vec<ZwiftEvent>, args: &Args, zwift_score: u32) -> 
 fn format_duration(minutes: u32) -> String {
     let hours = minutes / 60;
     let mins = minutes % 60;
-    if hours > 0 {
-        if mins == 0 {
-            format!("{}h", hours)
-        } else {
-            format!("{}h{}m", hours, mins)
-        }
-    } else {
-        format!("{}m", mins)
-    }
+    format!("{:02}:{:02}", hours, mins)
 }
 
 /// Display filter statistics and actionable fixes

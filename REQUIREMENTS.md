@@ -113,6 +113,9 @@ Zwift shows race distances but not expected durations. A 40km race might take 60
 - **FR-4.2.2**: Show time until event starts
 - **FR-4.2.3**: Use colored output for better readability
 - **FR-4.2.4**: Include route details when available
+- **FR-4.2.5**: Default to compact table format with columns: Event Name, Time, Distance (total with lead-in), Duration, Route Info (✓ if known)
+- **FR-4.2.6**: Show only the user's selected category in output (not all categories)
+- **FR-4.2.7**: Support --verbose flag for detailed multi-line output format
 
 #### 4.3 User Guidance
 - **FR-4.3.1**: Show event type summary after fetching
@@ -267,6 +270,18 @@ Zwift shows race distances but not expected durations. A 40km race might take 60
 - **FER-19.13**: Generate shareable configuration URLs for team/club setups
 - **FER-19.14**: Support world availability schedule for event filtering
 - **FER-19.15**: Implement protobuf support for certain Zwift API endpoints
+- **FER-19.16**: Study GoldenCheetah concepts for reimplementation (GPL v3 prevents direct integration):
+  - Use GoldenCheetah as analysis tool to validate our predictions
+  - Study published papers on Critical Power (CP) and W' balance models
+  - Research CdA estimation techniques from scientific literature
+  - Implement our own power-duration curve fitting from first principles
+  - Create clean-room implementation of TSS/CTL/ATL concepts (which are publicly documented)
+- **FER-19.17**: Design race planning features using performance management concepts:
+  - Predict optimal race timing based on fitness (CTL) and fatigue (ATL)
+  - Estimate power targets for different race durations
+  - Provide pacing strategies based on W' expenditure models
+  - Generate race-specific training recommendations
+  - Track performance trends to refine predictions over time
 
 ### 20. Automated Testing with Simulation Tools
 
@@ -277,6 +292,48 @@ Zwift shows race distances but not expected durations. A 40km race might take 60
 - **FER-20.5**: Automate regression testing with multiple rider profiles
 - **FER-20.6**: Compare simulated results across different routes and conditions
 - **FER-20.7**: Build database of simulated race data for model training
+- **FER-20.8**: Run offline and online race simulations for performance prediction:
+  - Develop offline simulation engine using Zwift physics model
+  - Create Monte Carlo simulations with varying field sizes and rider abilities
+  - Model draft dynamics based on field size (larger field = more consistent draft)
+  - Simulate position changes and draft availability throughout race
+  - Validate against real race data and online test races
+- **FER-20.9**: Generate dynamic race plans accounting for draft variability:
+  - Calculate expected draft percentage based on field size and rider ability
+  - Identify critical sections where draft loss is likely (climbs, attacks)
+  - Plan power targets for drafted vs non-drafted segments
+  - Provide contingency strategies for different race scenarios
+  - Adjust plans based on real-time position in pack
+  - Account for course-specific draft effectiveness (e.g., jungle roads vs open flats)
+- **FER-20.10**: Analyze video recordings of races to validate and refine models:
+  - Use OBS Studio or similar to record race footage with HUD data
+  - Extract metrics from video: position in pack, speed, power, draft status
+  - Identify patterns in pack behavior (splits, regrouping, sprint dynamics)
+  - Correlate visual pack position with power requirements
+  - Measure actual draft benefit in different scenarios
+  - Document critical race moments (attacks, climbs, selections)
+  - Build library of race scenarios for model training
+  - Compare predicted vs actual race dynamics from video analysis
+- **FER-20.11**: Investigate live data extraction from Zwift races using AI:
+  - Research computer vision techniques for real-time HUD data extraction
+  - Explore OCR/AI models for reading on-screen metrics (speed, power, position)
+  - Design system architecture: direct capture on host vs external device
+  - Evaluate Raspberry Pi with AI accelerator (Coral, Hailo) for dedicated capture
+  - Implement real-time data pipeline: video → AI extraction → structured data
+  - Create post-race analysis tools using extracted telemetry
+  - Build Zwift/real-world comparison models using extracted data
+  - Develop live race coaching features based on real-time position/power
+  - Consider privacy/ToS implications of screen capture and analysis
+- **FER-20.12**: Investigate suitable open-source simulation models with compatible licenses:
+  - Research cycling physics simulators on GitHub (MIT, Apache, BSD licenses)
+  - Evaluate OpenRoadSim or similar for peloton dynamics modeling
+  - Study traffic flow models adaptable to cycling pack behavior
+  - Investigate agent-based models for multi-rider simulations
+  - Review computational fluid dynamics (CFD) models for draft calculations
+  - Ensure license compatibility (avoid GPL for direct integration)
+  - Prioritize models with documented physics equations
+  - Look for validation against real-world cycling data
+  - Consider models that support both online and offline simulation modes
 
 ## Success Metrics
 
@@ -296,6 +353,11 @@ Zwift shows race distances but not expected durations. A 40km race might take 60
 - **TC-22.2**: No official Zwift results API available
 - **TC-22.3**: Racing Score events have distance=0 in API
 - **TC-22.4**: Route IDs are stable but undocumented
+- **TC-22.5**: No real-time telemetry available through Zwift logs (only debug info)
+- **TC-22.6**: Zwift network packets encrypted since July 2022
+- **TC-22.7**: FIT files saved every 10 minutes (not suitable for live analysis)
+- **TC-22.8**: No local database with accessible race telemetry
+- **TC-22.9**: Community packet monitoring tools broken by encryption
 
 ### 23. Assumptions
 
@@ -309,7 +371,7 @@ Zwift shows race distances but not expected durations. A 40km race might take 60
 
 ### 24. Legal and Ethical
 
-- **CR-24.1**: Respect Zwift's terms of service
+- **CR-24.1**: Aim to respect Zwift's terms of service (users must verify compliance)
 - **CR-24.2**: Only access public APIs
 - **CR-24.3**: Don't store other users' data
 - **CR-24.4**: Open source under MIT/Apache license
@@ -399,5 +461,189 @@ Zwift shows race distances but not expected durations. A 40km race might take 60
   - Added hidden event tags and URL-based filtering from ZwiftHacks
   - Included OAuth token refresh from zwift-client analysis
   - Added route completion tracking and shareable configurations
+- 2025-01-06: Added table output format requirements (FR-4.2.5, FR-4.2.6, FR-4.2.7)
+  - Default to compact table view with key information
+  - Show only user's selected category
+  - Support verbose flag for detailed output
+- 2025-01-06: Added GoldenCheetah-inspired requirements (FER-19.16, FER-19.17)
+  - Clarified GPL v3 prevents direct integration - must reimplement from scratch
+  - Use GoldenCheetah output for validation only
+  - Study published papers on Critical Power and W' models
+  - Implement TSS/CTL/ATL from public formulas, not GoldenCheetah code
+  - Design race planning using well-documented performance concepts
+- 2025-01-06: Added race simulation requirements (FER-20.8, FER-20.9)
+  - Offline simulation engine with Monte Carlo methods
+  - Model draft dynamics based on field size
+  - Generate race plans with draft/non-draft power targets
+  - Account for course-specific draft effectiveness
+- 2025-01-06: Added video analysis requirement (FER-20.10)
+  - Use OBS Studio to record races with HUD data
+  - Extract position, power, and draft metrics from video
+  - Build library of race scenarios for model validation
+  - Refine predictions based on observed pack dynamics
+- 2025-01-06: Added live data extraction requirement (FER-20.11)
+  - AI-based extraction of HUD data from video stream
+  - Consider both host-based and Raspberry Pi architectures
+  - Real-time telemetry pipeline for live coaching
+  - Post-race analysis and Zwift/real-world modeling
+- 2025-01-06: Added simulation model research requirement (FER-20.12)
+  - Find open-source cycling/peloton simulators with compatible licenses
+  - Focus on MIT/Apache/BSD to allow integration
+  - Look for validated physics models and multi-agent support
+- 2025-01-06: Major discovery session - Zwift telemetry limitations and live analysis solution
+  - Discovered Zwift provides no real-time telemetry (logs, APIs, packets all inadequate)
+  - Added comprehensive "Zwift Live Telemetry Tool" requirements (Section 21)
+  - Justified video analysis approach based on lack of alternatives
+  - Added technical constraints TC-22.5 through TC-22.9 documenting Zwift limitations
+  - Explored hardware options: Raspberry Pi 5 + Hailo-8L justified despite initial skepticism
+  - Researched Zwift ToS Section 5a(XI) - updated compliance requirements
+  - Noted techniques to avoid based on community ban reports
+  - Clarified users must determine their own ToS compliance
+  - Removed definitive compliance claims - aim to respect ToS
+
+### 21. Zwift Live Telemetry Tool (New Companion Application)
+
+#### Background and Rationale
+Discovery from development session (2025-01-06): Zwift provides no real-time telemetry access through:
+- APIs (only pre-race event data available)
+- Local logs (contain debug info, not telemetry)
+- Network packets (encrypted since 2022)
+- FIT files (saved every 10 minutes, not real-time)
+
+Therefore, video analysis of the game display is the only viable method for real-time race telemetry extraction.
+
+#### 21.1 Tool Overview
+- **FER-21.1.1**: Create separate tool "zwift-live-telemetry" for real-time race monitoring
+- **FER-21.1.2**: Purpose: Extract telemetry data during races for live analysis and coaching
+- **FER-21.1.3**: Integration: Feed extracted data back to improve zwift-race-finder predictions
+- **FER-21.1.4**: Architecture: Support both local (screen capture) and remote (HDMI capture) modes
+
+#### 21.2 Video Capture Requirements
+- **FER-21.2.1**: Local mode: Screen capture on same PC as Zwift
+  - Use native OS APIs (Windows Graphics Capture, X11 on Linux)
+  - Minimal performance impact on Zwift
+  - No additional hardware required
+- **FER-21.2.2**: Remote mode: Dedicated capture device
+  - Support HDMI capture cards (USB 3.0)
+  - Optional: Raspberry Pi 5 with AI accelerator for edge processing
+  - Enable analysis without impacting gaming PC performance
+- **FER-21.2.3**: Support common Zwift display resolutions (1080p, 1440p, 4K)
+- **FER-21.2.4**: Handle dynamic HUD layouts and UI scaling
+
+#### 21.3 Data Extraction via Computer Vision
+- **FER-21.3.1**: OCR extraction of numeric HUD elements:
+  - Power (watts) - current and average
+  - Speed (km/h or mph based on settings)
+  - Heart rate (bpm)
+  - Cadence (rpm)
+  - Distance completed (km/mi)
+  - Time elapsed
+- **FER-21.3.2**: Visual analysis of non-numeric elements:
+  - Position in race (1st, 2nd, etc.)
+  - Gap to leader/next rider
+  - Draft status (in draft vs solo)
+  - Gradient percentage
+  - Power-up status
+- **FER-21.3.3**: Robust detection handling:
+  - Multiple HUD layouts (default, minimal, custom)
+  - Transparency settings
+  - UI elements overlapping data
+  - Motion blur during fast segments
+
+#### 21.4 Real-time Processing Pipeline
+- **FER-21.4.1**: Frame extraction at 5-10 FPS (sufficient for telemetry)
+- **FER-21.4.2**: AI model requirements:
+  - Lightweight models optimized for edge deployment
+  - <100ms inference time per frame
+  - Pre-trained on Zwift UI elements
+  - Support model updates for UI changes
+- **FER-21.4.3**: Data validation and smoothing:
+  - Detect and filter OCR errors
+  - Interpolate missing values
+  - Apply physics-based sanity checks
+
+#### 21.5 Data Output and Integration
+- **FER-21.5.1**: Real-time data streaming:
+  - WebSocket server for live clients
+  - JSON message format with timestamps
+  - Support multiple concurrent consumers
+- **FER-21.5.2**: Data persistence:
+  - Store in SQLite with high-frequency telemetry table
+  - Aggregate to 1-second intervals for storage efficiency
+  - Link to zwift-race-finder event data
+- **FER-21.5.3**: Analysis outputs:
+  - Real-time power zones and effort tracking
+  - Draft percentage over time
+  - Position changes and race dynamics
+  - Automatic segment detection
+
+#### 21.6 Live Coaching Features
+- **FER-21.6.1**: Real-time alerts:
+  - Power target adherence
+  - Position changes (gained/lost places)
+  - Upcoming gradient changes
+  - Effort sustainability warnings
+- **FER-21.6.2**: Race strategy automation:
+  - Optimal power targets based on race progress
+  - Sprint timing recommendations
+  - Recovery interval suggestions
+- **FER-21.6.3**: Audio/visual feedback options:
+  - Text overlay on secondary screen
+  - Audio cues via TTS
+  - Integration with streaming software (OBS)
+
+#### 21.7 Privacy and Compliance (Critical - Zwift ToS)
+- **FER-21.7.1**: Local processing only - no cloud upload of video
+- **FER-21.7.2**: User consent for any data sharing
+- **FER-21.7.3**: Design with intent to respect Zwift ToS:
+  - Users must review ToS Section 5a(XI) themselves
+  - Avoid interaction with Zwift platform without authorization
+  - No protocol emulation or redirection
+  - No network packet interception (community reports bans)
+  - No memory reading or process manipulation
+  - Position as "screen recording tool with analysis" (like OBS)
+- **FER-21.7.4**: Passive observation approach:
+  - Screen capture similar to streaming tools (OBS)
+  - Visual analysis of captured frames only
+  - No automation or control of Zwift gameplay
+  - No data modification or injection
+  - Users must determine if this provides unfair advantages
+- **FER-21.7.5**: Open source to ensure transparency
+- **FER-21.7.6**: Include clear disclaimers:
+  - "This tool uses screen capture for analysis only"
+  - "Does not interact with or modify Zwift in any way"
+  - "Users must review Zwift's Terms of Service"
+  - "Use at your own risk - you are responsible for compliance"
+- **FER-21.7.7**: Avoid banned approaches discovered by community:
+  - No "man-in-the-middle" data interception (6-month bans)
+  - No reverse engineering of protocols
+  - No unauthorized API access
+  - Learn from tools that were shut down (packet monitors post-2022)
+
+#### 21.8 Hardware Options (Remote Mode)
+- **FER-21.8.1**: Raspberry Pi 5 configuration:
+  - Hailo-8L AI hat (26 TOPS) for inference
+  - Alternative: Google Coral USB (4 TOPS) for budget option
+  - USB 3.0 HDMI capture card
+  - Gigabit ethernet for data streaming
+- **FER-21.8.2**: x86 Mini PC option:
+  - Intel N100/N200 for better compatibility
+  - Integrated GPU for video decode
+  - Lower power than gaming PC
+- **FER-21.8.3**: Performance targets:
+  - 1080p30 capture and processing
+  - <50ms end-to-end latency
+  - <10W power consumption
+
+#### 21.9 Development Priorities
+1. Proof of concept with static screenshot analysis
+2. Local screen capture implementation
+3. Basic OCR for power/speed/HR
+4. Real-time streaming infrastructure
+5. Advanced visual analysis (position, draft)
+6. Remote capture device support
+7. Live coaching features
+8. Integration with zwift-race-finder
+
 - Based on: Production deployment with 16.1% accuracy achieved
 - Status: Requirements now complete with insights from all reference sources

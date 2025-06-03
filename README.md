@@ -2,6 +2,13 @@
 
 Find Zwift races that match your target duration and fitness level.
 
+## Project Goals
+
+This project serves two primary purposes:
+
+1. **Learning AI/LLM Tools**: Exploring effective ways to use AI assistants (like Claude) for software development through practical implementation
+2. **Improving Zwift Experience**: Creating tools that enhance training and racing on Zwift by solving real user problems
+
 ## What It Does
 
 Zwift Race Finder predicts how long races will take based on your Zwift Racing Score. It solves a common problem: Zwift shows race distances but not expected durations. A 40km race might take 60 or 90 minutes depending on route profile and your fitness level.
@@ -12,6 +19,8 @@ Zwift Race Finder predicts how long races will take based on your Zwift Racing S
 - Filters races by target duration (e.g., "show me 30-minute races")
 - Achieves 16.1% prediction accuracy using real race data
 - Supports both Traditional (A/B/C/D) and Racing Score events
+
+**Important**: Users are responsible for ensuring their use complies with Zwift's Terms of Service. Please review Zwift's ToS before using or modifying these tools.
 
 ## Quick Start
 
@@ -199,22 +208,58 @@ cargo build --release
    ```
 3. Update mappings in `sql/mappings/route_mappings.sql` if needed
 
-### Project Philosophy
+### AI-Assisted Development Insights
 
-This project was built using AI-assisted development (Claude Code) demonstrating:
-- **Human expertise**: Domain knowledge (Zwift racing) and technical experience
-- **AI capabilities**: Code implementation, API integration, debugging
-- **Iterative refinement**: Real data validation and continuous improvement
+This project demonstrates effective AI/LLM collaboration patterns:
 
-The result is production-ready software achieving better than target accuracy.
+**What Works Well:**
+- **Clear Requirements**: Specific problems ("find 30-minute races") lead to focused solutions
+- **Domain Expertise + AI**: Human knowledge of Zwift racing guided AI implementation
+- **Iterative Testing**: Real race data validation exposed wrong assumptions quickly
+- **Transparency**: AI explaining its reasoning caught errors early
 
-## Security
+**Key Learnings:**
+- AI excels at implementation when given clear specifications
+- Human domain knowledge is irreplaceable for validation
+- Small, testable iterations work better than large changes
+- Real data always beats theoretical models
 
+**Development Process:**
+1. Human identifies specific Zwift training need
+2. AI implements solution with full code transparency
+3. Human tests with actual race data
+4. Iterate based on real-world results
+
+The result is production-ready software achieving better than target accuracy while learning effective AI collaboration patterns.
+
+## Security and Compliance
+
+### OAuth Token Security
 - OAuth tokens stored securely (environment vars, keyring, or encrypted files)
 - Pre-commit hooks prevent accidental credential exposure
 - All personal data excluded from repository
 
 Run `tools/utils/check_secrets.sh` before committing.
+
+### Zwift Terms of Service
+
+**⚠️ Important**: Users are responsible for reviewing and complying with [Zwift's Terms of Service](https://zwift.com/terms). It is your responsibility to determine if your use of these tools is permitted.
+
+**Our Approach:**
+We aim to respect Zwift's ToS by:
+- Using publicly available APIs
+- Avoiding direct game client interaction
+- Not providing automation or competitive advantages
+
+**Techniques We Avoid** (based on community reports of bans):
+- Network packet interception
+- Memory reading or process manipulation  
+- Protocol emulation or redirection
+- Any form of gameplay automation
+
+**Note**: Screen capture for analysis (like OBS streaming) appears to be accepted by the community, but users should verify this themselves.
+
+Violations have reportedly resulted in 6-month racing bans. Always review current ToS before use.
 
 ## Credits
 
