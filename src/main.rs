@@ -94,6 +94,10 @@ struct Args {
     /// Only show events with routes you haven't completed
     #[arg(long)]
     new_routes_only: bool,
+    
+    /// Use verbose output format (default: compact table)
+    #[arg(short = 'v', long)]
+    verbose: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -648,6 +652,53 @@ fn get_cache_file() -> Result<PathBuf> {
     Ok(cache_dir)
 }
 
+/// Generate a descriptive filter summary based on active filters
+fn generate_filter_description(args: &Args, min_duration: u32, max_duration: u32) -> String {
+    let mut parts = Vec::new();
+    
+    // Event type (if not "all")
+    if args.event_type != "all" {
+        let event_type_desc = match args.event_type.to_lowercase().as_str() {
+            "race" => "races",
+            "tt" | "time_trial" => "time trials",
+            "workout" => "group workouts",
+            "group" => "group rides",
+            "fondo" => "fondos/sportives",
+            _ => &args.event_type,
+        };
+        parts.push(event_type_desc.to_string());
+    } else {
+        parts.push("events".to_string());
+    }
+    
+    // Duration filter
+    parts.push(format!("{}-{} min", min_duration, max_duration));
+    
+    // Tag filters
+    if !args.tags.is_empty() {
+        let tags_str = args.tags.join(", ");
+        parts.push(format!("with tags: {}", tags_str));
+    }
+    
+    // Exclude tags
+    if !args.exclude_tags.is_empty() {
+        let exclude_str = args.exclude_tags.join(", ");
+        parts.push(format!("excluding: {}", exclude_str));
+    }
+    
+    // New routes only
+    if args.new_routes_only {
+        parts.push("new routes only".to_string());
+    }
+    
+    // Time range
+    if args.days > 1 {
+        parts.push(format!("next {} days", args.days));
+    }
+    
+    parts.join(" | ")
+}
+
 async fn fetch_zwiftpower_stats(secrets: &Secrets) -> Result<Option<UserStats>> {
     // Only try to fetch if we have profile ID configured
     let (profile_id, session_id) = match (&secrets.zwiftpower_profile_id, &secrets.zwiftpower_session_id) {
@@ -786,27 +837,34 @@ async fn fetch_events() -> Result<Vec<ZwiftEvent>> {
     Ok(events)
 }
 
-fn filter_events(mut events: Vec<ZwiftEvent>, args: &Args, zwift_score: u32) -> Vec<ZwiftEvent> {
+fn filter_events(mut events: Vec<ZwiftEvent>, args: &Args, zwift_score: u32) -> (Vec<ZwiftEvent>, FilterStats) {
     let now = Utc::now();
     let max_date = now + chrono::Duration::days(args.days as i64);
+    let mut stats = FilterStats::default();
+    let _initial_count = events.len();
 
     if args.debug {
         eprintln!("Debug: Starting with {} events", events.len());
     }
 
     // Sport filter
+    let pre_sport = events.len();
     events.retain(|event| event.sport.to_uppercase() == "CYCLING");
+    stats.sport_filtered = (pre_sport - events.len()) as u32;
     if args.debug {
         eprintln!("Debug: {} events after sport filter", events.len());
     }
 
     // Time filter
+    let pre_time = events.len();
     events.retain(|event| event.event_start > now && event.event_start < max_date);
+    stats.time_filtered = (pre_time - events.len()) as u32;
     if args.debug {
         eprintln!("Debug: {} events after time filter", events.len());
     }
 
     // Event type filter
+    let pre_type = events.len();
     events.retain(|event| match args.event_type.to_lowercase().as_str() {
         "all" => true,
         "race" => event.event_type == "RACE",
@@ -831,15 +889,18 @@ fn filter_events(mut events: Vec<ZwiftEvent>, args: &Args, zwift_score: u32) -> 
             true
         }
     });
+    stats.type_filtered = (pre_type - events.len()) as u32;
     if args.debug {
         eprintln!("Debug: {} events after event type filter", events.len());
     }
 
     // Tag filtering
     if !args.tags.is_empty() {
+        let pre_tag = events.len();
         events.retain(|event| {
             args.tags.iter().any(|tag| event.tags.iter().any(|etag| etag.contains(tag)))
         });
+        stats.tag_filtered += (pre_tag - events.len()) as u32;
         if args.debug {
             eprintln!("Debug: {} events after tag filter", events.len());
         }
@@ -847,9 +908,11 @@ fn filter_events(mut events: Vec<ZwiftEvent>, args: &Args, zwift_score: u32) -> 
     
     // Exclude tags filtering
     if !args.exclude_tags.is_empty() {
+        let pre_tag = events.len();
         events.retain(|event| {
             !args.exclude_tags.iter().any(|tag| event.tags.iter().any(|etag| etag.contains(tag)))
         });
+        stats.tag_filtered += (pre_tag - events.len()) as u32;
         if args.debug {
             eprintln!("Debug: {} events after exclude tag filter", events.len());
         }
@@ -859,6 +922,7 @@ fn filter_events(mut events: Vec<ZwiftEvent>, args: &Args, zwift_score: u32) -> 
     if args.new_routes_only {
         let db = Database::new().ok();
         if let Some(db) = db {
+            let pre_routes = events.len();
             events.retain(|event| {
                 if let Some(route_id) = event.route_id {
                     // Keep events with routes we haven't completed
@@ -868,6 +932,7 @@ fn filter_events(mut events: Vec<ZwiftEvent>, args: &Args, zwift_score: u32) -> 
                     true
                 }
             });
+            stats.completed_routes_filtered = (pre_routes - events.len()) as u32;
             if args.debug {
                 eprintln!("Debug: {} events after new routes filter", events.len());
             }
@@ -875,6 +940,7 @@ fn filter_events(mut events: Vec<ZwiftEvent>, args: &Args, zwift_score: u32) -> 
     }
 
     // Duration filter
+    let pre_duration = events.len();
     events.retain(|event| {
         // Duration filter - prioritize route_id for accuracy
         let duration_minutes = event
@@ -1016,21 +1082,105 @@ fn filter_events(mut events: Vec<ZwiftEvent>, args: &Args, zwift_score: u32) -> 
             false
         }
     });
+    stats.duration_filtered = (pre_duration - events.len()) as u32;
 
     if args.debug {
         eprintln!("Debug: {} events after duration filter", events.len());
     }
+    
+    // Count unknown routes and missing data in remaining events
+    for event in &events {
+        if let Some(route_id) = event.route_id {
+            if get_route_data(route_id).is_none() {
+                stats.unknown_routes += 1;
+                log_unknown_route(event);
+            }
+        }
+        
+        // Check for missing distance data
+        let has_distance = event.distance_in_meters.filter(|&d| d > 0.0).is_some()
+            || event.event_sub_groups.iter().any(|sg| sg.distance_in_meters.filter(|&d| d > 0.0).is_some());
+        
+        if !has_distance && event.route_id.is_none() {
+            stats.missing_distance += 1;
+        }
+    }
 
-    events
+    (events, stats)
 }
 
 fn format_duration(minutes: u32) -> String {
     let hours = minutes / 60;
     let mins = minutes % 60;
     if hours > 0 {
-        format!("{}h {:02}m", hours, mins)
+        if mins == 0 {
+            format!("{}h", hours)
+        } else {
+            format!("{}h{}m", hours, mins)
+        }
     } else {
         format!("{}m", mins)
+    }
+}
+
+/// Display filter statistics and actionable fixes
+fn display_filter_stats(stats: &FilterStats, _total_fetched: usize) {
+    let total_filtered = stats.sport_filtered + stats.time_filtered + stats.type_filtered 
+        + stats.tag_filtered + stats.completed_routes_filtered + stats.duration_filtered;
+    
+    if total_filtered == 0 && stats.unknown_routes == 0 && stats.missing_distance == 0 {
+        return; // No issues to report
+    }
+    
+    println!("\n{}", "─".repeat(80).dimmed());
+    println!("{}: {} events filtered out", "Filter Summary".yellow(), total_filtered);
+    
+    if stats.sport_filtered > 0 {
+        println!("  • {} non-cycling events", stats.sport_filtered);
+    }
+    
+    if stats.time_filtered > 0 {
+        println!("  • {} events outside time range", stats.time_filtered);
+    }
+    
+    if stats.type_filtered > 0 {
+        println!("  • {} events of wrong type", stats.type_filtered);
+    }
+    
+    if stats.tag_filtered > 0 {
+        println!("  • {} events filtered by tags", stats.tag_filtered);
+    }
+    
+    if stats.completed_routes_filtered > 0 {
+        println!("  • {} events on completed routes", stats.completed_routes_filtered);
+    }
+    
+    if stats.duration_filtered > 0 {
+        println!("  • {} events outside duration range", stats.duration_filtered);
+    }
+    
+    // Data quality issues in shown events
+    if stats.unknown_routes > 0 || stats.missing_distance > 0 {
+        println!("\n{}: Some events may have inaccurate estimates", "Data Quality".yellow());
+        
+        if stats.unknown_routes > 0 {
+            println!("  • {} events with unknown routes", stats.unknown_routes);
+            println!("    {} Run {} to help map these routes", "Fix:".green(), "cargo run --bin zwift-race-finder -- --discover-routes".cyan());
+            println!("    {} Check {} for manual mapping", "Or:".green(), "sql/mappings/manual_route_mappings.sql".cyan());
+        }
+        
+        if stats.missing_distance > 0 {
+            println!("  • {} events missing distance data", stats.missing_distance);
+            println!("    {} These are typically new Racing Score events", "Note:".green());
+            println!("    {} Distance parsing from descriptions is attempted automatically", "Info:".green());
+        }
+    }
+    
+    // Suggest actions for large numbers of filtered events
+    if stats.duration_filtered > 20 {
+        println!("\n{}: Many events filtered by duration", "Tip".green());
+        println!("  • Try wider tolerance: {}", "--tolerance 60".cyan());
+        println!("  • Or different duration: {}", "--duration 60".cyan());
     }
 }
 
@@ -1064,6 +1214,206 @@ fn log_unknown_route(event: &ZwiftEvent) {
                 );
             }
         }
+    }
+}
+
+/// Structure to hold table row data for compact display
+struct EventTableRow {
+    name: String,
+    time: String,
+    distance: String,
+    elevation: String,
+    duration: String,
+}
+
+/// Structure to track filtered events and reasons
+#[derive(Debug, Default)]
+struct FilterStats {
+    sport_filtered: u32,
+    time_filtered: u32,
+    type_filtered: u32,
+    tag_filtered: u32,
+    completed_routes_filtered: u32,
+    duration_filtered: u32,
+    unknown_routes: u32,
+    missing_distance: u32,
+}
+
+/// Print events in table format
+fn print_events_table(events: &[ZwiftEvent], _args: &Args, zwift_score: u32) {
+    if events.is_empty() {
+        return;
+    }
+    
+    // Check if events span multiple days
+    let first_event_time: DateTime<Local> = events[0].event_start.into();
+    let last_event_time: DateTime<Local> = events[events.len() - 1].event_start.into();
+    let spans_multiple_days = first_event_time.date_naive() != last_event_time.date_naive();
+    
+    // Collect data for all events
+    let mut rows: Vec<(EventTableRow, DateTime<Local>)> = Vec::new();
+    
+    for event in events {
+        let row = prepare_event_row(event, zwift_score);
+        let local_time: DateTime<Local> = event.event_start.into();
+        rows.push((row, local_time));
+    }
+    
+    // Calculate column widths
+    let name_width = rows.iter().map(|(r, _)| r.name.len()).max().unwrap_or(10).max(10);
+    let time_width = rows.iter().map(|(r, _)| r.time.len()).max().unwrap_or(5).max(5);
+    let distance_width = rows.iter().map(|(r, _)| r.distance.len()).max().unwrap_or(8).max(8);
+    let elevation_width = rows.iter().map(|(r, _)| r.elevation.len()).max().unwrap_or(6).max(6);
+    let duration_width = rows.iter().map(|(r, _)| r.duration.len()).max().unwrap_or(8).max(8);
+    let total_width = name_width + time_width + distance_width + elevation_width + duration_width + 17;
+    
+    // Print header
+    println!("\n{}", "─".repeat(total_width).dimmed());
+    println!(
+        "{:<width1$} │ {:<width2$} │ {:<width3$} │ {:<width4$} │ {:<width5$}",
+        "Event Name".bright_blue().bold(),
+        "Time".bright_blue().bold(),
+        "Distance".bright_blue().bold(),
+        "Elev".bright_blue().bold(),
+        "Duration".bright_blue().bold(),
+        width1 = name_width,
+        width2 = time_width,
+        width3 = distance_width,
+        width4 = elevation_width,
+        width5 = duration_width
+    );
+    println!("{}", "─".repeat(total_width).dimmed());
+    
+    // Print rows with day separators if needed
+    let mut current_date = None;
+    for (row, event_time) in rows {
+        let event_date = event_time.date_naive();
+        
+        // Insert day separator if date changes and we span multiple days
+        if spans_multiple_days && current_date.is_some() && current_date != Some(event_date) {
+            println!("{}", "─".repeat(total_width).dimmed());
+            let day_label = event_time.format("%A, %B %d").to_string();
+            println!("{:^width$}", day_label.yellow(), width = total_width);
+            println!("{}", "─".repeat(total_width).dimmed());
+        } else if spans_multiple_days && current_date.is_none() {
+            // First day label
+            let day_label = event_time.format("%A, %B %d").to_string();
+            println!("{:^width$}", day_label.yellow(), width = total_width);
+            println!("{}", "─".repeat(total_width).dimmed());
+        }
+        
+        current_date = Some(event_date);
+        
+        println!(
+            "{:<width1$} │ {:<width2$} │ {:<width3$} │ {:<width4$} │ {:<width5$}",
+            row.name,
+            row.time,
+            row.distance,
+            row.elevation,
+            row.duration.green(),
+            width1 = name_width,
+            width2 = time_width,
+            width3 = distance_width,
+            width4 = elevation_width,
+            width5 = duration_width
+        );
+    }
+    
+    println!("{}", "─".repeat(total_width).dimmed());
+}
+
+/// Prepare a single event row for table display
+fn prepare_event_row(event: &ZwiftEvent, zwift_score: u32) -> EventTableRow {
+    let local_time: DateTime<Local> = event.event_start.into();
+    let time_str = local_time.format("%H:%M").to_string();
+    
+    // Get route data and calculate total distance and elevation
+    let (distance_str, elevation_str, duration_str) = if let Some(route_id) = event.route_id {
+        if let Some(route_data) = get_route_data(route_id) {
+            // Calculate total distance including lead-in
+            let user_subgroup = find_user_subgroup(event, zwift_score);
+            let distance_meters = user_subgroup
+                .and_then(|sg| sg.distance_in_meters)
+                .or(event.distance_in_meters);
+            
+            let mut actual_distance_km = route_data.distance_km;
+            let mut lap_count = 1;
+            
+            // Calculate actual distance including laps
+            if let Some(sg) = user_subgroup {
+                if let Some(laps) = sg.laps {
+                    lap_count = laps;
+                    actual_distance_km = route_data.distance_km * laps as f64;
+                } else if let Some(dist_m) = sg.distance_in_meters.filter(|&d| d > 0.0) {
+                    actual_distance_km = dist_m / 1000.0;
+                    lap_count = (actual_distance_km / route_data.distance_km).round() as u32;
+                }
+            } else if let Some(dist_m) = distance_meters.filter(|&d| d > 0.0) {
+                actual_distance_km = dist_m / 1000.0;
+                lap_count = (actual_distance_km / route_data.distance_km).round() as u32;
+            }
+            
+            // Total distance including lead-in (no lap indicator)
+            let total_distance = actual_distance_km + route_data.lead_in_distance_km;
+            let distance_str = format!("{:.1} km", total_distance);
+            
+            // Calculate total elevation (multiply by laps if multi-lap)
+            let total_elevation = route_data.elevation_m * lap_count;
+            let elevation_str = format!("{}m", total_elevation);
+            
+            // Calculate duration
+            let effective_speed = match zwift_score {
+                0..=199 => CAT_D_SPEED,
+                200..=299 => CAT_C_SPEED,
+                300..=399 => CAT_B_SPEED,
+                _ => CAT_A_SPEED,
+            };
+            
+            let difficulty_multiplier = get_route_difficulty_multiplier_from_elevation(
+                route_data.distance_km,
+                route_data.elevation_m
+            );
+            
+            let surface_multiplier = match route_data.surface {
+                "road" => 1.0,
+                "gravel" => 0.85,
+                "mixed" => 0.92,
+                _ => 1.0,
+            };
+            
+            let adjusted_speed = effective_speed * difficulty_multiplier * surface_multiplier;
+            let estimated_duration = ((total_distance / adjusted_speed) * 60.0) as u32;
+            
+            (distance_str, elevation_str, format_duration(estimated_duration))
+        } else {
+            // Unknown route
+            if let Some(dist_m) = event.distance_in_meters.filter(|&d| d > 0.0) {
+                let distance_km = dist_m / 1000.0;
+                let route_name = event.route.as_deref().unwrap_or(&event.name);
+                let estimated_duration = estimate_duration_for_category(distance_km, route_name, zwift_score);
+                (format!("{:.1} km", distance_km), "?m".to_string(), format_duration(estimated_duration))
+            } else {
+                ("? km".to_string(), "?m".to_string(), "? min".to_string())
+            }
+        }
+    } else {
+        // No route ID
+        if let Some(dist_m) = event.distance_in_meters.filter(|&d| d > 0.0) {
+            let distance_km = dist_m / 1000.0;
+            let route_name = event.route.as_deref().unwrap_or(&event.name);
+            let estimated_duration = estimate_duration_for_category(distance_km, route_name, zwift_score);
+            (format!("{:.1} km", distance_km), "?m".to_string(), format_duration(estimated_duration))
+        } else {
+            ("? km".to_string(), "?m".to_string(), "? min".to_string())
+        }
+    };
+    
+    EventTableRow {
+        name: event.name.clone(),
+        time: time_str,
+        distance: distance_str,
+        elevation: elevation_str,
+        duration: duration_str,
     }
 }
 
@@ -2037,7 +2387,7 @@ async fn main() -> Result<()> {
     effective_args.tolerance = tolerance;
     effective_args.days = days;
     
-    let filtered = filter_events(events, &effective_args, zwift_score);
+    let (filtered, filter_stats) = filter_events(events.clone(), &effective_args, zwift_score);
 
     if filtered.is_empty() {
         println!("\n{}", "No matching events found!".red());
@@ -2059,16 +2409,27 @@ async fn main() -> Result<()> {
         println!("  • See all available events: {}", "cargo run -- -e all -d 60 -t 180".cyan());
         println!("  • Most races: 20-30 min | Time trials/Group rides: 60-90 min");
     } else {
+        let filter_desc = generate_filter_description(&effective_args, min_duration, max_duration);
         println!(
-            "\nFound {} matching events:",
-            filtered.len().to_string().green().bold()
+            "\nFound {} {} matching:",
+            filtered.len().to_string().green().bold(),
+            filter_desc
         );
 
-        for event in &filtered {
-            print_event(event, &args, zwift_score);
+        if args.verbose {
+            // Use verbose output format
+            for event in &filtered {
+                print_event(event, &args, zwift_score);
+            }
+            println!("\n{}", "─".repeat(80).dimmed());
+        } else {
+            // Use table format by default
+            print_events_table(&filtered, &args, zwift_score);
         }
+        
+        // Display filter statistics
+        display_filter_stats(&filter_stats, events.len());
 
-        println!("\n{}", "─".repeat(80).dimmed());
         println!(
             "\n💡 {} Join events via Zwift Companion app or zwift.com/events",
             "Tip:".yellow()
@@ -2127,9 +2488,10 @@ mod tests {
             mark_complete: None,
             show_progress: false,
             new_routes_only: false,
+            verbose: false,
         };
 
-        let filtered = filter_events(events, &args, 195);
+        let (filtered, _) = filter_events(events, &args, 195);
 
         assert_eq!(filtered.len(), 2);
         assert!(filtered.iter().all(|e| e.sport == "CYCLING"));
@@ -2180,9 +2542,10 @@ mod tests {
             mark_complete: None,
             show_progress: false,
             new_routes_only: false,
+            verbose: false,
         };
 
-        let filtered = filter_events(events, &args, 195);
+        let (filtered, _) = filter_events(events, &args, 195);
 
         assert_eq!(filtered.len(), 1);
         assert_eq!(filtered[0].name, "Perfect Race");
@@ -2323,21 +2686,22 @@ mod tests {
             mark_complete: None,
             show_progress: false,
             new_routes_only: false,
+            verbose: false,
         };
 
-        let filtered = filter_events(events.clone(), &args, 195);
+        let (filtered, _) = filter_events(events.clone(), &args, 195);
         assert_eq!(filtered.len(), 1);
         assert_eq!(filtered[0].name, "3R Race");
 
         // Test fondo filter
         args.event_type = "fondo".to_string();
-        let filtered = filter_events(events.clone(), &args, 195);
+        let (filtered, _) = filter_events(events.clone(), &args, 195);
         assert_eq!(filtered.len(), 1);
         assert_eq!(filtered[0].name, "Gran Fondo");
 
         // Test group filter (excludes fondos)
         args.event_type = "group".to_string();
-        let filtered = filter_events(events.clone(), &args, 195);
+        let (filtered, _) = filter_events(events.clone(), &args, 195);
         assert_eq!(filtered.len(), 1);
         assert_eq!(filtered[0].name, "Sunday Ride");
     }
@@ -2737,10 +3101,11 @@ mod tests {
             mark_complete: None,
             show_progress: false,
             new_routes_only: false,
+            verbose: false,
         };
         
         let events = vec![racing_score_event.clone()];
-        let filtered = filter_events(events, &args, 195);
+        let (filtered, _) = filter_events(events, &args, 195);
         
         // Event should be included if distance parsing works
         // 10.6 km at Cat D speed (30.9 km/h) = ~20.6 minutes
@@ -2817,9 +3182,10 @@ mod tests {
             mark_complete: None,
             show_progress: false,
             new_routes_only: false,
+            verbose: false,
         };
         
-        let filtered = filter_events(events, &args, 195);
+        let (filtered, _) = filter_events(events, &args, 195);
         
         // Both events should be included (20km at ~30.9km/h = ~38.8 min)
         assert_eq!(filtered.len(), 2);
@@ -2934,6 +3300,7 @@ mod tests {
             mark_complete: None,
             show_progress: false,
             new_routes_only: false,
+            verbose: false,
         };
         
         let suggestions = generate_no_results_suggestions(&args);
@@ -2965,6 +3332,7 @@ mod tests {
             mark_complete: None,
             show_progress: false,
             new_routes_only: false,
+            verbose: false,
         };
         
         let suggestions = generate_no_results_suggestions(&args);
@@ -2995,6 +3363,7 @@ mod tests {
             mark_complete: None,
             show_progress: false,
             new_routes_only: false,
+            verbose: false,
         };
         
         let suggestions = generate_no_results_suggestions(&args);
