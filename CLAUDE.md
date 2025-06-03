@@ -207,9 +207,9 @@ When races aren't being found:
 ## Log Management
 
 This project uses hierarchical log management to keep LLM context efficient:
-- **ZWIFT_API_LOG.md**: Index file pointing to Summary/Recent/Archives
-- **ZWIFT_API_LOG_SUMMARY.md**: Executive summary (<3KB)
-- **ZWIFT_API_LOG_RECENT.md**: Latest sessions (<2KB)
+- **docs/development/ZWIFT_API_LOG.md**: Index file pointing to Summary/Recent/Archives
+- **docs/development/ZWIFT_API_LOG_SUMMARY.md**: Executive summary (<3KB)
+- **docs/development/ZWIFT_API_LOG_RECENT.md**: Latest sessions (<2KB)
 - **sessions/**: Archived complete logs by date
 
-When adding log entries, append to ZWIFT_API_LOG_RECENT.md for current work.
+When adding log entries, append to docs/development/ZWIFT_API_LOG_RECENT.md for current work.

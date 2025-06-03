@@ -421,7 +421,7 @@ This is like managing a very willing and enthusiastic employee. Success requires
 - **Technical Foundation**: 40 years on the command line means I can guide implementation choices
 - **Understanding Limitations**: Both yours and the LLM's (it makes assumptions, you catch them)
 - **Iterative Refinement**: Test with real data, spot discrepancies, adjust approach
-- **Good Documentation**: Track decisions and discoveries (see ZWIFT_API_LOG.md)
+- **Good Documentation**: Track decisions and discoveries (see docs/development/ZWIFT_API_LOG.md)
 
 The sweet spot: You don't need to code, but your technical experience helps you:
 - Spot when something doesn't look right

@@ -41,6 +41,6 @@ Run `cargo build --all-targets` to check for warnings
 
 ## Related Documents
 - REQUIREMENTS.md - Updated with ZwiftHacks integration requirements (FER-20)
-- ZWIFTHACKS_TECHNIQUES.md - Analysis of valuable techniques
-- ROUTE_TRACKING_IDEAS.md - Detailed implementation plans
+- docs/research/ZWIFTHACKS_TECHNIQUES.md - Analysis of valuable techniques
+- docs/research/ROUTE_TRACKING_IDEAS.md - Detailed implementation plans
 - CLAUDE.md - Project-specific AI instructions
