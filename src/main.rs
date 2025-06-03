@@ -656,23 +656,27 @@ fn get_cache_file() -> Result<PathBuf> {
 fn generate_filter_description(args: &Args, min_duration: u32, max_duration: u32) -> String {
     let mut parts = Vec::new();
     
-    // Event type (if not "all")
-    if args.event_type != "all" {
-        let event_type_desc = match args.event_type.to_lowercase().as_str() {
-            "race" => "races",
-            "tt" | "time_trial" => "time trials",
-            "workout" => "group workouts",
-            "group" => "group rides",
-            "fondo" => "fondos/sportives",
-            _ => &args.event_type,
-        };
-        parts.push(event_type_desc.to_string());
-    } else {
-        parts.push("events".to_string());
-    }
+    // Always show event type (even if it's the default "race")
+    let event_type_desc = match args.event_type.to_lowercase().as_str() {
+        "race" => "races",
+        "tt" | "time_trial" => "time trials",
+        "workout" => "group workouts",
+        "group" => "group rides",
+        "fondo" => "fondos/sportives",
+        "all" => "all events",
+        _ => &args.event_type,
+    };
+    parts.push(event_type_desc.to_string());
     
-    // Duration filter
+    // Duration filter (always shown)
     parts.push(format!("{}-{} min", min_duration, max_duration));
+    
+    // Time range (show if not default 1 day, or always for clarity)
+    if args.days == 1 {
+        parts.push("next 24h".to_string());
+    } else {
+        parts.push(format!("next {} days", args.days));
+    }
     
     // Tag filters
     if !args.tags.is_empty() {
@@ -689,11 +693,6 @@ fn generate_filter_description(args: &Args, min_duration: u32, max_duration: u32
     // New routes only
     if args.new_routes_only {
         parts.push("new routes only".to_string());
-    }
-    
-    // Time range
-    if args.days > 1 {
-        parts.push(format!("next {} days", args.days));
     }
     
     parts.join(" | ")
