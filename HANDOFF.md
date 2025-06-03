@@ -2,47 +2,53 @@
 Updated: 2025-06-03 UTC
 
 ## Current State
-Status: Production ready - documentation reorganized
+Status: Production ready - project structure cleaned up
 Target: Ready for deployment and continued feature development
-Latest: Reorganized documentation into docs/ directory for better maintainability
+Latest: Reorganized project structure, separating core app from development tools
 
 ## Essential Context
 - All 264 routes populated with accurate lead-in distance data
 - Regression tests passing with 16.1% accuracy (exceeded <20% target)
 - Code builds cleanly with no warnings
 - Documentation added for all public APIs
-- Test data cleaned up (removed "Test Race" entries)
+- Project structure now clearly organized
 
 ## Completed Today
-1. ✅ Reorganized documentation structure
-   - Moved 26 documentation files from root to organized subdirectories
-   - Created docs/development/, docs/research/, docs/guides/, docs/archive/
-   - Kept only essential files in root: README, REQUIREMENTS, CLAUDE, HANDOFF, todo
-   - Updated all references to moved files
-   - Added docs/README.md to explain documentation structure
-2. ✅ Preserved project history
-   - Kept ACCURACY_TIMELINE.md showing unique development progression
-   - Maintained all research, guides, and historical handoffs
-   - Clean git history with proper file moves (not deletes/creates)
+1. ✅ Cleaned up redundant files
+   - Removed obsolete test files from root directory
+   - Removed debug output files
+   - Kept all documentation and session files for AI context
+   - Preserved .gitignore'd files as requested
+2. ✅ Reorganized project structure
+   - Created tools/ directory with import/, debug/, and utils/ subdirectories
+   - Moved 40+ scripts into appropriate locations
+   - Created sql/ directory with migrations/, mappings/, and analysis/ subdirectories
+   - Organized all SQL files by purpose
+3. ✅ Updated README.md
+   - Cleaner, more focused on core functionality
+   - Clear project structure documentation
+   - Updated all paths to reflect new organization
+   - Simplified user guide vs developer documentation
 
 ## Next Step
-Project has clean documentation structure and is deployment ready. Consider:
+Project has clean structure and is deployment ready. Consider:
+- Committing reorganization with clear message
 - Publishing to crates.io with the clean repository
-- Creating GitHub release with organized docs
+- Creating GitHub release with organized structure
 - Implementing additional features from REQUIREMENTS.md
-- Adding visual documentation to docs/screenshots/
 
 ## Recent Sessions
 - 2025-06-02: Fixed all compiler warnings, achieved clean build
-- 2025-06-03: Reorganized documentation into docs/ directory
+- 2025-06-03 AM: Reorganized documentation into docs/ directory
+- 2025-06-03 PM: Cleaned up files and reorganized project structure
 
 ## If Blocked
 Run `cargo test` to verify all tests pass
 Run `cargo build --all-targets` to check for warnings
-
+Check sessions/SESSION_20250603_CLEANUP.md for reorganization details
 
 ## Related Documents
-- REQUIREMENTS.md - Updated with ZwiftHacks integration requirements (FER-20)
-- docs/research/ZWIFTHACKS_TECHNIQUES.md - Analysis of valuable techniques
-- docs/research/ROUTE_TRACKING_IDEAS.md - Detailed implementation plans
+- REQUIREMENTS.md - Feature requirements and roadmap
+- sessions/SESSION_20250603_CLEANUP.md - Details of project reorganization
+- README.md - Updated with new project structure
 - CLAUDE.md - Project-specific AI instructions
