@@ -1,4 +1,18 @@
-//! Debug tool for analyzing event tags from Zwift API data
+//! Development tool: Analyze event tags from saved Zwift API data
+//! 
+//! This is a development/debugging utility, not part of the main application.
+//! It reads a debug JSON file (debug_event_tags.json) containing saved API responses
+//! and analyzes tag patterns to help identify useful filtering strategies.
+//! 
+//! The main program already includes tag filtering functionality (--tags, --exclude-tags).
+//! This tool helps developers understand what tags are available and their frequency.
+//! 
+//! Usage: 
+//! 1. Save API response to debug_event_tags.json
+//! 2. cargo run --bin debug_tags
+//! 
+//! This tool is intentionally excluded from test coverage as it's for
+//! development analysis rather than production functionality.
 
 use std::collections::HashMap;
 use serde_json::Value;

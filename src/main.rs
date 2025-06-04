@@ -3837,5 +3837,84 @@ mod tests {
             assert_eq!(speed, expected_speed, "Speed mismatch for score {}", score);
         }
     }
+
+    #[test]
+    fn test_generate_no_results_suggestions() {
+        // Test race suggestions
+        let race_args = Args {
+            event_type: "race".to_string(),
+            duration: 60,
+            tolerance: 15,
+            days: 3,
+            zwift_score: None,
+            zwiftpower_username: None,
+            tags: vec![],
+            exclude_tags: vec![],
+            show_unknown_routes: false,
+            analyze_descriptions: false,
+            record_result: None,
+            discover_routes: false,
+            mark_complete: None,
+            show_progress: false,
+            new_routes_only: false,
+            verbose: false,
+            debug: false,
+        };
+        let suggestions = generate_no_results_suggestions(&race_args);
+        assert!(!suggestions.is_empty());
+        assert!(suggestions[0].contains("Most races are short"));
+        assert!(suggestions[1].contains("cargo run -- -d 30 -t 30"));
+        
+        // Test time trial suggestions
+        let tt_args = Args {
+            event_type: "tt".to_string(),
+            duration: 60,
+            tolerance: 15,
+            days: 3,
+            zwift_score: None,
+            zwiftpower_username: None,
+            tags: vec![],
+            exclude_tags: vec![],
+            show_unknown_routes: false,
+            analyze_descriptions: false,
+            record_result: None,
+            discover_routes: false,
+            mark_complete: None,
+            show_progress: false,
+            new_routes_only: false,
+            verbose: false,
+            debug: false,
+        };
+        let suggestions = generate_no_results_suggestions(&tt_args);
+        assert!(!suggestions.is_empty());
+        assert!(suggestions[0].contains("Time trials are less common"));
+        
+        // Test generic suggestions
+        let generic_args = Args {
+            event_type: "workout".to_string(),
+            duration: 60,
+            tolerance: 15,
+            days: 3,
+            zwift_score: None,
+            zwiftpower_username: None,
+            tags: vec![],
+            exclude_tags: vec![],
+            show_unknown_routes: false,
+            analyze_descriptions: false,
+            record_result: None,
+            discover_routes: false,
+            mark_complete: None,
+            show_progress: false,
+            new_routes_only: false,
+            verbose: false,
+            debug: false,
+        };
+        let suggestions = generate_no_results_suggestions(&generic_args);
+        assert!(!suggestions.is_empty());
+        assert!(suggestions[0].contains("No events match"));
+        assert!(suggestions[1].contains("30")); // Should suggest wider tolerance (15*2)
+    }
+
+
 }
 

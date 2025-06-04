@@ -1,6 +1,14 @@
-//! Analyze event descriptions to find distance/elevation patterns
+//! Development tool: Analyze event descriptions to find distance/elevation patterns
 //! 
-//! This tool fetches recent events and extracts patterns from descriptions
+//! This is a development/debugging utility, not part of the main application.
+//! It fetches recent events and extracts patterns from descriptions to help
+//! understand how Zwift formats event data, particularly for Racing Score events
+//! where distance is often embedded in the description text.
+//! 
+//! Usage: cargo run --bin analyze_descriptions
+//! 
+//! This tool is intentionally excluded from test coverage as it's for
+//! development analysis rather than production functionality.
 
 use anyhow::Result;
 use chrono::Utc;
