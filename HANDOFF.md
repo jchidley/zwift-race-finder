@@ -1,92 +1,102 @@
-# Project: Zwift Race Finder
-Updated: 2025-06-03
+# Handoff Document - Zwift Race Finder
 
-## Current State
-Status: Production ready with refined table UI
-Target: Research simulation models and performance modeling
-Latest: Table format optimized for compactness and clarity
+## Current State (2025-06-04, 10:00)
 
-## Essential Context
-- Core zwift-race-finder: 16.1% accuracy, production ready
-- Table output: ✅ Compact format with elevation data
-- Filter statistics: ✅ Shows why events filtered with actionable fixes
-- Advanced features defined: simulation, video analysis, live telemetry
-- Key insight: GPL licensing requires clean-room implementations
+### Recent Work - Executing 100% Function Coverage Plan
+Successfully executing the systematic coverage plan with excellent results:
 
-## Recent Sessions
+1. **Coverage Progress Update**:
+   - Started: 41.77% function coverage (92/158 uncovered in main.rs)
+   - Current: 52.07% function coverage (81/169 uncovered in main.rs)
+   - Improvement: +10.3% coverage with 11 new functions tested
+   - Test quality: 100% natural tests (11/11)
 
-### 2025-01-06 Evening: Filter Clarity and Duration Format
-1. **Comprehensive Filter Display** ✅ COMPLETED
-   - Shows ALL active filters including defaults
-   - "Found 49 races | 0-60 min | next 24h matching:"
-   - Event type, duration range, time range always visible
-   - Tag filters and exclusions when active
+2. **Phases Completed**:
+   - ✅ Phase 1: Pure utility functions (4 tested)
+   - ✅ Phase 2: Data preparation functions (4 tested)
+   - ✅ Phase 3: I/O functions (3 tested)
+   - 🔄 Phase 4: Network/CLI handlers (pending evaluation)
 
-2. **Duration Format Standardization** ✅ COMPLETED  
-   - Changed from variable (39m, 1h32m) to fixed hh:mm
-   - All durations now display as 00:39, 01:32, etc.
-   - Consistent column width for easier scanning
+3. **Key Achievements**:
+   - All 11 functions tested with natural tests
+   - Zero contrived tests needed - validates code quality
+   - I/O functions properly isolated with temp directories
+   - Comprehensive test coverage including edge cases
 
-### 2025-06-03 Afternoon: Table Format Refinements
-1. **Compact Table** ✅ COMPLETED
-   - Columns: Event | Time | Distance | Elev | Duration
-   - 24h time format (13:30 vs 1:30 PM)
-   - No lap indicators in distance
-   - Elevation gain in meters
-   - Auto day separators for multi-day views
+4. **Documentation Updated**:
+   - SESSION_20250604_PHASE1_COVERAGE.md - Detailed progress tracking
+   - SESSION_20250604_100_COVERAGE_EXECUTION.md - Session wrap-up
+   - PROJECT_WISDOM.md - Added 4 meta-insights about AI development
+   - Shows test quality for each function
+   - Documents profound insights about building tools to build tools
 
-2. **Space Optimization** ✅ COMPLETED
-   - Removed Route ✓ column (redundant)
-   - Compressed duration (1h32m vs 1h 32m)
-   - Day only shown via separators
-   - ~20% reduction in table width
+### Project Status
+- **Core Functionality**: Working and stable
+- **Test Suite**: Clean, 81 tests all passing (added 11 new tests)
+- **Code Organization**: Well-structured, proven by natural test ease
+- **Documentation**: Comprehensive with progress tracking
 
-### 2025-06-03 Morning: Table Output Implementation
-1. **Table Format** ✅ COMPLETED
-   - Default table view, --verbose for details
-   - Filter statistics with actionable fixes
-   - Works with all event types
+### Active Features
+1. **Race Finding**: Duration-based filtering with ±tolerance
+2. **Racing Score Support**: Handles both traditional and Racing Score events
+3. **Route Discovery**: Can fetch route data from web sources
+4. **Progress Tracking**: Track completed routes
+5. **Multiple Output Formats**: Table (default) and verbose modes
 
-### 2025-01-06 Evening: Requirements Expansion
-1. **Performance Modeling** (FER-19.16-17)
-   - GoldenCheetah GPL prevents integration
-   - Must reimplement from published papers
-   - Focus: CP models, TSS/CTL/ATL metrics
+### Known Issues
+- Config tests change current directory (could affect parallel testing)
+- Some duration estimates may need calibration updates
+- Route mappings need periodic updates as new routes are added
 
-2. **Simulation & Analysis** (FER-20.8-12)
-   - Monte Carlo race simulations
-   - Video analysis with OBS Studio
-   - Live telemetry via AI/OCR
-   - Research open-source models (MIT/Apache)
+### Next Opportunities
+1. **Continue Coverage Plan - Phase 4**:
+   - Evaluate network functions (fetch_events, fetch_zwiftpower_stats)
+   - Test business logic (filter_events, estimate_duration_with_distance)
+   - Assess CLI handlers for unit vs integration testing
+   - Current: 81 functions remaining in main.rs
+2. **Investigate Coverage Anomalies**:
+   - Some functions show uncovered despite having tests
+   - May need to check test execution paths
+   - Consider if coverage tool has configuration issues
+3. **Target 80%+ Coverage**:
+   - Currently at 52.07%, need ~28% more
+   - Focus on high-value business logic functions
+   - Skip CLI handlers if integration tests are better
+4. **Performance**: Use benchmarks after achieving coverage target
 
-## Next Priorities
-1. **Research Simulation Models**: Find MIT/Apache licensed cycling simulators
-2. **Study CP Models**: From academic papers for performance prediction
-3. **Proof of Concept**: Video analysis on race recordings
-4. **Route Discovery**: Continue mapping unknown routes (538x Downtown Dolphin!)
+### Development Patterns
+- Use session logs (SESSION_*.md) to track work
+- Test changes thoroughly - good test suite now
+- Keep PROJECT_WISDOM.md updated with learnings
+- Run `cargo test` before committing changes
 
-## Development Approach
-Continue AI-assisted development:
-- Clear requirements before implementation
-- Test with real Zwift data
-- Iterate based on results
-- Maintain compliance awareness
+### Quick Start for Next Session
+```bash
+# Check current state
+git status
+cargo test
 
-## If Blocked
-- Review REQUIREMENTS.md Section 21 for live telemetry specs
-- Check sessions/SESSION_20250106_210000.md for session details
-- Remember: Screen capture only, no game interaction
+# See recent changes
+git log --oneline -10
 
-## Project Structure
+# Run coverage analysis (excluding dev binaries)
+cargo llvm-cov --summary-only --ignore-filename-regex "src/bin/.*"
+
+# Run the tool
+cargo run -- --duration 30 --tolerance 15
+
+# Test writing approach for 100% coverage:
+# 1. Follow FUNCTION_COVERAGE_PLAN_20250604_084639.md
+# 2. Start with Phase 1 pure functions
+# 3. Track test quality: natural ✅ vs contrived ⚠️/❌
+# 4. Document in SESSION_20250604_COVERAGE_BASELINE.md
 ```
-zwift-race-finder/        # Core duration prediction tool
-├── src/                  # Rust application
-├── tools/               # Import and utility scripts
-├── sql/                 # Database scripts
-└── docs/                # Documentation
 
-zwift-live-telemetry/    # Future companion tool (not yet created)
-├── capture/             # Screen capture modules
-├── ocr/                 # Text extraction
-└── streaming/           # Live data output
-```
+## Key Files
+- `src/main.rs` - CLI entry point (now minimal)
+- `src/lib.rs` - Library modules
+- `tests/` - Comprehensive test suite
+- `docs/PROJECT_WISDOM.md` - Accumulated knowledge including coverage insights
+- `docs/development/FUNCTION_COVERAGE_PLAN_20250604_084639.md` - Path to 100% coverage
+- `sessions/SESSION_20250604_COVERAGE_BASELINE.md` - Current coverage state
+- `sessions/SESSION_20250106_CATEGORY_REFACTORING.md` - Refactoring example

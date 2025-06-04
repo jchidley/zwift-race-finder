@@ -63,7 +63,7 @@ struct Args {
     #[arg(long)]
     analyze_descriptions: bool,
     
-    /// Record a race result (format: "route_id,minutes,event_name")
+    /// Record a race result (format: "route_id,minutes,event_name[,zwift_score]")
     #[arg(long)]
     record_result: Option<String>,
     
@@ -78,10 +78,6 @@ struct Args {
     /// Exclude events with specific tags
     #[arg(long, value_delimiter = ',')]
     exclude_tags: Vec<String>,
-    
-    /// Load filters from URL parameters (e.g., "tags=ranked&duration=30")
-    #[arg(long)]
-    from_url: Option<String>,
     
     /// Mark a route as completed (by route ID)
     #[arg(long)]
@@ -245,6 +241,27 @@ const CAT_B_SPEED: f64 = 37.0;  // Estimated based on Cat D scaling
 const CAT_C_SPEED: f64 = 33.0;  // Estimated based on Cat D scaling
 const CAT_D_SPEED: f64 = 30.9;  // Jack's actual average from 151 races
 
+// Get category letter from Zwift Racing Score
+fn get_category_from_score(zwift_score: u32) -> &'static str {
+    match zwift_score {
+        0..=199 => "D",
+        200..=299 => "C",
+        300..=399 => "B",
+        _ => "A",
+    }
+}
+
+// Get average speed for a category
+fn get_category_speed(category: &str) -> f64 {
+    match category {
+        "A" => CAT_A_SPEED,
+        "B" => CAT_B_SPEED,
+        "C" => CAT_C_SPEED,
+        "D" => CAT_D_SPEED,
+        _ => CAT_D_SPEED, // Default to Cat D speed for unknown categories
+    }
+}
+
 // Zwift route database - route_id is the primary key for all calculations
 // This should be expanded with Jack's actual race data
 struct RouteData {
@@ -406,12 +423,7 @@ fn find_user_subgroup<'a>(event: &'a ZwiftEvent, zwift_score: u32) -> Option<&'a
         return None;
     }
     
-    let user_category = match zwift_score {
-        0..=199 => "D",
-        200..=299 => "C",
-        300..=399 => "B",
-        _ => "A",
-    };
+    let user_category = get_category_from_score(zwift_score);
     
     // Try to find exact match first
     event.event_sub_groups.iter().find(|sg| {
@@ -561,12 +573,8 @@ fn estimate_duration_with_distance(route_id: u32, distance_km: f64, zwift_score:
             // The key insight: draft is so powerful that individual power matters less
             // than staying with the group. Pack speed is determined by the strongest riders.
             
-            let base_pack_speed = match zwift_score {
-                0..=199 => CAT_D_SPEED,    // Pack averages 30.9 km/h
-                200..=299 => CAT_C_SPEED,  // Pack averages 33.0 km/h
-                300..=399 => CAT_B_SPEED,  // Pack averages 37.0 km/h
-                _ => CAT_A_SPEED,          // Pack averages 42.0 km/h
-            };
+            let category = get_category_from_score(zwift_score);
+            let base_pack_speed = get_category_speed(category);
             
             // Elevation still matters - packs slow on climbs, speed up on descents
             // But the effect is less dramatic than solo riding due to draft
@@ -599,12 +607,8 @@ fn estimate_duration_with_distance(route_id: u32, distance_km: f64, zwift_score:
     }
     
     // Fallback to category-based estimation
-    let base_speed = match zwift_score {
-        0..=199 => CAT_D_SPEED,      // 0-199 is Cat D (includes Jack at 189)
-        200..=299 => CAT_C_SPEED,    // 200-299 is Cat C  
-        300..=399 => CAT_B_SPEED,    // 300-399 is Cat B
-        _ => CAT_A_SPEED,            // 400+ is Cat A
-    };
+    let category = get_category_from_score(zwift_score);
+    let base_speed = get_category_speed(category);
     
     // Use elevation-based multiplier for more accurate estimates
     // Use base route distance for elevation calculation, not total distance
@@ -629,13 +633,9 @@ fn estimate_duration_with_distance(route_id: u32, distance_km: f64, zwift_score:
 
 // Fallback duration estimation when route_id is not available
 fn estimate_duration_for_category(distance_km: f64, route_name: &str, zwift_score: u32) -> u32 {
-    // Same scoring ranges as primary estimation
-    let base_speed = match zwift_score {
-        0..=199 => CAT_D_SPEED,      // 0-199 is Cat D
-        200..=299 => CAT_C_SPEED,    // 200-299 is Cat C  
-        300..=399 => CAT_B_SPEED,    // 300-399 is Cat B
-        _ => CAT_A_SPEED,            // 400+ is Cat A
-    };
+    // Get category-based speed
+    let category = get_category_from_score(zwift_score);
+    let base_speed = get_category_speed(category);
 
     let difficulty_multiplier = get_route_difficulty_multiplier(route_name);
     let effective_speed = base_speed * difficulty_multiplier;
@@ -1046,12 +1046,7 @@ fn filter_events(mut events: Vec<ZwiftEvent>, args: &Args, zwift_score: u32) -> 
         // Check subgroups if main event has no distance/duration
         if !event.event_sub_groups.is_empty() {
             // Find the subgroup that matches user's category
-            let user_category = match zwift_score {
-                0..=199 => "D",
-                200..=299 => "C", 
-                300..=399 => "B",
-                _ => "A",
-            };
+            let user_category = get_category_from_score(zwift_score);
             
             // Check if user's category subgroup matches criteria
             event.event_sub_groups.iter().any(|subgroup| {
@@ -1353,12 +1348,8 @@ fn prepare_event_row(event: &ZwiftEvent, zwift_score: u32) -> EventTableRow {
             let elevation_str = format!("{}m", total_elevation);
             
             // Calculate duration
-            let effective_speed = match zwift_score {
-                0..=199 => CAT_D_SPEED,
-                200..=299 => CAT_C_SPEED,
-                300..=399 => CAT_B_SPEED,
-                _ => CAT_A_SPEED,
-            };
+            let category = get_category_from_score(zwift_score);
+            let effective_speed = get_category_speed(category);
             
             let difficulty_multiplier = get_route_difficulty_multiplier_from_elevation(
                 route_data.distance_km,
@@ -1531,12 +1522,8 @@ fn print_event(event: &ZwiftEvent, _args: &Args, zwift_score: u32) {
             }
             
             // Use actual distance for estimation, not base route distance
-            let effective_speed = match zwift_score {
-                0..=199 => CAT_D_SPEED,
-                200..=299 => CAT_C_SPEED,
-                300..=399 => CAT_B_SPEED,
-                _ => CAT_A_SPEED,
-            };
+            let category = get_category_from_score(zwift_score);
+            let effective_speed = get_category_speed(category);
             
             let difficulty_multiplier = get_route_difficulty_multiplier_from_elevation(
                 route_data.distance_km,  // Use base route for elevation calculation
@@ -1667,12 +1654,7 @@ fn print_event(event: &ZwiftEvent, _args: &Args, zwift_score: u32) {
         println!("{}: ", "Categories".bright_blue());
         
         // Find the subgroup that matches user's category
-        let user_category = match zwift_score {
-            0..=199 => "D",
-            200..=299 => "C",
-            300..=399 => "B",
-            _ => "A",
-        };
+        let user_category = get_category_from_score(zwift_score);
         
         for group in &event.event_sub_groups {
             let is_user_category = group.name.contains(user_category) || 
@@ -1930,17 +1912,28 @@ async fn discover_unknown_routes() -> Result<()> {
 }
 
 fn record_race_result(input: &str) -> Result<()> {
-    // Parse format: "route_id,minutes,event_name"
+    // Parse format: "route_id,minutes,event_name[,zwift_score]"
     let parts: Vec<&str> = input.split(',').collect();
     if parts.len() < 3 {
-        anyhow::bail!("Format: --record-result 'route_id,minutes,event_name'");
+        anyhow::bail!("Format: --record-result 'route_id,minutes,event_name[,zwift_score]'");
     }
     
     let route_id: u32 = parts[0].trim().parse()
         .map_err(|_| anyhow::anyhow!("Invalid route_id"))?;
     let minutes: u32 = parts[1].trim().parse()
         .map_err(|_| anyhow::anyhow!("Invalid minutes"))?;
-    let event_name = parts[2..].join(",").trim().to_string();
+    
+    // Check if zwift_score is provided at position 3 (before event name)
+    let (event_name, zwift_score_override) = if parts.len() >= 4 && parts[3].trim().parse::<u32>().is_ok() {
+        // Format: route_id,minutes,event_name,zwift_score
+        let event_name = parts[2].trim().to_string();
+        let zwift_score = parts[3].trim().parse::<u32>().unwrap();
+        (event_name, Some(zwift_score))
+    } else {
+        // Format: route_id,minutes,event_name (may contain commas)
+        let event_name = parts[2..].join(",").trim().to_string();
+        (event_name, None)
+    };
     
     let db = Database::new()?;
     
@@ -1951,8 +1944,8 @@ fn record_race_result(input: &str) -> Result<()> {
         db.record_unknown_route(route_id, &event_name, "RACE")?;
     }
     
-    // Get current user stats
-    let zwift_score = 195; // TODO: Get from args or auto-detect
+    // Get zwift_score from override or default
+    let zwift_score = zwift_score_override.unwrap_or(195);
     
     let result = database::RaceResult {
         id: None,
@@ -2115,52 +2108,10 @@ fn show_route_progress() -> Result<()> {
     Ok(())
 }
 
-fn parse_url_params(args: &mut Args, url_params: &str) -> Result<()> {
-    // Parse URL-style parameters like "tags=ranked,zracing&duration=30"
-    for param in url_params.split('&') {
-        if let Some((key, value)) = param.split_once('=') {
-            match key {
-                "tags" => {
-                    args.tags = value.split(',').map(|s| s.to_string()).collect();
-                }
-                "exclude_tags" => {
-                    args.exclude_tags = value.split(',').map(|s| s.to_string()).collect();
-                }
-                "duration" => {
-                    if let Ok(d) = value.parse() {
-                        args.duration = d;
-                    }
-                }
-                "tolerance" => {
-                    if let Ok(t) = value.parse() {
-                        args.tolerance = t;
-                    }
-                }
-                "event_type" => {
-                    args.event_type = value.to_string();
-                }
-                "zwift_score" => {
-                    if let Ok(s) = value.parse() {
-                        args.zwift_score = Some(s);
-                    }
-                }
-                _ => {
-                    eprintln!("Warning: Unknown URL parameter: {}", key);
-                }
-            }
-        }
-    }
-    Ok(())
-}
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let mut args = Args::parse();
-    
-    // Parse URL parameters if provided
-    if let Some(url_params) = args.from_url.clone() {
-        parse_url_params(&mut args, &url_params)?;
-    }
+    let args = Args::parse();
 
     println!("🚴 {} {}", "Zwift Race Finder".bold(), "v0.1.0".dimmed());
     
@@ -2475,7 +2426,6 @@ mod tests {
             discover_routes: false,
             tags: vec![],
             exclude_tags: vec![],
-            from_url: None,
             mark_complete: None,
             show_progress: false,
             new_routes_only: false,
@@ -2529,7 +2479,6 @@ mod tests {
             discover_routes: false,
             tags: vec![],
             exclude_tags: vec![],
-            from_url: None,
             mark_complete: None,
             show_progress: false,
             new_routes_only: false,
@@ -2673,7 +2622,6 @@ mod tests {
             discover_routes: false,
             tags: vec![],
             exclude_tags: vec![],
-            from_url: None,
             mark_complete: None,
             show_progress: false,
             new_routes_only: false,
@@ -2979,10 +2927,10 @@ mod tests {
         );
         
         // Test with miles distance (should convert to km)
-        assert_eq!(
-            parse_distance_from_description(&Some("Distance: 14.6 miles".to_string())),
-            Some(23.496364) // 14.6 * 1.60934
-        );
+        let miles_result = parse_distance_from_description(&Some("Distance: 14.6 miles".to_string()));
+        assert!(miles_result.is_some());
+        let km_value = miles_result.unwrap();
+        assert!((km_value - 23.496364).abs() < 0.001, "Expected ~23.496, got {}", km_value);
         
         // Test with decimal km
         assert_eq!(
@@ -3021,8 +2969,11 @@ mod tests {
         // Test with feet elevation
         let desc2 = Some("Distance: 10 miles, Elevation: 1000 feet".to_string());
         let data2 = parse_description_data(&desc2);
-        assert_eq!(data2.distance_km, Some(16.0934)); // 10 * 1.60934
-        assert_eq!(data2.elevation_m, Some(304)); // 1000 / 3.28084
+        // Use approximate comparison for floating point
+        assert!(data2.distance_km.is_some());
+        let dist_km = data2.distance_km.unwrap();
+        assert!((dist_km - 16.0934).abs() < 0.001, "Expected ~16.093, got {}", dist_km);
+        assert_eq!(data2.elevation_m, Some(304)); // 1000 / 3.28084 rounds to 304
         assert_eq!(data2.laps, None);
         
         // Test elevation gain pattern
@@ -3088,7 +3039,6 @@ mod tests {
             discover_routes: false,
             tags: vec![],
             exclude_tags: vec![],
-            from_url: None,
             mark_complete: None,
             show_progress: false,
             new_routes_only: false,
@@ -3169,7 +3119,6 @@ mod tests {
             discover_routes: false,
             tags: vec![],
             exclude_tags: vec![],
-            from_url: None,
             mark_complete: None,
             show_progress: false,
             new_routes_only: false,
@@ -3182,6 +3131,281 @@ mod tests {
         assert_eq!(filtered.len(), 2);
         assert!(filtered.iter().any(|e| e.name == "Traditional Race"));
         assert!(filtered.iter().any(|e| e.name == "Racing Score Event"));
+    }
+
+    #[test]
+    fn test_format_duration() {
+        // Test basic formatting
+        assert_eq!(format_duration(0), "00:00");
+        assert_eq!(format_duration(1), "00:01");
+        assert_eq!(format_duration(59), "00:59");
+        assert_eq!(format_duration(60), "01:00");
+        assert_eq!(format_duration(61), "01:01");
+        assert_eq!(format_duration(120), "02:00");
+        assert_eq!(format_duration(150), "02:30");
+        
+        // Test larger values
+        assert_eq!(format_duration(599), "09:59");
+        assert_eq!(format_duration(600), "10:00");
+        assert_eq!(format_duration(1439), "23:59");
+        assert_eq!(format_duration(1440), "24:00"); // 24 hours
+        assert_eq!(format_duration(2880), "48:00"); // 48 hours
+    }
+
+    #[test]
+    fn test_estimate_distance_from_name() {
+        // Test explicit distance parsing first
+        assert_eq!(estimate_distance_from_name("10km Race"), Some(10.0));
+        assert_eq!(estimate_distance_from_name("42.2km Marathon"), Some(42.2));
+        
+        // Test pattern-based estimates
+        assert_eq!(estimate_distance_from_name("3R Flat Route Race"), Some(33.4));
+        assert_eq!(estimate_distance_from_name("Epic Pretzel Challenge"), Some(67.5));
+        assert_eq!(estimate_distance_from_name("Monday Night Crit Series"), Some(20.0));
+        assert_eq!(estimate_distance_from_name("Gran Fondo Saturday"), Some(92.6));
+        assert_eq!(estimate_distance_from_name("Century Ride Event"), Some(160.0));
+        
+        // Test case insensitivity
+        assert_eq!(estimate_distance_from_name("3r FLAT race"), Some(33.4));
+        assert_eq!(estimate_distance_from_name("EPIC PRETZEL"), Some(67.5));
+        
+        // Test no match
+        assert_eq!(estimate_distance_from_name("Random Race Name"), None);
+        assert_eq!(estimate_distance_from_name(""), None);
+    }
+
+    #[test]
+    fn test_default_sport() {
+        // Simple test for the default sport function
+        assert_eq!(default_sport(), "CYCLING");
+    }
+
+    #[test]
+    fn test_get_multi_lap_distance() {
+        // Test single lap (no lap count)
+        assert_eq!(get_multi_lap_distance("Regular Race", 10.0), 10.0);
+        assert_eq!(get_multi_lap_distance("Sprint Race", 5.5), 5.5);
+        
+        // Test multi-lap races
+        assert_eq!(get_multi_lap_distance("2 Lap Race", 10.0), 20.0);
+        assert_eq!(get_multi_lap_distance("3 Lap Sprint", 5.0), 15.0);
+        assert_eq!(get_multi_lap_distance("4 laps of Volcano", 12.5), 50.0);
+        assert_eq!(get_multi_lap_distance("5 Laps Challenge", 8.0), 40.0);
+        assert_eq!(get_multi_lap_distance("10 lap time trial", 2.5), 25.0);
+        
+        // Test edge cases
+        assert_eq!(get_multi_lap_distance("", 10.0), 10.0);
+        assert_eq!(get_multi_lap_distance("Race with laps in name", 10.0), 10.0); // "laps" without number
+    }
+
+    #[test]
+    fn test_prepare_event_row() {
+        // Create a test event with route data
+        let event = ZwiftEvent {
+            id: 1,
+            name: "Test Race".to_string(),
+            event_start: Utc::now() + chrono::Duration::hours(2),
+            event_type: "RACE".to_string(),
+            distance_in_meters: Some(20000.0),
+            duration_in_minutes: None,
+            duration_in_seconds: None,
+            route_id: Some(1), // Watopia's Ocean Boulevard
+            route: Some("Ocean Boulevard".to_string()),
+            description: None,
+            category_enforcement: false,
+            event_sub_groups: vec![],
+            sport: "CYCLING".to_string(),
+            tags: vec![],
+        };
+        
+        let row = prepare_event_row(&event, 195); // Cat D rider
+        
+        // Verify the row has expected format
+        assert_eq!(row.name, "Test Race");
+        assert!(row.time.contains(":")); // Should be HH:MM format
+        assert!(row.distance.contains("km")); // Should include km
+        assert!(row.elevation.contains("m")); // Should include m
+        assert!(row.duration.contains(":")); // Should be MM:SS or HH:MM format
+    }
+
+    #[test]
+    fn test_generate_filter_description() {
+        // Test basic race filter
+        let args = Args {
+            zwift_score: Some(195),
+            duration: 30,
+            tolerance: 10,
+            event_type: "race".to_string(),
+            days: 1,
+            zwiftpower_username: None,
+            debug: false,
+            show_unknown_routes: false,
+            analyze_descriptions: false,
+            record_result: None,
+            discover_routes: false,
+            tags: vec![],
+            exclude_tags: vec![],
+            mark_complete: None,
+            show_progress: false,
+            new_routes_only: false,
+            verbose: false,
+        };
+        
+        let desc = generate_filter_description(&args, 20, 40);
+        assert!(desc.contains("races"));
+        assert!(desc.contains("20-40 min"));
+        assert!(desc.contains("next 24h"));
+        
+        // Test with tags
+        let args_with_tags = Args {
+            tags: vec!["3R".to_string(), "flat".to_string()],
+            ..args.clone()
+        };
+        let desc_tags = generate_filter_description(&args_with_tags, 20, 40);
+        assert!(desc_tags.contains("with tags: 3R, flat"));
+        
+        // Test with multiple days
+        let args_multi_day = Args {
+            days: 7,
+            ..args.clone()
+        };
+        let desc_days = generate_filter_description(&args_multi_day, 20, 40);
+        assert!(desc_days.contains("next 7 days"));
+        
+        // Test time trial
+        let args_tt = Args {
+            event_type: "tt".to_string(),
+            ..args.clone()
+        };
+        let desc_tt = generate_filter_description(&args_tt, 20, 40);
+        assert!(desc_tt.contains("time trials"));
+    }
+
+    #[test]
+    fn test_estimate_duration_for_category() {
+        // Test Cat D rider on flat route
+        let duration_d_flat = estimate_duration_for_category(20.0, "Watopia Flat Route", 195);
+        // 20km at 30.9 km/h = ~38.8 minutes
+        assert!(duration_d_flat >= 35 && duration_d_flat <= 42, "Expected ~39 min, got {}", duration_d_flat);
+        
+        // Test Cat C rider on flat route
+        let duration_c_flat = estimate_duration_for_category(20.0, "Watopia Flat Route", 250);
+        // 20km at 33.8 km/h = ~35.5 minutes
+        assert!(duration_c_flat >= 32 && duration_c_flat <= 38, "Expected ~35 min, got {}", duration_c_flat);
+        
+        // Test with hilly route (should be slower)
+        let duration_d_hilly = estimate_duration_for_category(20.0, "Epic KOM", 195);
+        assert!(duration_d_hilly > duration_d_flat, "Hilly route should take longer");
+        
+        // Test with Alpe du Zwift (0.7 multiplier = 30% slower)
+        let duration_alpe = estimate_duration_for_category(12.2, "Alpe du Zwift", 195);
+        // 12.2km / (30.9 km/h * 0.7) * 60 = ~33.8 minutes
+        assert!(duration_alpe >= 30 && duration_alpe <= 36, "Expected ~34 min for Alpe, got {}", duration_alpe);
+    }
+
+    #[test]
+    fn test_get_cache_file() {
+        let cache_file = get_cache_file().unwrap();
+        assert!(cache_file.to_string_lossy().contains("zwift-race-finder"));
+        assert!(cache_file.to_string_lossy().contains("user_stats.json"));
+    }
+
+    #[test]
+    fn test_load_and_save_cached_stats() {
+        use std::fs;
+        use tempfile::TempDir;
+        
+        // Create a temporary directory for testing
+        let temp_dir = TempDir::new().unwrap();
+        let cache_file = temp_dir.path().join("zwift-race-finder").join("user_stats.json");
+        
+        // Override the cache directory for testing
+        std::env::set_var("XDG_CACHE_HOME", temp_dir.path());
+        
+        // Test loading when cache doesn't exist
+        let result = load_cached_stats().unwrap();
+        assert!(result.is_none(), "Should return None when cache doesn't exist");
+        
+        // Create test stats
+        let test_stats = UserStats {
+            zwift_score: 250,
+            category: "C".to_string(),
+            username: "TestUser".to_string(),
+        };
+        
+        // Save stats
+        save_cached_stats(&test_stats).unwrap();
+        assert!(cache_file.exists(), "Cache file should be created");
+        
+        // Load stats back
+        let loaded = load_cached_stats().unwrap();
+        assert!(loaded.is_some(), "Should load cached stats");
+        let loaded_stats = loaded.unwrap();
+        assert_eq!(loaded_stats.zwift_score, 250);
+        assert_eq!(loaded_stats.category, "C");
+        assert_eq!(loaded_stats.username, "TestUser");
+        
+        // Test cache expiration by modifying the file
+        let content = fs::read_to_string(&cache_file).unwrap();
+        let mut cached: CachedStats = serde_json::from_str(&content).unwrap();
+        cached.cached_at = Utc::now() - chrono::Duration::hours(25); // Make it 25 hours old
+        let expired_content = serde_json::to_string(&cached).unwrap();
+        fs::write(&cache_file, expired_content).unwrap();
+        
+        // Should return None for expired cache
+        let expired_result = load_cached_stats().unwrap();
+        assert!(expired_result.is_none(), "Should return None for expired cache");
+        
+        // Clean up
+        std::env::remove_var("XDG_CACHE_HOME");
+    }
+
+    #[test]
+    fn test_display_filter_stats() {
+        
+        // Test with no filtering
+        let empty_stats = FilterStats::default();
+        display_filter_stats(&empty_stats, 100); // Should not print anything
+        
+        // Test with some filtering
+        let stats = FilterStats {
+            sport_filtered: 5,
+            time_filtered: 3,
+            type_filtered: 2,
+            tag_filtered: 1,
+            completed_routes_filtered: 0,
+            duration_filtered: 4,
+            unknown_routes: 2,
+            missing_distance: 1,
+        };
+        
+        // We can't easily capture println! output, but we can verify the function runs
+        display_filter_stats(&stats, 100); // Should print statistics
+    }
+
+    #[test]
+    fn test_log_unknown_route() {
+        
+        // Create a test event
+        let event = ZwiftEvent {
+            id: 999,
+            name: "Unknown Route Race".to_string(),
+            event_start: Utc::now(),
+            event_type: "RACE".to_string(),
+            distance_in_meters: Some(25000.0),
+            duration_in_minutes: None,
+            duration_in_seconds: None,
+            route_id: Some(9999), // Unknown route ID
+            route: Some("Mystery Route".to_string()),
+            description: Some("A mysterious 25km race".to_string()),
+            category_enforcement: false,
+            event_sub_groups: vec![],
+            sport: "CYCLING".to_string(),
+            tags: vec![],
+        };
+        
+        // This should not panic
+        log_unknown_route(&event);
     }
 
     #[test]
@@ -3287,7 +3511,6 @@ mod tests {
             discover_routes: false,
             tags: vec![],
             exclude_tags: vec![],
-            from_url: None,
             mark_complete: None,
             show_progress: false,
             new_routes_only: false,
@@ -3319,7 +3542,6 @@ mod tests {
             discover_routes: false,
             tags: vec![],
             exclude_tags: vec![],
-            from_url: None,
             mark_complete: None,
             show_progress: false,
             new_routes_only: false,
@@ -3350,7 +3572,6 @@ mod tests {
             discover_routes: false,
             tags: vec![],
             exclude_tags: vec![],
-            from_url: None,
             mark_complete: None,
             show_progress: false,
             new_routes_only: false,
@@ -3364,4 +3585,257 @@ mod tests {
         assert!(suggestions[1].contains("-t 20")); // tolerance * 2
         assert!(suggestions[2].contains("-e all"));
     }
+
+    #[test]
+    fn test_parse_lap_count() {
+        // Test basic lap parsing
+        assert_eq!(parse_lap_count("3 Laps of Watopia"), Some(3));
+        assert_eq!(parse_lap_count("5 laps"), Some(5));
+        assert_eq!(parse_lap_count("Single lap race"), None);
+        
+        // Test case variations (only handles Laps or laps, not LAPS)
+        assert_eq!(parse_lap_count("2 Laps"), Some(2));
+        assert_eq!(parse_lap_count("4 Lap race"), Some(4));
+        
+        // Test with surrounding text
+        assert_eq!(parse_lap_count("Race: 10 laps around Richmond"), Some(10));
+        assert_eq!(parse_lap_count("Watopia Flat Route - 3 laps"), Some(3));
+        
+        // Test edge cases
+        assert_eq!(parse_lap_count("No laps mentioned"), None);
+        assert_eq!(parse_lap_count(""), None);
+        assert_eq!(parse_lap_count("0 laps"), Some(0));
+        assert_eq!(parse_lap_count("100 laps ultra"), Some(100));
+    }
+
+    #[test]
+    fn test_parse_distance_from_name() {
+        // Test km parsing
+        assert_eq!(parse_distance_from_name("10km race"), Some(10.0));
+        assert_eq!(parse_distance_from_name("Marathon 42.2 km"), Some(42.2));
+        assert_eq!(parse_distance_from_name("5.5km time trial"), Some(5.5));
+        
+        // Test miles parsing with conversion
+        let miles_10 = parse_distance_from_name("10mi race").unwrap();
+        assert!((miles_10 - 16.0934).abs() < 0.001, "Expected ~16.093, got {}", miles_10);
+        
+        let miles_26_2 = parse_distance_from_name("Marathon 26.2 miles").unwrap();
+        assert!((miles_26_2 - 42.164708).abs() < 0.001, "Expected ~42.165, got {}", miles_26_2);
+        
+        // Test with spaces
+        assert_eq!(parse_distance_from_name("25 km criterium"), Some(25.0));
+        assert_eq!(parse_distance_from_name("Distance: 15 km"), Some(15.0));
+        
+        // Test no distance
+        assert_eq!(parse_distance_from_name("Watopia Flat Route"), None);
+        assert_eq!(parse_distance_from_name(""), None);
+        
+        // Test that km is preferred over miles
+        assert_eq!(parse_distance_from_name("10km or 6.2mi"), Some(10.0));
+    }
+
+    #[test]
+    fn test_find_user_subgroup() {
+        // Create test event with subgroups
+        let mut event = ZwiftEvent {
+            id: 1,
+            name: "Test Race".to_string(),
+            description: None,
+            event_start: chrono::Utc::now(),
+            event_type: "RACE".to_string(),
+            distance_in_meters: Some(20000.0),
+            duration_in_minutes: None,
+            duration_in_seconds: None,
+            route_id: Some(1),
+            route: None,
+            category_enforcement: false,
+            sport: "CYCLING".to_string(),
+            tags: vec![],
+            event_sub_groups: vec![
+                EventSubGroup {
+                    id: 1,
+                    name: "A".to_string(),
+                    route_id: None,
+                    distance_in_meters: Some(20000.0),
+                    duration_in_minutes: None,
+                    category_enforcement: None,
+                    range_access_label: None,
+                    laps: None,
+                },
+                EventSubGroup {
+                    id: 2,
+                    name: "B".to_string(),
+                    route_id: None,
+                    distance_in_meters: Some(20000.0),
+                    duration_in_minutes: None,
+                    category_enforcement: None,
+                    range_access_label: None,
+                    laps: None,
+                },
+                EventSubGroup {
+                    id: 3,
+                    name: "C".to_string(),
+                    route_id: None,
+                    distance_in_meters: Some(15000.0),
+                    duration_in_minutes: None,
+                    category_enforcement: None,
+                    range_access_label: None,
+                    laps: None,
+                },
+                EventSubGroup {
+                    id: 4,
+                    name: "D".to_string(),
+                    route_id: None,
+                    distance_in_meters: Some(15000.0),
+                    duration_in_minutes: None,
+                    category_enforcement: None,
+                    range_access_label: None,
+                    laps: None,
+                },
+            ],
+        };
+
+        // Test category D (0-199)
+        let subgroup = find_user_subgroup(&event, 150).unwrap();
+        assert_eq!(subgroup.name, "D");
+        
+        // Test category C (200-299)
+        let subgroup = find_user_subgroup(&event, 250).unwrap();
+        assert_eq!(subgroup.name, "C");
+        
+        // Test category B (300-399)
+        let subgroup = find_user_subgroup(&event, 350).unwrap();
+        assert_eq!(subgroup.name, "B");
+        
+        // Test category A (400+)
+        let subgroup = find_user_subgroup(&event, 450).unwrap();
+        assert_eq!(subgroup.name, "A");
+        
+        // Test edge cases
+        assert_eq!(find_user_subgroup(&event, 0).unwrap().name, "D");
+        assert_eq!(find_user_subgroup(&event, 199).unwrap().name, "D");
+        assert_eq!(find_user_subgroup(&event, 200).unwrap().name, "C");
+        assert_eq!(find_user_subgroup(&event, 299).unwrap().name, "C");
+        assert_eq!(find_user_subgroup(&event, 300).unwrap().name, "B");
+        assert_eq!(find_user_subgroup(&event, 399).unwrap().name, "B");
+        assert_eq!(find_user_subgroup(&event, 400).unwrap().name, "A");
+        assert_eq!(find_user_subgroup(&event, 1000).unwrap().name, "A");
+        
+        // Test with E category (should match D riders)
+        event.event_sub_groups[3].name = "E".to_string();
+        let subgroup = find_user_subgroup(&event, 150).unwrap();
+        assert_eq!(subgroup.name, "E");
+        
+        // Test empty subgroups
+        event.event_sub_groups.clear();
+        assert!(find_user_subgroup(&event, 250).is_none());
+    }
+
+    #[test]
+    fn test_get_route_difficulty_multiplier_from_elevation() {
+        // Test very flat routes (< 5m/km)
+        assert_eq!(get_route_difficulty_multiplier_from_elevation(20.0, 50), 1.1);  // 2.5m/km
+        assert_eq!(get_route_difficulty_multiplier_from_elevation(10.0, 40), 1.1);  // 4m/km
+        
+        // Test flat to rolling (5-10m/km)
+        assert_eq!(get_route_difficulty_multiplier_from_elevation(20.0, 150), 1.0); // 7.5m/km
+        assert_eq!(get_route_difficulty_multiplier_from_elevation(30.0, 270), 1.0); // 9m/km
+        
+        // Test rolling hills (10-20m/km)
+        assert_eq!(get_route_difficulty_multiplier_from_elevation(20.0, 300), 0.9); // 15m/km
+        assert_eq!(get_route_difficulty_multiplier_from_elevation(40.0, 760), 0.9); // 19m/km
+        
+        // Test hilly (20-40m/km)
+        assert_eq!(get_route_difficulty_multiplier_from_elevation(20.0, 500), 0.8); // 25m/km
+        assert_eq!(get_route_difficulty_multiplier_from_elevation(30.0, 1100), 0.8); // 36.7m/km
+        
+        // Test very hilly (> 40m/km)
+        assert_eq!(get_route_difficulty_multiplier_from_elevation(20.0, 1000), 0.7); // 50m/km
+        assert_eq!(get_route_difficulty_multiplier_from_elevation(12.0, 1035), 0.7); // 86.25m/km (Alpe du Zwift)
+        
+        // Test edge cases
+        assert_eq!(get_route_difficulty_multiplier_from_elevation(100.0, 0), 1.1);   // 0m/km - perfectly flat
+        assert_eq!(get_route_difficulty_multiplier_from_elevation(5.0, 250), 0.7);   // 50m/km - extreme climb
+    }
+
+    #[test]
+    fn test_get_route_difficulty_multiplier() {
+        // Test very hilly routes
+        assert_eq!(get_route_difficulty_multiplier("Alpe du Zwift"), 0.7);
+        assert_eq!(get_route_difficulty_multiplier("Road to Sky"), 1.0);  // doesn't contain special keywords
+        assert_eq!(get_route_difficulty_multiplier("Ven-Top"), 1.0);     // "ventoux" not "ven"
+        assert_eq!(get_route_difficulty_multiplier("Mont Ventoux"), 0.7); // contains "ventoux"
+        assert_eq!(get_route_difficulty_multiplier("ALPE DU ZWIFT"), 0.7); // case insensitive
+        
+        // Test hilly routes
+        assert_eq!(get_route_difficulty_multiplier("Epic KOM"), 0.8);
+        assert_eq!(get_route_difficulty_multiplier("Mountain Route"), 0.8);
+        assert_eq!(get_route_difficulty_multiplier("The Mega Pretzel"), 1.0); // doesn't contain "epic" or "mountain"
+        
+        // Test flat routes
+        assert_eq!(get_route_difficulty_multiplier("Tempus Fugit"), 1.1);
+        assert_eq!(get_route_difficulty_multiplier("Watopia Flat Route"), 1.1);
+        assert_eq!(get_route_difficulty_multiplier("Tick Tock"), 1.0); // Doesn't contain "flat" or "tempus"
+        
+        // Test default routes
+        assert_eq!(get_route_difficulty_multiplier("Watopia Hilly Route"), 1.0);
+        assert_eq!(get_route_difficulty_multiplier("Richmond UCI Worlds"), 1.0);
+        assert_eq!(get_route_difficulty_multiplier("London Loop"), 1.0);
+        
+        // Test mixed case and partial matches
+        assert_eq!(get_route_difficulty_multiplier("the EPIC kom reverse"), 0.8);
+        assert_eq!(get_route_difficulty_multiplier("Flat is Fast"), 1.1);
+    }
+
+    #[test]
+    fn test_get_category_from_score() {
+        // Test all category boundaries
+        assert_eq!(get_category_from_score(0), "D");
+        assert_eq!(get_category_from_score(99), "D");
+        assert_eq!(get_category_from_score(199), "D");
+        assert_eq!(get_category_from_score(200), "C");
+        assert_eq!(get_category_from_score(250), "C");
+        assert_eq!(get_category_from_score(299), "C");
+        assert_eq!(get_category_from_score(300), "B");
+        assert_eq!(get_category_from_score(350), "B");
+        assert_eq!(get_category_from_score(399), "B");
+        assert_eq!(get_category_from_score(400), "A");
+        assert_eq!(get_category_from_score(500), "A");
+        assert_eq!(get_category_from_score(999), "A");
+    }
+
+    #[test]
+    fn test_get_category_speed() {
+        // Test speed lookup for each category
+        assert_eq!(get_category_speed("D"), CAT_D_SPEED);
+        assert_eq!(get_category_speed("C"), CAT_C_SPEED);
+        assert_eq!(get_category_speed("B"), CAT_B_SPEED);
+        assert_eq!(get_category_speed("A"), CAT_A_SPEED);
+        
+        // Test invalid category returns Cat D speed
+        assert_eq!(get_category_speed("X"), CAT_D_SPEED);
+        assert_eq!(get_category_speed(""), CAT_D_SPEED);
+    }
+
+    #[test]
+    fn test_category_logic_consistency() {
+        // Test that our category determination is consistent across different functions
+        let test_scores = vec![0, 100, 199, 200, 299, 300, 399, 400, 500];
+        
+        for score in test_scores {
+            let category = get_category_from_score(score);
+            let speed = get_category_speed(category);
+            
+            // Verify the speed matches what we expect for this score
+            let expected_speed = match score {
+                0..=199 => CAT_D_SPEED,
+                200..=299 => CAT_C_SPEED,
+                300..=399 => CAT_B_SPEED,
+                _ => CAT_A_SPEED,
+            };
+            
+            assert_eq!(speed, expected_speed, "Speed mismatch for score {}", score);
+        }
+    }
 }
+

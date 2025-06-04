@@ -1,0 +1,8 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc d91d2ef95ace661b1eb1b8f7471b0facd0dbab875c151860c40a0db671a68c38 # shrinks to minutes = 8807.06405234901
+cc 10d229e141b990674a21b8b77dabf93a49c1e2188a85a6b1fb5445651ee579cc # shrinks to distance_km = 1.0, elevation_m = 0, zwift_score = 0
