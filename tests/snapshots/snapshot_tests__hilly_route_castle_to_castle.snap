@@ -1,0 +1,18 @@
+---
+source: tests/snapshot_tests.rs
+expression: "serde_yaml::to_value(&[(\"route_name\", name),\n(\"distance_km\", &route.distance_km.to_string()),\n(\"elevation_m\", &route.elevation_m.to_string()),\n(\"cat_d_minutes\", &format!(\"{:.1}\", cat_d_duration)),\n(\"cat_c_minutes\", &format!(\"{:.1}\", cat_c_duration)),\n(\"cat_b_minutes\", &format!(\"{:.1}\", cat_b_duration)),\n(\"cat_a_minutes\", &format!(\"{:.1}\", cat_a_duration)),]).unwrap()"
+---
+- - route_name
+  - Castle to Castle
+- - distance_km
+  - "24.5"
+- - elevation_m
+  - "168"
+- - cat_d_minutes
+  - "52.6"
+- - cat_c_minutes
+  - "47.8"
+- - cat_b_minutes
+  - "43.8"
+- - cat_a_minutes
+  - "40.5"

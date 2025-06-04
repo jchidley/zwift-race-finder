@@ -391,3 +391,28 @@ Details:
   - Python: Data/ML king with best LLM support
   - JavaScript/TypeScript: Ubiquitous runtime (browser/server/edge)
   - Rationale: These 5 cover every domain from kernel to web with excellent LLM support
+
+### 2025-01-06: Documentation as Human-AI Parallel Processing
+Insight: Writing documents enables the human (Jack) to do useful work reading, understanding and thinking about what the documents mean whilst AI (Claude) continues with implementation todos
+Impact: Creates efficient parallel workflow where human cognitive work and AI execution happen simultaneously
+Key Learning: Documentation serves triple purpose - captures knowledge, enables asynchronous collaboration, and maximizes both human and AI productivity
+Details:
+- Traditional development: Sequential - discuss → implement → review → repeat
+- Parallel development: Human reads/thinks while AI implements
+- Documents act as asynchronous communication channel
+- Human can:
+  - Read and understand complex strategies
+  - Think about implications and next steps
+  - Form opinions and corrections
+  - Prepare feedback for next interaction
+- AI can:
+  - Continue with implementation tasks
+  - Follow documented strategies
+  - Make progress without constant interaction
+- Examples from this project:
+  - UNIFIED_TESTING_STRATEGY.md: Human reads 470 lines while AI implements
+  - BEHAVIORAL_PRESERVATION_RESEARCH.md: Human digests research while AI adds dependencies
+  - SESSION documents: Human reviews progress while AI continues work
+- This reduces the synchronous communication bottleneck
+- Documentation quality directly impacts parallel efficiency
+- Best Practice: Write comprehensive docs that enable independent work by both parties

@@ -1,8 +1,42 @@
 # Handoff Document - Zwift Race Finder
 
-## Current State (2025-01-06, 22:15)
+## Current State (2025-01-06, 23:45)
 
-### Recent Work - Behavioral Preservation Research & Unified Testing Strategy
+### Session Summary - Behavioral Preservation Implementation Started
+
+Successfully installed testing dependencies and created property/snapshot tests for duration estimation.
+Key insight: **"Well-documented development enables parallel human-AI work"** - comprehensive documentation allows multiple AIs to work effectively without stepping on each other's work.
+
+Full details in: `sessions/SESSION_20250106_BEHAVIORAL_PRESERVATION_IMPLEMENTATION.md`
+
+### Recent Work - Behavioral Preservation Implementation
+
+1. **Testing Dependencies Installed**:
+   - Added proptest (0.11.0) for property-based testing
+   - Added insta (1.41.0) for snapshot testing
+   - Added rstest (0.24.0) for parameterized tests
+   - Added criterion (0.5) for performance benchmarking
+   - All dependencies installed successfully with cargo
+
+2. **Property Tests Created** (`tests/property_tests.rs`):
+   - **7 property tests** covering duration estimation invariants:
+     - Basic invariants: positive durations, minimum bounds, reasonable maximums
+     - Monotonicity: longer/harder routes take more time
+     - Category ordering: A < B < C < D riders for same route
+   - All tests passing, validating core behavioral assumptions
+
+3. **Snapshot Tests Created** (`tests/snapshot_tests.rs`):
+   - **10 snapshot tests** for known routes with precise calculations
+   - Tests all 4 categories (A, B, C, D) for each route
+   - Captures complete duration calculation details for regression detection
+   - Initial snapshots reviewed and committed
+
+4. **Project Wisdom Enhanced**:
+   - Added insight about documentation enabling parallel AI work
+   - Recognized that comprehensive docs prevent conflicting changes
+   - Updated PROJECT_WISDOM.md with new section
+
+### Previous Work - Behavioral Preservation Research & Unified Testing Strategy
 
 Major accomplishment: Created unified testing and behavioral preservation strategy that eliminates overlap and provides single coherent approach.
 
@@ -60,6 +94,8 @@ Following research validation, created actionable testing strategy and concrete 
 3. **Route Discovery**: Can fetch route data from web sources
 4. **Progress Tracking**: Track completed routes
 5. **Multiple Output Formats**: Table (default) and verbose modes
+6. **Property Testing**: 7 tests validating duration estimation invariants
+7. **Snapshot Testing**: 10 routes with full calculation details captured
 
 ### Known Issues
 - Config tests change current directory (could affect parallel testing)
@@ -69,9 +105,9 @@ Following research validation, created actionable testing strategy and concrete 
 ### Next Actions (Updated Todo List - High Impact First)
 
 **High Priority (Quick Wins - 30-60 minutes each)**:
-1. Install testing dependencies: proptest, insta, rstest, criterion
-2. Add property tests for duration estimation invariants (monotonicity, bounds)
-3. Create snapshot tests for 10 known race calculations
+1. ✅ Install testing dependencies: proptest, insta, rstest, criterion
+2. ✅ Add property tests for duration estimation invariants (monotonicity, bounds)
+3. ✅ Create snapshot tests for 10 known race calculations
 4. Run mutation testing with cargo-mutants to find weak tests
 5. Create behaviors.yaml documenting core behavioral invariants
 
@@ -96,11 +132,13 @@ cd /home/jack/tools/rust/zwift-race-finder
 git status
 cargo test
 
-# Start with first high-priority todo
-cargo add --dev proptest insta rstest criterion
+# Run mutation testing (next high-priority todo)
+cargo install cargo-mutants
+cargo mutants
 
-# Review unified strategy
-cat docs/development/UNIFIED_TESTING_AND_PRESERVATION_STRATEGY_20250106_220000.md
+# Review test files created
+ls tests/property_tests.rs tests/snapshot_tests.rs
+ls tests/snapshots/
 
 # Run coverage analysis (excluding dev binaries)
 cargo llvm-cov --summary-only --ignore-filename-regex "src/bin/.*"
@@ -113,8 +151,11 @@ cargo run -- --duration 30 --tolerance 15
 - `src/main.rs` - CLI entry point (now minimal)
 - `src/lib.rs` - Library modules
 - `tests/` - Comprehensive test suite
+  - **NEW**: `tests/property_tests.rs` - 7 property tests for invariants
+  - **NEW**: `tests/snapshot_tests.rs` - 10 snapshot tests for regression detection
+  - **NEW**: `tests/snapshots/` - Snapshot data for insta tests
 - `docs/PROJECT_WISDOM.md` - Accumulated knowledge including testing philosophy
-- **NEW**: `docs/research/BEHAVIORAL_PRESERVATION_RESEARCH.md` - Research on preventing code changes
-- **NEW**: `docs/development/UNIFIED_TESTING_AND_PRESERVATION_STRATEGY_20250106_220000.md` - Unified approach
+- `docs/research/BEHAVIORAL_PRESERVATION_RESEARCH.md` - Research on preventing code changes
+- `docs/development/UNIFIED_TESTING_AND_PRESERVATION_STRATEGY_20250106_220000.md` - Unified approach
 - `docs/development/MODERN_TESTING_STRATEGY.md` - (Now superseded by unified strategy)
 - `docs/research/SOFTWARE_TESTING_STATE_OF_ART_2025.md` - Comprehensive testing research
