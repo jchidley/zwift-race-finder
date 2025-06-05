@@ -5,6 +5,7 @@ mod tests {
     use crate::database::Database;
     use crate::{estimate_duration_from_route_id, estimate_duration_with_distance, 
                 parse_distance_from_name, get_route_data};
+    use zwift_race_finder::constants::PERCENT_MULTIPLIER;
     
     #[test]
     fn test_race_predictions_accuracy() {
@@ -55,7 +56,7 @@ mod tests {
                 let actual_minutes = result.actual_minutes as f64;
                 let predicted_minutes_f64 = predicted_minutes as f64;
                 let error = predicted_minutes_f64 - actual_minutes;
-                let percent_error = (error / actual_minutes * 100.0).abs();
+                let percent_error = (error / actual_minutes * PERCENT_MULTIPLIER).abs();
                     
                 // Track errors by route
                 let route_errors = errors_by_route.entry(result.route_id).or_insert(Vec::new());

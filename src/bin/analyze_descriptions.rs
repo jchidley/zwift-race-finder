@@ -15,6 +15,7 @@ use chrono::Utc;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use zwift_race_finder::constants::METERS_PER_KILOMETER;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -127,7 +128,7 @@ async fn main() -> Result<()> {
                 
                 // Show if API has distance
                 if let Some(dist) = event.distance_in_meters {
-                    println!("API distance: {:.1} km", dist / 1000.0);
+                    println!("API distance: {:.1} km", dist / METERS_PER_KILOMETER);
                 } else {
                     println!("API distance: None (0.0)");
                 }

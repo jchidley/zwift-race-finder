@@ -2,10 +2,12 @@
 //! 
 //! This module contains formatting functions for durations and event types.
 
+use crate::constants::MINUTES_PER_HOUR;
+
 /// Format duration from minutes to HH:MM format
 pub fn format_duration(minutes: u32) -> String {
-    let hours = minutes / 60;
-    let mins = minutes % 60;
+    let hours = minutes / MINUTES_PER_HOUR;
+    let mins = minutes % MINUTES_PER_HOUR;
     format!("{:02}:{:02}", hours, mins)
 }
 

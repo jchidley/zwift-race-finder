@@ -4,7 +4,6 @@
 
 use anyhow::{anyhow, Result};
 use regex::Regex;
-use reqwest;
 use std::time::Duration;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -37,6 +36,9 @@ pub struct RouteDiscovery {
 
 impl RouteDiscovery {
     /// Create a new route discovery service
+    ///
+    /// # Errors
+    /// Returns an error if the HTTP client cannot be created
     pub fn new() -> Result<Self> {
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(10))
@@ -50,6 +52,9 @@ impl RouteDiscovery {
     }
     
     /// Search for route information on external sites
+    ///
+    /// # Errors
+    /// Returns an error if the route cannot be found on any external site
     pub async fn discover_route(&self, event_name: &str) -> Result<DiscoveredRoute> {
         // Check cache first
         {
@@ -57,9 +62,8 @@ impl RouteDiscovery {
             if let Some(cached_result) = cache.get(event_name) {
                 if let Some(route) = cached_result {
                     return Ok(route.clone());
-                } else {
-                    return Err(anyhow!("Route already searched but not found: {}", event_name));
                 }
+                return Err(anyhow!("Route already searched but not found: {}", event_name));
             }
         }
         
@@ -90,7 +94,7 @@ impl RouteDiscovery {
     async fn search_whatsonzwift(&self, event_name: &str) -> Result<DiscoveredRoute> {
         // Try to construct direct URLs based on common patterns
         // Extract the route name from event name (remove prefixes like "Stage X:", suffixes like "|| Advanced")
-        let cleaned_name = self.extract_route_name(event_name);
+        let cleaned_name = Self::extract_route_name(event_name);
         
         // Detect world from event name first
         let detected_world = self.detect_world_from_event_name(event_name);
@@ -101,19 +105,19 @@ impl RouteDiscovery {
             // Remove the detected world from default position and put it first
             worlds.retain(|&w| w != world.as_str());
             worlds.insert(0, world.as_str());
-            eprintln!("  Detected world '{}' from event name", self.format_world_name(world));
+            eprintln!("  Detected world '{}' from event name", Self::format_world_name(world));
         }
         
-        eprintln!("  Searching whatsonzwift.com for '{}'...", cleaned_name);
+        eprintln!("  Searching whatsonzwift.com for '{cleaned_name}'...");
         
         for world in &worlds {
             let route_slug = cleaned_name.to_lowercase()
-                .replace(" ", "-")
-                .replace("'", "")
-                .replace("(", "")
-                .replace(")", "");
+                .replace(' ', "-")
+                .replace('\'', "")
+                .replace('(', "")
+                .replace(')', "");
             
-            let route_url = format!("https://whatsonzwift.com/world/{}/route/{}", world, route_slug);
+            let route_url = format!("https://whatsonzwift.com/world/{world}/route/{route_slug}");
             
             // Add small delay to be respectful
             tokio::time::sleep(Duration::from_millis(500)).await;
@@ -125,14 +129,14 @@ impl RouteDiscovery {
                     // Check if this is actually a route page (not 404 or redirect)
                     if route_html.contains("Distance:") && route_html.contains("Elevation:") {
                         // Parse route data from the page
-                        if let Ok(mut route) = self.parse_whatsonzwift_route(&route_html, event_name) {
+                        if let Ok(mut route) = Self::parse_whatsonzwift_route(&route_html, event_name) {
                             // Set the correct world
-                            route.world = self.format_world_name(world);
+                            route.world = Self::format_world_name(world);
                             return Ok(route);
                         }
                     }
                 }
-                _ => continue,
+                _ => {},
             }
         }
         
@@ -140,6 +144,7 @@ impl RouteDiscovery {
     }
     
     /// Detect world from event name using heuristics
+    #[must_use]
     pub fn detect_world_from_event_name(&self, event_name: &str) -> Option<String> {
         let event_lower = event_name.to_lowercase();
         
@@ -196,7 +201,7 @@ impl RouteDiscovery {
     }
     
     /// Extract the actual route name from event names
-    fn extract_route_name(&self, event_name: &str) -> String {
+    fn extract_route_name(event_name: &str) -> String {
         let name = event_name.to_string();
         
         // Remove common prefixes
@@ -219,7 +224,7 @@ impl RouteDiscovery {
     }
     
     /// Format world name for display
-    fn format_world_name(&self, world_slug: &str) -> String {
+    fn format_world_name(world_slug: &str) -> String {
         match world_slug {
             "makuri-islands" => "Makuri Islands".to_string(),
             "new-york" => "New York".to_string(),
@@ -240,7 +245,7 @@ impl RouteDiscovery {
     }
     
     /// Parse route data from whatsonzwift.com HTML
-    fn parse_whatsonzwift_route(&self, html: &str, event_name: &str) -> Result<DiscoveredRoute> {
+    fn parse_whatsonzwift_route(html: &str, event_name: &str) -> Result<DiscoveredRoute> {
         // Extract route ID from the page
         // whatsonzwift.com includes route IDs in various places:
         // 1. In JavaScript: routeId: 123
@@ -256,29 +261,29 @@ impl RouteDiscovery {
         };
         
         // Extract distance (e.g., "Distance: 10.6km")
-        let distance_regex = Regex::new(r#"Distance:\s*([0-9.]+)\s*km"#)?;
+        let distance_regex = Regex::new(r"Distance:\s*([0-9.]+)\s*km")?;
         let distance_km = distance_regex.captures(html)
             .and_then(|cap| cap.get(1))
             .and_then(|m| m.as_str().parse::<f64>().ok())
             .ok_or_else(|| anyhow!("Could not parse distance"))?;
         
         // Extract elevation (e.g., "Elevation: 145m")
-        let elevation_regex = Regex::new(r#"Elevation:\s*([0-9,]+)\s*m"#)?;
+        let elevation_regex = Regex::new(r"Elevation:\s*([0-9,]+)\s*m")?;
         let elevation_str = elevation_regex.captures(html)
             .and_then(|cap| cap.get(1))
-            .map(|m| m.as_str().replace(",", ""))
+            .map(|m| m.as_str().replace(',', ""))
             .ok_or_else(|| anyhow!("Could not parse elevation"))?;
         let elevation_m = elevation_str.parse::<u32>()?;
         
         // Extract world (e.g., "World: Makuri Islands")
-        let world_regex = Regex::new(r#"World:\s*([^<]+)"#)?;
+        let world_regex = Regex::new(r"World:\s*([^<]+)")?;
         let world = world_regex.captures(html)
             .and_then(|cap| cap.get(1))
             .map(|m| m.as_str().trim().to_string())
             .unwrap_or_else(|| "Unknown".to_string());
         
         // Extract route name from title or heading
-        let name_regex = Regex::new(r#"<h1[^>]*>([^<]+)</h1>"#)?;
+        let name_regex = Regex::new(r"<h1[^>]*>([^<]+)</h1>")?;
         let name = name_regex.captures(html)
             .and_then(|cap| cap.get(1))
             .map(|m| m.as_str().trim().to_string())
@@ -293,7 +298,7 @@ impl RouteDiscovery {
             "road".to_string()
         };
         
-        eprintln!("    Found route: {} (ID: {})", name, route_id);
+        eprintln!("    Found route: {name} (ID: {route_id})");
         
         Ok(DiscoveredRoute {
             route_id,
@@ -310,34 +315,34 @@ impl RouteDiscovery {
         eprintln!("  Searching zwiftinsider.com...");
         
         // Try direct URL construction based on route name
-        let cleaned_name = self.extract_route_name(event_name);
+        let cleaned_name = Self::extract_route_name(event_name);
         let route_slug = cleaned_name.to_lowercase()
-            .replace(" ", "-")
-            .replace("'", "")
-            .replace("(", "")
-            .replace(")", "");
+            .replace(' ', "-")
+            .replace('\'', "")
+            .replace('(', "")
+            .replace(')', "");
         
         // ZwiftInsider uses simple /route/ROUTE-NAME/ format
-        let route_url = format!("https://zwiftinsider.com/route/{}/", route_slug);
+        let direct_route_url = format!("https://zwiftinsider.com/route/{route_slug}/");
         
         // Add small delay to be respectful
         tokio::time::sleep(Duration::from_millis(500)).await;
         
-        match self.client.get(&route_url).send().await {
+        match self.client.get(&direct_route_url).send().await {
             Ok(response) if response.status().is_success() => {
                 let route_html = response.text().await?;
                 
                 // Check if this is actually a route page
                 if route_html.contains("Length") || route_html.contains("Distance") {
-                    return self.parse_zwiftinsider_route(&route_html, event_name);
+                    return Self::parse_zwiftinsider_route(&route_html, event_name);
                 }
             }
             _ => {}
         }
         
         // If direct URL didn't work, try fetching the routes listing and searching
-        let routes_url = "https://zwiftinsider.com/routes/";
-        let response = self.client.get(routes_url).send().await?;
+        let listing_url = "https://zwiftinsider.com/routes/";
+        let response = self.client.get(listing_url).send().await?;
         let html = response.text().await?;
         
         // Look for route links that might match
@@ -351,12 +356,12 @@ impl RouteDiscovery {
             if let Ok(regex) = Regex::new(&pattern) {
                 if let Some(captures) = regex.captures(&html) {
                     let route_path = captures.get(1).unwrap().as_str();
-                    let full_url = format!("https://zwiftinsider.com{}", route_path);
+                    let full_url = format!("https://zwiftinsider.com{route_path}");
                     
                     if let Ok(resp) = self.client.get(&full_url).send().await {
                         if resp.status().is_success() {
                             let route_html = resp.text().await?;
-                            return self.parse_zwiftinsider_route(&route_html, event_name);
+                            return Self::parse_zwiftinsider_route(&route_html, event_name);
                         }
                     }
                 }
@@ -367,34 +372,34 @@ impl RouteDiscovery {
     }
     
     /// Parse route data from zwiftinsider.com HTML
-    fn parse_zwiftinsider_route(&self, html: &str, event_name: &str) -> Result<DiscoveredRoute> {
+    fn parse_zwiftinsider_route(html: &str, event_name: &str) -> Result<DiscoveredRoute> {
         // Zwift Insider uses slightly different format
         // Look for route stats table or info box
         
         // Extract distance
-        let distance_regex = Regex::new(r#"(?:Length|Distance)[:\s]*([0-9.]+)\s*km"#)?;
+        let distance_regex = Regex::new(r"(?:Length|Distance)[:\s]*([0-9.]+)\s*km")?;
         let distance_km = distance_regex.captures(html)
             .and_then(|cap| cap.get(1))
             .and_then(|m| m.as_str().parse::<f64>().ok())
             .ok_or_else(|| anyhow!("Could not parse distance"))?;
         
         // Extract elevation
-        let elevation_regex = Regex::new(r#"(?:Elevation|Gain)[:\s]*([0-9,]+)\s*m"#)?;
+        let elevation_regex = Regex::new(r"(?:Elevation|Gain)[:\s]*([0-9,]+)\s*m")?;
         let elevation_str = elevation_regex.captures(html)
             .and_then(|cap| cap.get(1))
-            .map(|m| m.as_str().replace(",", ""))
+            .map(|m| m.as_str().replace(',', ""))
             .ok_or_else(|| anyhow!("Could not parse elevation"))?;
         let elevation_m = elevation_str.parse::<u32>()?;
         
         // Extract world
-        let world_regex = Regex::new(r#"(?:World|Location)[:\s]*([^<\n]+)"#)?;
+        let world_regex = Regex::new(r"(?:World|Location)[:\s]*([^<\n]+)")?;
         let world = world_regex.captures(html)
             .and_then(|cap| cap.get(1))
             .map(|m| m.as_str().trim().to_string())
             .unwrap_or_else(|| "Unknown".to_string());
         
         // Extract route name
-        let name_regex = Regex::new(r#"<h1[^>]*>([^<]+)</h1>"#)?;
+        let name_regex = Regex::new(r"<h1[^>]*>([^<]+)</h1>")?;
         let name = name_regex.captures(html)
             .and_then(|cap| cap.get(1))
             .map(|m| m.as_str().trim().to_string())
@@ -430,6 +435,7 @@ pub struct ParsedEventDescription {
 }
 
 /// Parse event descriptions to extract route names and lap counts
+#[must_use]
 pub fn parse_route_from_description(description: &str) -> Option<ParsedEventDescription> {
     // Common patterns in event descriptions:
     // "3 laps of Volcano Circuit"

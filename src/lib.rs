@@ -6,6 +6,9 @@
 //! - Discover route information from external sources
 //! - Manage configuration and secure credential storage
 
+/// Common constants used throughout the application
+pub mod constants;
+
 /// Data models and structs
 pub mod models;
 
@@ -41,3 +44,7 @@ pub mod route_discovery;
 
 /// Secure storage for OAuth tokens and credentials
 pub mod secure_storage;
+
+/// Test utilities (only available in test builds)
+#[cfg(test)]
+pub mod test_utils;

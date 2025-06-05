@@ -170,7 +170,8 @@ mod tests {
     #[test]
     fn test_get_category_speed() {
         // Basic categories
-        assert_eq!(get_category_speed("A+"), 45.0);
+        assert_eq!(get_category_speed("A++"), 45.0);  // Elite racers
+        assert_eq!(get_category_speed("A+"), 42.0);   // A+ maps to A speed
         assert_eq!(get_category_speed("A"), 42.0);
         assert_eq!(get_category_speed("B"), 37.0);
         assert_eq!(get_category_speed("C"), 33.0);

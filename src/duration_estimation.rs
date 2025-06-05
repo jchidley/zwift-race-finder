@@ -1,6 +1,7 @@
 //! Duration estimation functions for Zwift races
 
 use crate::category::{get_category_from_score, get_category_speed};
+use crate::constants::{METERS_PER_KILOMETER, MINUTES_PER_HOUR, PERCENT_MULTIPLIER};
 
 /// Calculate difficulty multiplier based on elevation gain per km
 pub fn get_route_difficulty_multiplier_from_elevation(distance_km: f64, elevation_m: u32) -> f64 {
@@ -40,7 +41,7 @@ pub fn estimate_duration_for_category(distance_km: f64, route_name: &str, zwift_
     let effective_speed = base_speed * difficulty_multiplier;
 
     let duration_hours = distance_km / effective_speed;
-    (duration_hours * 60.0) as u32
+    (duration_hours * MINUTES_PER_HOUR as f64) as u32
 }
 
 /// Calculate duration with dual-speed model (pack vs solo)
@@ -69,7 +70,7 @@ pub fn calculate_duration_with_dual_speed(
     
     // Calculate drop probability based on elevation and W/kg
     let watts_per_kg = ftp_watts / weight_kg;
-    let avg_gradient = (elevation_m as f64 / (distance_km * 1000.0)) * 100.0;
+    let avg_gradient = (elevation_m as f64 / (distance_km * METERS_PER_KILOMETER)) * PERCENT_MULTIPLIER;
     
     // Drop probability increases with gradient and decreases with W/kg
     let drop_probability = if avg_gradient > 2.0 {
@@ -87,8 +88,8 @@ pub fn calculate_duration_with_dual_speed(
     };
     
     // Weighted average of pack and solo times
-    let pack_time = (distance_km / pack_speed) * 60.0;
-    let solo_time = (distance_km / solo_speed) * 60.0;
+    let pack_time = (distance_km / pack_speed) * MINUTES_PER_HOUR as f64;
+    let solo_time = (distance_km / solo_speed) * MINUTES_PER_HOUR as f64;
     let estimated_time = pack_time * (1.0 - drop_probability) + solo_time * drop_probability;
     
     estimated_time as u32
@@ -119,13 +120,13 @@ mod tests {
     #[test]
     fn test_estimate_duration_for_category() {
         // Test Cat D rider on Alpe du Zwift (slow climb)
-        // 12.2km / (30.9 km/h * 0.7) * 60 = ~33.8 minutes
+        // 12.2km / (30.9 km/h * 0.7) = 0.564 hours = ~33.8 minutes
         let alpe_duration = estimate_duration_for_category(12.2, "Alpe du Zwift", 195);
         assert!(alpe_duration >= 33 && alpe_duration <= 35,
             "Alpe (12.2km with 1035m elevation) should take 33-35 min for Cat D, got {}", alpe_duration);
         
         // Test Cat C rider on Tempus Fugit (fast flat)
-        // 17.3km / (34.5 km/h * 1.1) * 60 = ~27.3 minutes
+        // 17.3km / (34.5 km/h * 1.1) = 0.456 hours = ~27.3 minutes
         let tempus_time = estimate_duration_for_category(17.3, "Tempus Fugit", 250);
         assert!(tempus_time >= 26 && tempus_time <= 29,
             "Tempus Fugit should take 26-29 min for Cat C, got {}", tempus_time);
