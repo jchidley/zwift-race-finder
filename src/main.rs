@@ -32,6 +32,7 @@ use zwift_race_finder::event_filtering::*;
 use zwift_race_finder::formatting::*;
 use zwift_race_finder::duration_estimation::*;
 use zwift_race_finder::route_discovery::*;
+use zwift_race_finder::estimation::*;
 
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
@@ -115,6 +116,8 @@ struct Args {
 // This should be expanded with Jack's actual race data
 
 // Get route data from database
+// Moved to estimation module
+/*
 fn get_route_data_from_db(route_id: u32) -> Option<DbRouteData> {
     if let Ok(db) = Database::new() {
         db.get_route(route_id).ok().flatten()
@@ -122,27 +125,12 @@ fn get_route_data_from_db(route_id: u32) -> Option<DbRouteData> {
         None
     }
 }
+*/
 
 // Common Zwift route data indexed by route_id (fallback for when DB is not available)
-fn get_route_data(route_id: u32) -> Option<RouteData> {
-    // First try database
-    if let Some(db_route) = get_route_data_from_db(route_id) {
-        return Some(RouteData {
-            distance_km: db_route.distance_km,
-            elevation_m: db_route.elevation_m,
-            name: &"",  // We don't use name in calculations
-            world: &"",  // We don't use world in calculations
-            surface: match db_route.surface.as_str() {
-                "road" => "road",
-                "gravel" => "gravel",
-                "mixed" => "mixed",
-                _ => "road",
-            },
-            lead_in_distance_km: db_route.lead_in_distance_km,
-        });
-    }
-    
-    // Fallback to hardcoded data
+fn get_route_data_fallback(route_id: u32) -> Option<RouteData> {
+    // Database lookup is now done in estimation module
+    // This function only provides hardcoded fallback data
     match route_id {
         // Women's races - typically shorter criteriums
         1258415487 => Some(RouteData {
@@ -293,14 +281,19 @@ fn generate_no_results_suggestions(args: &Args) -> Vec<String> {
 
 
 // Primary duration estimation - uses route_id when available
+// Moved to estimation module
+/*
 fn estimate_duration_from_route_id(route_id: u32, zwift_score: u32) -> Option<u32> {
     let route_data = get_route_data(route_id)?;
     // For races, include lead-in distance
     let total_distance = route_data.distance_km + route_data.lead_in_distance_km;
     estimate_duration_with_distance(route_id, total_distance, zwift_score)
 }
+*/
 
 // Duration estimation with explicit distance (for multi-lap races)
+// Moved to estimation module
+/*
 fn estimate_duration_with_distance(route_id: u32, distance_km: f64, zwift_score: u32) -> Option<u32> {
     let route_data = get_route_data(route_id)?;
     
@@ -371,7 +364,7 @@ fn estimate_duration_with_distance(route_id: u32, distance_km: f64, zwift_score:
     
     Some((duration_hours * 60.0) as u32)
 }
-
+*/
 
 
 /// Generate a descriptive filter summary based on active filters
@@ -2542,7 +2535,7 @@ mod tests {
         
         for (route_id, name) in known_routes {
             assert!(
-                get_route_data(route_id).is_some(),
+                zwift_race_finder::estimation::get_route_data(route_id).is_some(),
                 "Route {} ({}) should exist in database",
                 route_id, name
             );
@@ -2578,7 +2571,7 @@ mod tests {
         ];
         
         for exp in expectations {
-            if let Some(duration) = estimate_duration_from_route_id(exp.route_id, 195) {
+            if let Some(duration) = zwift_race_finder::estimation::estimate_duration_from_route_id(exp.route_id, 195) {
                 assert!(
                     duration >= exp.min_minutes && duration <= exp.max_minutes,
                     "Route {} ({}) estimate {} should be {}-{} min for Cat D",

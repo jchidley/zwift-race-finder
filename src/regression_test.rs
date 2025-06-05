@@ -4,6 +4,8 @@
 mod tests {
     use crate::database::Database;
     use crate::constants::PERCENT_MULTIPLIER;
+    use crate::estimation::{estimate_duration_from_route_id, estimate_duration_with_distance, get_route_data};
+    use crate::parsing::parse_distance_from_name;
     
     #[test]
     fn test_race_predictions_accuracy() {
