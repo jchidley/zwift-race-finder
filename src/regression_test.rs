@@ -3,9 +3,7 @@
 #[cfg(test)]
 mod tests {
     use crate::database::Database;
-    use crate::{estimate_duration_from_route_id, estimate_duration_with_distance, 
-                parse_distance_from_name, get_route_data};
-    use zwift_race_finder::constants::PERCENT_MULTIPLIER;
+    use crate::constants::PERCENT_MULTIPLIER;
     
     #[test]
     fn test_race_predictions_accuracy() {

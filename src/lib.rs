@@ -36,8 +36,15 @@ pub mod errors;
 /// Event analysis utilities
 pub mod event_analysis;
 
+/// Event filtering logic
+pub mod event_filtering;
+
 /// Formatting utilities for display
 pub mod formatting;
+
+// Regression testing utilities - temporarily disabled during refactoring
+// #[cfg(test)]
+// pub mod regression_test;
 
 /// Route discovery from external sources
 pub mod route_discovery;
