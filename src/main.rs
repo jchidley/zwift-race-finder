@@ -19,13 +19,12 @@ use colored::*;
 use config::{FullConfig, Secrets};
 use database::{Database, RouteData as DbRouteData};
 use regex::Regex;
-use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::Write;
-use std::path::PathBuf;
 use zwift_race_finder::models::*;
 use zwift_race_finder::category::*;
 use zwift_race_finder::parsing::*;
+use zwift_race_finder::cache::*;
 
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
@@ -450,13 +449,6 @@ fn estimate_duration_for_category(distance_km: f64, route_name: &str, zwift_scor
     (duration_hours * 60.0) as u32
 }
 
-fn get_cache_file() -> Result<PathBuf> {
-    let mut cache_dir = dirs::cache_dir().unwrap_or_else(|| PathBuf::from("."));
-    cache_dir.push("zwift-race-finder");
-    fs::create_dir_all(&cache_dir)?;
-    cache_dir.push("user_stats.json");
-    Ok(cache_dir)
-}
 
 /// Generate a descriptive filter summary based on active filters
 fn generate_filter_description(args: &Args, min_duration: u32, max_duration: u32) -> String {
@@ -570,36 +562,7 @@ async fn fetch_zwiftpower_public(url: &str) -> Result<Option<UserStats>> {
     }
 }
 
-fn load_cached_stats() -> Result<Option<UserStats>> {
-    let cache_file = get_cache_file()?;
 
-    if !cache_file.exists() {
-        return Ok(None);
-    }
-
-    let content = fs::read_to_string(cache_file)?;
-    let cached: CachedStats = serde_json::from_str(&content)?;
-
-    // Use cache if it's less than 24 hours old
-    let age = Utc::now().signed_duration_since(cached.cached_at);
-    if age.num_hours() < 24 {
-        Ok(Some(cached.stats))
-    } else {
-        Ok(None)
-    }
-}
-
-fn save_cached_stats(stats: &UserStats) -> Result<()> {
-    let cache_file = get_cache_file()?;
-    let cached = CachedStats {
-        stats: stats.clone(),
-        cached_at: Utc::now(),
-    };
-
-    let content = serde_json::to_string_pretty(&cached)?;
-    fs::write(cache_file, content)?;
-    Ok(())
-}
 
 async fn get_user_stats(config: &FullConfig) -> Result<UserStats> {
     // Try to load from cache first

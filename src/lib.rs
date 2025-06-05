@@ -15,6 +15,9 @@ pub mod category;
 /// Parsing utilities
 pub mod parsing;
 
+/// Cache functionality
+pub mod cache;
+
 /// Configuration management for the application
 pub mod config;
 
