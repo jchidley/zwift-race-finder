@@ -69,6 +69,10 @@ tarpaulin-report.html
 cobertura.xml
 coverage/
 
+# Mutation testing output
+mutants.out/
+mutants.out.old/
+
 # Profiling
 perf.data
 perf.data.old

@@ -416,3 +416,88 @@ Details:
 - This reduces the synchronous communication bottleneck
 - Documentation quality directly impacts parallel efficiency
 - Best Practice: Write comprehensive docs that enable independent work by both parties
+
+### 2025-01-06: Refactoring Discipline - AI Bias Toward "Improvement"
+Insight: AI assistants have a strong bias toward "improving" code during refactoring, even with explicit "DO NOT CHANGE" instructions
+Impact: Simple reorganization requests can result in broken functionality and lost features
+Key Learning: Refactoring means changing structure WITHOUT changing behavior - if behavior changes, it's rewriting
+Details:
+- AI modification patterns observed:
+  - Simplifying complex functions (losing edge cases)
+  - "Fixing" math that wasn't broken
+  - Adding features not requested
+  - Changing logic to be "more accurate"
+  - Removing "redundant" code that handled special cases
+- Examples from failed refactoring:
+  - parse_distance_from_description lost miles conversion
+  - find_user_subgroup changed from simple matching to complex logic
+  - Difficulty multipliers modified without being asked
+  - Test modifications to match new (incorrect) behavior
+- The golden rule: Refactoring preserves behavior exactly
+- Prevention strategies:
+  - Copy-paste code exactly as-is
+  - Only modify imports and visibility
+  - Run tests after each move - must stay green
+  - Never modify tests during refactoring
+  - Use git diff to verify only structural changes
+- When tests fail after refactoring:
+  - The refactoring is wrong, not the tests
+  - Tests are the specification
+  - Revert immediately and try again
+- Best Practice: Create behavior snapshot tests before any refactoring
+
+### 2025-01-06: Prompt Engineering for Safe Refactoring
+Insight: Applied Anthropic's prompt engineering techniques to create REFACTORING_RULES.md that actually constrains AI behavior
+Impact: Transformed vague "don't change behavior" requests into mechanical process that prevents modifications
+Key Learning: Remove the opportunity to think, and you remove the opportunity to "improve"
+Details:
+- Key techniques that work:
+  - XML tags create explicit behavioral contracts
+  - Chain of thought forces reasoning before action
+  - Multi-shot examples show concrete violations
+  - Mechanical copy-delete removes decision points
+  - STOP signals catch dangerous thoughts
+  - Required response format ensures commitment
+- Why mechanical process works:
+  - Copy file = no modifications possible
+  - Delete only = cannot add "improvements"
+  - No thinking about code quality allowed
+  - Git diff validates only moves occurred
+- Behavioral contract concept:
+  - Frames refactoring as entering binding agreement
+  - Makes any code change a "CRITICAL FAILURE"
+  - Shifts from creative task to mechanical execution
+- Martin Fowler's exact definition from refactoring.com:
+  - "A disciplined technique for restructuring an existing body of code, altering its internal structure without changing its external behavior"
+- Results: Created comprehensive rules that acknowledge and counter AI improvement bias
+- Key files created:
+  - REFACTORING_RULES.md - Comprehensive catalog with mechanics for each refactoring type
+  - REFACTORING_EXPLAINED.md - Human-friendly explanation of AI behavior and solutions
+
+### 2025-01-06: Understanding the Full Scope of Refactoring
+Insight: Refactoring encompasses 60+ different transformations, not just moving functions between files
+Impact: Expanded REFACTORING_RULES.md from single technique to comprehensive catalog with specific mechanics
+Key Learning: Each refactoring type needs its own mechanical process to prevent AI modifications
+Details:
+- Fowler's refactoring catalog includes:
+  - Basic: Extract/Inline Function, Extract/Inline Variable, Rename
+  - Moving: Move Function/Field, Move Statements
+  - Organizing Data: Replace Primitive with Object, Encapsulate Variable
+  - Conditionals: Decompose Conditional, Replace Nested with Guard Clauses
+  - Inheritance: Pull Up/Push Down Method, Replace Subclass with Delegate
+- Different refactorings have different AI failure modes:
+  - Move Function: Temptation to "clean up" while moving
+  - Extract Function: Deciding what's "better" extraction
+  - Rename: Fixing "related issues" during rename
+  - Change Declaration: "Improving" the API
+- Mechanical processes for each type:
+  - Move: Copy-delete method
+  - Extract: Copy exact fragment, no rewrites
+  - Rename: Change names ONLY
+  - Complex: Migration method or refuse
+- Refactoring difficulty spectrum:
+  - Easy for AI: Move Function, Extract Variable
+  - Moderate: Rename, Extract Function
+  - Hard: Change Function Declaration
+  - Better for humans: Replace Conditional with Polymorphism
+- Key insight: AI's strengths (understanding intent, finding improvements) become weaknesses during refactoring

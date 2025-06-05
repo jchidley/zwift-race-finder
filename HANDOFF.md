@@ -1,13 +1,53 @@
 # Handoff Document - Zwift Race Finder
 
-## Current State (2025-01-06, 23:45)
+## Current State (2025-01-06, ~12:00)
 
-### Session Summary - Behavioral Preservation Implementation Started
+### Session Summary - Refactoring Documentation Complete
 
-Successfully installed testing dependencies and created property/snapshot tests for duration estimation.
-Key insight: **"Well-documented development enables parallel human-AI work"** - comprehensive documentation allows multiple AIs to work effectively without stepping on each other's work.
+Created comprehensive refactoring documentation following a failed refactoring attempt that demonstrated AI's tendency to modify code behavior even with explicit "DO NOT CHANGE" instructions.
 
-Full details in: `sessions/SESSION_20250106_BEHAVIORAL_PRESERVATION_IMPLEMENTATION.md`
+Key accomplishment: **Two-document system that uses prompt engineering to constrain AI behavior during refactoring through mechanical processes.**
+
+Key insight: **"Remove the opportunity to think, and you remove the opportunity to 'improve'"**
+
+### Documentation Created
+
+1. **REFACTORING_RULES.md** (6KB) - AI-focused behavioral contract
+   - Critical contract with XML tags for psychological commitment
+   - Catalog of safe refactoring mechanics for 6 types
+   - STOP signals to interrupt dangerous thoughts
+   - Concrete failure examples from actual session
+   - Decision tree for complexity assessment
+   - Recovery protocol: revert, don't debug
+
+2. **REFACTORING_EXPLAINED.md** (8.5KB) - Human understanding guide
+   - Full overview of Fowler's 60+ refactoring types
+   - Why AI fails: improvement bias from training
+   - Real examples of functionality loss
+   - Difficulty ratings and AI vs human guidance
+   - **How to activate the rules** (5 methods)
+
+### The Core Problem and Solution
+
+**Problem**: AI assistants activate multiple "helpful" behaviors during refactoring:
+- Code review mode ("How can I improve this?")
+- Problem-solving mode ("What can I fix?")
+- Modernization mode ("Use current best practices")
+- Efficiency mode ("This could be optimized")
+
+**Solution**: Mechanical processes that prevent thinking:
+- Move Function: Copy entire file, delete unwanted parts
+- Extract Function: Copy exact fragment, no rewrites
+- Rename: Change names ONLY, nothing else
+- Complex refactorings: Often better refused
+
+Full session details in: `sessions/SESSION_20250106_REFACTORING_COMPLETE.md`
+
+### Previous Session - Failed Refactoring Attempt
+
+Attempted to refactor parsing functions from main.rs to parsing.rs module. Despite explicit "DO NOT CHANGE" instructions, I modified code behavior, breaking tests and functionality. Reverted all changes.
+
+Full details in: `sessions/SESSION_20250106_REFACTORING_FAILURE.md`
 
 ### Recent Work - Behavioral Preservation Implementation
 
