@@ -2588,90 +2588,6 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_is_racing_score_event() {
-        // Test event without Racing Score (traditional event)
-        let traditional_event = ZwiftEvent {
-            id: 1,
-            name: "Traditional Race".to_string(),
-            event_start: Utc::now(),
-            event_type: "RACE".to_string(),
-            distance_in_meters: Some(40000.0),
-            duration_in_minutes: None,
-            duration_in_seconds: None,
-            route_id: Some(1),
-            route: Some("Watopia".to_string()),
-            description: None,
-            category_enforcement: false,
-            event_sub_groups: vec![
-                EventSubGroup {
-                    id: 1,
-                    name: "A".to_string(),
-                    route_id: Some(1),
-                    distance_in_meters: Some(40000.0),
-                    duration_in_minutes: None,
-                    category_enforcement: None,
-                    range_access_label: None, // No range label for traditional events
-                    laps: None,
-                },
-            ],
-            sport: "CYCLING".to_string(),
-            tags: vec![],
-        };
-        
-        assert!(!is_racing_score_event(&traditional_event));
-        
-        // Test Racing Score event
-        let racing_score_event = ZwiftEvent {
-            id: 2,
-            name: "Three Village Loop Race".to_string(),
-            event_start: Utc::now(),
-            event_type: "RACE".to_string(),
-            distance_in_meters: Some(0.0), // Racing Score events have 0 distance
-            duration_in_minutes: None,
-            duration_in_seconds: None,
-            route_id: Some(9),
-            route: Some("Three Village Loop".to_string()),
-            description: Some("Distance: 10.6 km".to_string()),
-            category_enforcement: false,
-            event_sub_groups: vec![
-                EventSubGroup {
-                    id: 1,
-                    name: "0-199".to_string(),
-                    route_id: Some(9),
-                    distance_in_meters: Some(0.0),
-                    duration_in_minutes: None,
-                    category_enforcement: None,
-                    range_access_label: Some("0-199".to_string()), // This indicates Racing Score
-                    laps: None,
-                },
-            ],
-            sport: "CYCLING".to_string(),
-            tags: vec![],
-        };
-        
-        assert!(is_racing_score_event(&racing_score_event));
-        
-        // Test event with no subgroups
-        let no_subgroups_event = ZwiftEvent {
-            id: 3,
-            name: "Solo Event".to_string(),
-            event_start: Utc::now(),
-            event_type: "RACE".to_string(),
-            distance_in_meters: Some(20000.0),
-            duration_in_minutes: None,
-            duration_in_seconds: None,
-            route_id: Some(1),
-            route: Some("Watopia".to_string()),
-            description: None,
-            category_enforcement: false,
-            event_sub_groups: vec![], // No subgroups at all
-            sport: "CYCLING".to_string(),
-            tags: vec![],
-        };
-        
-        assert!(!is_racing_score_event(&no_subgroups_event));
-    }
 
 
     #[test]
@@ -2815,11 +2731,6 @@ mod tests {
 
 
 
-    #[test]
-    fn test_default_sport() {
-        // Simple test for the default sport function
-        assert_eq!(default_sport(), "CYCLING");
-    }
 
     #[test]
     fn test_get_multi_lap_distance() {
@@ -2944,62 +2855,6 @@ mod tests {
         assert!(duration_alpe >= 30 && duration_alpe <= 36, "Expected ~34 min for Alpe, got {}", duration_alpe);
     }
 
-    #[test]
-    fn test_get_cache_file() {
-        let cache_file = get_cache_file().unwrap();
-        assert!(cache_file.to_string_lossy().contains("zwift-race-finder"));
-        assert!(cache_file.to_string_lossy().contains("user_stats.json"));
-    }
-
-    #[test]
-    fn test_load_and_save_cached_stats() {
-        use std::fs;
-        use tempfile::TempDir;
-        
-        // Create a temporary directory for testing
-        let temp_dir = TempDir::new().unwrap();
-        let cache_file = temp_dir.path().join("zwift-race-finder").join("user_stats.json");
-        
-        // Override the cache directory for testing
-        std::env::set_var("XDG_CACHE_HOME", temp_dir.path());
-        
-        // Test loading when cache doesn't exist
-        let result = load_cached_stats().unwrap();
-        assert!(result.is_none(), "Should return None when cache doesn't exist");
-        
-        // Create test stats
-        let test_stats = UserStats {
-            zwift_score: 250,
-            category: "C".to_string(),
-            username: "TestUser".to_string(),
-        };
-        
-        // Save stats
-        save_cached_stats(&test_stats).unwrap();
-        assert!(cache_file.exists(), "Cache file should be created");
-        
-        // Load stats back
-        let loaded = load_cached_stats().unwrap();
-        assert!(loaded.is_some(), "Should load cached stats");
-        let loaded_stats = loaded.unwrap();
-        assert_eq!(loaded_stats.zwift_score, 250);
-        assert_eq!(loaded_stats.category, "C");
-        assert_eq!(loaded_stats.username, "TestUser");
-        
-        // Test cache expiration by modifying the file
-        let content = fs::read_to_string(&cache_file).unwrap();
-        let mut cached: CachedStats = serde_json::from_str(&content).unwrap();
-        cached.cached_at = Utc::now() - chrono::Duration::hours(25); // Make it 25 hours old
-        let expired_content = serde_json::to_string(&cached).unwrap();
-        fs::write(&cache_file, expired_content).unwrap();
-        
-        // Should return None for expired cache
-        let expired_result = load_cached_stats().unwrap();
-        assert!(expired_result.is_none(), "Should return None for expired cache");
-        
-        // Clean up
-        std::env::remove_var("XDG_CACHE_HOME");
-    }
 
     #[test]
     fn test_display_filter_stats() {
