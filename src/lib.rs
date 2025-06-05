@@ -6,6 +6,18 @@
 //! - Discover route information from external sources
 //! - Manage configuration and secure credential storage
 
+/// Data models and structs
+pub mod models;
+
+/// Category-related utility functions
+pub mod category;
+
+/// Parsing utilities
+pub mod parsing;
+
+/// Cache functionality
+pub mod cache;
+
 /// Configuration management for the application
 pub mod config;
 

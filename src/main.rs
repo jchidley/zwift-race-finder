@@ -19,10 +19,12 @@ use colored::*;
 use config::{FullConfig, Secrets};
 use database::{Database, RouteData as DbRouteData};
 use regex::Regex;
-use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::Write;
-use std::path::PathBuf;
+use zwift_race_finder::models::*;
+use zwift_race_finder::category::*;
+use zwift_race_finder::parsing::*;
+use zwift_race_finder::cache::*;
 
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
@@ -96,184 +98,14 @@ struct Args {
     verbose: bool,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-struct ZwiftEvent {
-    id: u64,
-    name: String,
-    #[serde(rename = "eventStart")]
-    event_start: DateTime<Utc>,
-    event_type: String,
-    distance_in_meters: Option<f64>,
-    duration_in_minutes: Option<u32>,
-    #[serde(rename = "durationInSeconds")]
-    duration_in_seconds: Option<u32>,
-    route_id: Option<u32>,
-    route: Option<String>,
-    description: Option<String>,
-    #[serde(default)]
-    category_enforcement: bool,
-    #[serde(default, rename = "eventSubgroups")]
-    event_sub_groups: Vec<EventSubGroup>,
-    #[serde(default = "default_sport")]
-    sport: String,
-    #[serde(default)]
-    tags: Vec<String>,
-}
 
-fn default_sport() -> String {
-    "CYCLING".to_string()
-}
 
-fn is_racing_score_event(event: &ZwiftEvent) -> bool {
-    // Racing Score events have range_access_label in subgroups
-    event.event_sub_groups.iter().any(|sg| sg.range_access_label.is_some())
-}
 
-// Parse distance and elevation from event description
-#[derive(Debug, Clone)]
-struct DescriptionData {
-    distance_km: Option<f64>,
-    elevation_m: Option<u32>,
-    laps: Option<u32>,
-}
 
-fn parse_description_data(description: &Option<String>) -> DescriptionData {
-    let mut data = DescriptionData {
-        distance_km: None,
-        elevation_m: None,
-        laps: None,
-    };
-    
-    if let Some(desc) = description {
-        // Parse distance
-        data.distance_km = parse_distance_from_description(description);
-        
-        // Parse elevation - look for patterns like "Elevation: X m" or "X meters elevation"
-        let elevation_patterns = vec![
-            r"Elevation:\s*(\d+(?:\.\d+)?)\s*(m|meters?|ft|feet)",
-            r"(\d+(?:\.\d+)?)\s*(m|meters?)\s*elevation",
-            r"(\d+(?:\.\d+)?)\s*(m|meters?)\s*of\s*climbing",
-            r"Elevation\s*Gain:\s*(\d+(?:\.\d+)?)\s*(m|meters?|ft|feet)",
-        ];
-        
-        for pattern in elevation_patterns {
-            let re = Regex::new(pattern).unwrap();
-            if let Some(caps) = re.captures(desc) {
-                if let (Some(value), Some(unit)) = (caps.get(1), caps.get(2)) {
-                    let elevation = value.as_str().parse::<f64>().ok().unwrap_or(0.0);
-                    // Convert feet to meters if necessary
-                    data.elevation_m = Some(if unit.as_str().contains("ft") || unit.as_str().contains("feet") {
-                        (elevation / 3.28084) as u32
-                    } else {
-                        elevation as u32
-                    });
-                    break;
-                }
-            }
-        }
-        
-        // Parse lap count
-        let lap_re = Regex::new(r"(\d+)\s*laps?\b").unwrap();
-        if let Some(caps) = lap_re.captures(desc) {
-            if let Some(value) = caps.get(1) {
-                data.laps = value.as_str().parse().ok();
-            }
-        }
-    }
-    
-    data
-}
 
-fn parse_distance_from_description(description: &Option<String>) -> Option<f64> {
-    if let Some(desc) = description {
-        // Look for patterns like "Distance: X km" or "Distance: X miles"
-        // This is common in Racing Score events and stage events
-        let distance_re = Regex::new(r"Distance:\s*(\d+(?:\.\d+)?)\s*(km|miles?)").unwrap();
-        if let Some(caps) = distance_re.captures(desc) {
-            if let (Some(value), Some(unit)) = (caps.get(1), caps.get(2)) {
-                let distance = value.as_str().parse::<f64>().ok()?;
-                // Convert miles to km if necessary
-                return Some(if unit.as_str().contains("mile") {
-                    distance * 1.60934
-                } else {
-                    distance
-                });
-            }
-        }
-        
-        // Fallback to general distance parsing
-        parse_distance_from_name(desc)
-    } else {
-        None
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-struct EventSubGroup {
-    id: u32,
-    name: String,
-    route_id: Option<u32>,
-    distance_in_meters: Option<f64>,
-    duration_in_minutes: Option<u32>,
-    category_enforcement: Option<bool>,
-    range_access_label: Option<String>,
-    laps: Option<u32>,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-struct UserStats {
-    zwift_score: u32,
-    category: String,
-    username: String,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-struct CachedStats {
-    stats: UserStats,
-    cached_at: DateTime<Utc>,
-}
-
-// Average speeds by category (km/h) - based on actual race data with draft
-const CAT_A_SPEED: f64 = 42.0;  // Estimated based on Cat D scaling
-const CAT_B_SPEED: f64 = 37.0;  // Estimated based on Cat D scaling
-const CAT_C_SPEED: f64 = 33.0;  // Estimated based on Cat D scaling
-const CAT_D_SPEED: f64 = 30.9;  // Jack's actual average from 151 races
-
-// Get category letter from Zwift Racing Score
-fn get_category_from_score(zwift_score: u32) -> &'static str {
-    match zwift_score {
-        0..=199 => "D",
-        200..=299 => "C",
-        300..=399 => "B",
-        _ => "A",
-    }
-}
-
-// Get average speed for a category
-fn get_category_speed(category: &str) -> f64 {
-    match category {
-        "A" => CAT_A_SPEED,
-        "B" => CAT_B_SPEED,
-        "C" => CAT_C_SPEED,
-        "D" => CAT_D_SPEED,
-        _ => CAT_D_SPEED, // Default to Cat D speed for unknown categories
-    }
-}
 
 // Zwift route database - route_id is the primary key for all calculations
 // This should be expanded with Jack's actual race data
-struct RouteData {
-    distance_km: f64,
-    elevation_m: u32,
-    #[allow(dead_code)]
-    name: &'static str,
-    #[allow(dead_code)]
-    world: &'static str,
-    surface: &'static str, // "road", "gravel", "mixed"
-    lead_in_distance_km: f64,
-}
 
 // Get route data from database
 fn get_route_data_from_db(route_id: u32) -> Option<DbRouteData> {
@@ -406,16 +238,6 @@ fn get_route_data(route_id: u32) -> Option<RouteData> {
 }
 
 // Get just the distance for backward compatibility
-// Parse lap count from event name (e.g., "3 Laps", "6 laps")
-#[cfg(test)]
-fn parse_lap_count(name: &str) -> Option<u32> {
-    let re = Regex::new(r"(\d+)\s*[Ll]aps?").unwrap();
-    if let Some(caps) = re.captures(name) {
-        caps.get(1)?.as_str().parse().ok()
-    } else {
-        None
-    }
-}
 
 // Find the subgroup that matches the user's category
 fn find_user_subgroup<'a>(event: &'a ZwiftEvent, zwift_score: u32) -> Option<&'a EventSubGroup> {
@@ -480,23 +302,6 @@ fn generate_no_results_suggestions(args: &Args) -> Vec<String> {
     suggestions
 }
 
-// Parse distance from event name (e.g., "36.6km/22.7mi", "(40km)")
-fn parse_distance_from_name(name: &str) -> Option<f64> {
-    // Try to find km distance first
-    let km_re = Regex::new(r"(\d+(?:\.\d+)?)\s*km").unwrap();
-    if let Some(caps) = km_re.captures(name) {
-        return caps.get(1)?.as_str().parse().ok();
-    }
-    
-    // If no km found, try miles and convert
-    let mi_re = Regex::new(r"(\d+(?:\.\d+)?)\s*mi").unwrap();
-    if let Some(caps) = mi_re.captures(name) {
-        let miles: f64 = caps.get(1)?.as_str().parse().ok()?;
-        return Some(miles * 1.60934); // Convert miles to km
-    }
-    
-    None
-}
 
 // Try to determine distance from event name patterns
 fn estimate_distance_from_name(name: &str) -> Option<f64> {
@@ -644,13 +449,6 @@ fn estimate_duration_for_category(distance_km: f64, route_name: &str, zwift_scor
     (duration_hours * 60.0) as u32
 }
 
-fn get_cache_file() -> Result<PathBuf> {
-    let mut cache_dir = dirs::cache_dir().unwrap_or_else(|| PathBuf::from("."));
-    cache_dir.push("zwift-race-finder");
-    fs::create_dir_all(&cache_dir)?;
-    cache_dir.push("user_stats.json");
-    Ok(cache_dir)
-}
 
 /// Generate a descriptive filter summary based on active filters
 fn generate_filter_description(args: &Args, min_duration: u32, max_duration: u32) -> String {
@@ -764,36 +562,7 @@ async fn fetch_zwiftpower_public(url: &str) -> Result<Option<UserStats>> {
     }
 }
 
-fn load_cached_stats() -> Result<Option<UserStats>> {
-    let cache_file = get_cache_file()?;
 
-    if !cache_file.exists() {
-        return Ok(None);
-    }
-
-    let content = fs::read_to_string(cache_file)?;
-    let cached: CachedStats = serde_json::from_str(&content)?;
-
-    // Use cache if it's less than 24 hours old
-    let age = Utc::now().signed_duration_since(cached.cached_at);
-    if age.num_hours() < 24 {
-        Ok(Some(cached.stats))
-    } else {
-        Ok(None)
-    }
-}
-
-fn save_cached_stats(stats: &UserStats) -> Result<()> {
-    let cache_file = get_cache_file()?;
-    let cached = CachedStats {
-        stats: stats.clone(),
-        cached_at: Utc::now(),
-    };
-
-    let content = serde_json::to_string_pretty(&cached)?;
-    fs::write(cache_file, content)?;
-    Ok(())
-}
 
 async fn get_user_stats(config: &FullConfig) -> Result<UserStats> {
     // Try to load from cache first
