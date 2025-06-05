@@ -12,6 +12,9 @@ pub mod models;
 /// Category-related utility functions
 pub mod category;
 
+/// Parsing utilities
+pub mod parsing;
+
 /// Configuration management for the application
 pub mod config;
 
