@@ -1,12 +1,13 @@
 # Handoff Document - Zwift Race Finder
 
-## Current State (2025-06-05, 18:00)
+## Current State (2025-06-05, 18:30)
 
 ### What Changed
 - Enhanced category module with E and A+ support ✅
 - Consolidated all category logic in src/category.rs ✅
 - Enhanced error messages with user-friendly guidance ✅
-- Added comprehensive error handling module
+- Extracted formatting module (format_duration, format_event_type) ✅
+- Extracted event_analysis module (find_user_subgroup, count_events_by_type) ✅
 - All 92 tests passing ✅
 
 ### Active Processes
@@ -34,11 +35,12 @@ kill 25047
 ```
 
 ### Refactoring Status
-**Completed Modules**: models, category (enhanced), parsing, cache, config, database, route_discovery, secure_storage, errors
+**Completed Modules**: models, category (enhanced), parsing, cache, config, database, route_discovery, secure_storage, errors, formatting, event_analysis
 **Recent Work**: 
 - Category module handles E (0-99) and A+ (600+) categories
 - Error handling provides clear guidance and suggestions
-- All user-facing messages improved for clarity
+- Extracted formatting and event_analysis modules using mechanical refactoring
+- main.rs reduced from 3721 to 3679 lines
 
 ### Key Commands
 - `cargo test` - All 92 tests passing
