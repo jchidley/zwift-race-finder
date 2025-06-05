@@ -27,6 +27,7 @@ use zwift_race_finder::cache::*;
 use zwift_race_finder::errors::*;
 use zwift_race_finder::event_analysis::*;
 use zwift_race_finder::formatting::*;
+use zwift_race_finder::duration_estimation::*;
 
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
@@ -286,33 +287,6 @@ fn generate_no_results_suggestions(args: &Args) -> Vec<String> {
 
 // Try to determine distance from event name patterns
 
-// Calculate difficulty multiplier based on elevation gain per km
-fn get_route_difficulty_multiplier_from_elevation(distance_km: f64, elevation_m: u32) -> f64 {
-    let meters_per_km = elevation_m as f64 / distance_km;
-    
-    match meters_per_km {
-        m if m < 5.0 => 1.1,   // Very flat (like Tempus Fugit)
-        m if m < 10.0 => 1.0,  // Flat to rolling
-        m if m < 20.0 => 0.9,  // Rolling hills
-        m if m < 40.0 => 0.8,  // Hilly
-        _ => 0.7,              // Very hilly (like Mt. Fuji or Alpe)
-    }
-}
-
-// Route difficulty multipliers (some routes are hillier)
-fn get_route_difficulty_multiplier(route_name: &str) -> f64 {
-    let route_lower = route_name.to_lowercase();
-
-    if route_lower.contains("alpe") || route_lower.contains("ventoux") {
-        0.7 // Very hilly, slower
-    } else if route_lower.contains("epic") || route_lower.contains("mountain") {
-        0.8 // Hilly
-    } else if route_lower.contains("flat") || route_lower.contains("tempus") {
-        1.1 // Flat, faster
-    } else {
-        1.0 // Default
-    }
-}
 
 // Primary duration estimation - uses route_id when available
 fn estimate_duration_from_route_id(route_id: u32, zwift_score: u32) -> Option<u32> {
@@ -394,18 +368,6 @@ fn estimate_duration_with_distance(route_id: u32, distance_km: f64, zwift_score:
     Some((duration_hours * 60.0) as u32)
 }
 
-// Fallback duration estimation when route_id is not available
-fn estimate_duration_for_category(distance_km: f64, route_name: &str, zwift_score: u32) -> u32 {
-    // Get category-based speed
-    let category = get_category_from_score(zwift_score);
-    let base_speed = get_category_speed(category);
-
-    let difficulty_multiplier = get_route_difficulty_multiplier(route_name);
-    let effective_speed = base_speed * difficulty_multiplier;
-
-    let duration_hours = distance_km / effective_speed;
-    (duration_hours * 60.0) as u32
-}
 
 
 /// Generate a descriptive filter summary based on active filters

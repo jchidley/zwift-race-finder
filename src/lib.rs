@@ -24,6 +24,9 @@ pub mod config;
 /// Database operations for routes and race results
 pub mod database;
 
+/// Duration estimation utilities
+pub mod duration_estimation;
+
 /// Enhanced error handling with user-friendly messages
 pub mod errors;
 
