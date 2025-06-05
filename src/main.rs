@@ -23,6 +23,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
+use zwift_race_finder::models::*;
 
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
@@ -96,39 +97,6 @@ struct Args {
     verbose: bool,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-struct ZwiftEvent {
-    id: u64,
-    name: String,
-    #[serde(rename = "eventStart")]
-    event_start: DateTime<Utc>,
-    event_type: String,
-    distance_in_meters: Option<f64>,
-    duration_in_minutes: Option<u32>,
-    #[serde(rename = "durationInSeconds")]
-    duration_in_seconds: Option<u32>,
-    route_id: Option<u32>,
-    route: Option<String>,
-    description: Option<String>,
-    #[serde(default)]
-    category_enforcement: bool,
-    #[serde(default, rename = "eventSubgroups")]
-    event_sub_groups: Vec<EventSubGroup>,
-    #[serde(default = "default_sport")]
-    sport: String,
-    #[serde(default)]
-    tags: Vec<String>,
-}
-
-fn default_sport() -> String {
-    "CYCLING".to_string()
-}
-
-fn is_racing_score_event(event: &ZwiftEvent) -> bool {
-    // Racing Score events have range_access_label in subgroups
-    event.event_sub_groups.iter().any(|sg| sg.range_access_label.is_some())
-}
 
 // Parse distance and elevation from event description
 #[derive(Debug, Clone)]
@@ -209,31 +177,8 @@ fn parse_distance_from_description(description: &Option<String>) -> Option<f64> 
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-struct EventSubGroup {
-    id: u32,
-    name: String,
-    route_id: Option<u32>,
-    distance_in_meters: Option<f64>,
-    duration_in_minutes: Option<u32>,
-    category_enforcement: Option<bool>,
-    range_access_label: Option<String>,
-    laps: Option<u32>,
-}
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
-struct UserStats {
-    zwift_score: u32,
-    category: String,
-    username: String,
-}
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
-struct CachedStats {
-    stats: UserStats,
-    cached_at: DateTime<Utc>,
-}
 
 // Average speeds by category (km/h) - based on actual race data with draft
 const CAT_A_SPEED: f64 = 42.0;  // Estimated based on Cat D scaling
@@ -264,16 +209,6 @@ fn get_category_speed(category: &str) -> f64 {
 
 // Zwift route database - route_id is the primary key for all calculations
 // This should be expanded with Jack's actual race data
-struct RouteData {
-    distance_km: f64,
-    elevation_m: u32,
-    #[allow(dead_code)]
-    name: &'static str,
-    #[allow(dead_code)]
-    world: &'static str,
-    surface: &'static str, // "road", "gravel", "mixed"
-    lead_in_distance_km: f64,
-}
 
 // Get route data from database
 fn get_route_data_from_db(route_id: u32) -> Option<DbRouteData> {

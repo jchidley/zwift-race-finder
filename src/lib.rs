@@ -6,6 +6,9 @@
 //! - Discover route information from external sources
 //! - Manage configuration and secure credential storage
 
+/// Data models and structs
+pub mod models;
+
 /// Configuration management for the application
 pub mod config;
 
