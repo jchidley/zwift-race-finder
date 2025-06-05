@@ -6,7 +6,7 @@ use std::fs;
 use std::path::PathBuf;
 
 /// Main configuration structure for the application
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct Config {
     /// Default rider settings
     #[serde(default)]
@@ -38,7 +38,7 @@ pub struct Defaults {
 }
 
 /// Import configuration for data sources
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct ImportConfig {
     /// Windows username for WSL path mapping
     pub windows_username: Option<String>,
@@ -65,7 +65,7 @@ pub struct Display {
 }
 
 /// Secrets loaded from environment or secure storage
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Secrets {
     /// ZwiftPower profile ID
     pub zwiftpower_profile_id: Option<String>,
@@ -73,25 +73,7 @@ pub struct Secrets {
     pub zwiftpower_session_id: Option<String>,
 }
 
-impl Default for Secrets {
-    fn default() -> Self {
-        Secrets {
-            zwiftpower_profile_id: None,
-            zwiftpower_session_id: None,
-        }
-    }
-}
 
-impl Default for Config {
-    fn default() -> Self {
-        Config {
-            defaults: Defaults::default(),
-            import: ImportConfig::default(),
-            preferences: Preferences::default(),
-            display: Display::default(),
-        }
-    }
-}
 
 impl Default for Defaults {
     fn default() -> Self {
@@ -105,13 +87,6 @@ impl Default for Defaults {
     }
 }
 
-impl Default for ImportConfig {
-    fn default() -> Self {
-        ImportConfig {
-            windows_username: None,
-        }
-    }
-}
 
 impl Default for Preferences {
     fn default() -> Self {

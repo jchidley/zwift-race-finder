@@ -51,7 +51,6 @@ pub fn get_detailed_category_from_score(zwift_score: u32) -> &'static str {
         390..=399 => "B+",
         400..=499 => "A-",
         500..=589 => "A",
-        590..=599 => "A+",
         _ => "A+",
     }
 }
@@ -62,13 +61,12 @@ pub fn get_detailed_category_from_score(zwift_score: u32) -> &'static str {
 /// These speeds are calibrated from real race data.
 pub fn get_category_speed(category: &str) -> f64 {
     match category {
-        "A+" | "A++" => CAT_A_PLUS_SPEED,
-        "A" | "A-" => CAT_A_SPEED,
+        "A++" => CAT_A_PLUS_SPEED,
+        "A" | "A+" | "A-" => CAT_A_SPEED,
         "B" | "B+" | "B-" => CAT_B_SPEED,
         "C" | "C+" | "C-" => CAT_C_SPEED,
-        "D" | "D+" | "D-" => CAT_D_SPEED,
         "E" | "E+" | "E-" => CAT_E_SPEED,
-        _ => CAT_D_SPEED, // Default to Cat D speed for unknown categories
+        _ => CAT_D_SPEED, // Default to Cat D speed for unknown categories (including "D")
     }
 }
 

@@ -213,16 +213,16 @@ impl Database {
         
         // Seed with known routes
         let routes: Vec<(u32, f64, u32, &str, &str, &str)> = vec![
-            (1258415487, 14.1, 59, "Bell Lap", "Crit City", "road"),
-            (2143464829, 33.4, 170, "Watopia Flat Route", "Watopia", "road"),
-            (2927651296, 67.5, 654, "Makuri Pretzel", "Makuri Islands", "road"),
-            (3742187716, 24.5, 168, "Castle to Castle", "Makuri Islands", "road"),
-            (2698009951, 22.9, 80, "Downtown Dolphin", "Crit City", "road"),
-            (2663908549, 20.3, 1159, "Mt. Fuji", "Makuri Islands", "road"),
-            (3368626651, 27.4, 223, "eRacing Course", "Various", "road"),
-            (1656629976, 19.8, 142, "Ottawa TopSpeed", "Various", "road"),
-            (2474227587, 100.0, 892, "KISS 100", "Watopia", "road"),
-            (3395698268, 60.0, 543, "R3R 60km", "Various", "road"),
+            (1_258_415_487, 14.1, 59, "Bell Lap", "Crit City", "road"),
+            (2_143_464_829, 33.4, 170, "Watopia Flat Route", "Watopia", "road"),
+            (2_927_651_296, 67.5, 654, "Makuri Pretzel", "Makuri Islands", "road"),
+            (3_742_187_716, 24.5, 168, "Castle to Castle", "Makuri Islands", "road"),
+            (2_698_009_951, 22.9, 80, "Downtown Dolphin", "Crit City", "road"),
+            (2_663_908_549, 20.3, 1159, "Mt. Fuji", "Makuri Islands", "road"),
+            (3_368_626_651, 27.4, 223, "eRacing Course", "Various", "road"),
+            (1_656_629_976, 19.8, 142, "Ottawa TopSpeed", "Various", "road"),
+            (2_474_227_587, 100.0, 892, "KISS 100", "Watopia", "road"),
+            (3_395_698_268, 60.0, 543, "R3R 60km", "Various", "road"),
         ];
         
         for (id, dist, elev, name, world, surface) in routes {
