@@ -1,15 +1,26 @@
 # Handoff Document - Zwift Race Finder
 
-## Current State (2025-01-06, ~21:30)
+## Current State (2025-01-06, ~22:30)
 
-### Session Summary - Mechanical Refactoring Complete and Merged
+### Latest Session - Post-Refactoring Cleanup and Analysis
+
+Fixed test failure and started mutation testing on refactored modules.
+
+**Key accomplishments:**
+- Fixed `test_racing_score_event_filtering` (wrong route_id: 9 → 3379779247)
+- Cleaned up all compilation warnings
+- Created mutation testing scripts for background execution
+- Analyzed remaining refactoring opportunities with risk assessment
+- All 89 tests now passing
+
+### Previous Session Summary - Mechanical Refactoring Complete and Merged
 
 Successfully executed mechanical extraction of 4 safe modules from main.rs and merged to main branch.
 
 **Key accomplishments:**
-- Reduced main.rs from 4,580 to 3,689 lines through pure mechanical refactoring
+- Reduced main.rs from 4,580 to 3,688 lines through pure mechanical refactoring
 - Created PR #1 and merged refactoring into main
-- All behavioral tests preserved (except one pre-existing failure)
+- All behavioral tests preserved
 - Demonstrated safe refactoring using REFACTORING_RULES.md
 
 ### Modules Successfully Extracted
@@ -71,37 +82,35 @@ Previous accomplishments:
 - Unified testing strategy document
 
 ### Project Status
-- **Core Functionality**: Working and stable
-- **Test Suite**: Clean, 82 tests all passing
-- **Code Coverage**: 52.35% function coverage
-- **Refactoring Status**: Ready to begin mechanical extraction of 4 safe modules
-
-### Project Status
 
 - **Branch**: main (refactoring merged via PR #1)
-- **Test Suite**: 47 passing, 1 failing (pre-existing test_racing_score_event_filtering)
+- **Test Suite**: 89 tests all passing ✅
 - **Code Structure**: Successfully modularized safe components into 4 modules
+- **Mutation Testing**: Running on extracted modules (results pending)
+- **Code Size**: main.rs reduced from 4,580 → 3,688 lines (19.5% reduction)
 - **Remaining**: Complex modules (estimation, display, filtering) require human review
 
 ### Next Actions
 
-1. **Fix failing test**:
+1. **Monitor mutation testing results**:
    ```bash
-   cargo test test_racing_score_event_filtering -- --nocapture
-   # Investigate why this test expects 1 filtered event but gets 0
+   ./check_mutation_progress.sh
+   # Or check individual logs:
+   tail -f mutation_logs/*.log
    ```
 
-2. **Run mutation testing on new structure**:
+2. **Review mutation testing outcomes**:
    ```bash
-   cargo mutants
-   # Analyze if modularization improved testability
+   # When complete, analyze survived mutants
+   grep -l "Survived" mutants.out/*/outcome.json
+   # These indicate potential gaps in test coverage
    ```
 
 3. **Consider next refactorings** (with human oversight):
-   - Extract estimation logic (complex dependencies)
-   - Split display functions (600+ lines)
-   - Separate filtering logic
-   - Move API/HTTP code
+   - **Low Risk**: Display/formatting functions, statistics module, config enhancements
+   - **Medium Risk**: API/HTTP module with careful error handling review  
+   - **High Risk**: Duration estimation logic, event filtering (core business logic)
+   - See SESSION_20250106_REFACTORING_PHASE1_COMPLETE.md for detailed analysis
 
 ### Quick Start for Next Session
 ```bash
@@ -110,21 +119,25 @@ cd /home/jack/tools/rust/zwift-race-finder
 git status  # Should be clean
 git log --oneline -3  # See recent commits
 
-# Review the execution plan
-cat REFACTORING_EXECUTION_PLAN.md
+# Check mutation testing results
+./check_mutation_progress.sh
 
-# Start refactoring
-git checkout -b refactor-extract-modules
-cargo test  # Ensure all passing before starting
+# If considering more refactoring
+cat REFACTORING_RULES.md  # Review the behavioral contract
+cat sessions/SESSION_20250106_REFACTORING_PHASE1_COMPLETE.md  # See analysis
 
-# Begin with models.rs extraction following the plan exactly
+# Run tests before any changes
+cargo test  # All 89 should pass
 ```
 
 ### Key Files
-- `REFACTORING_EXECUTION_PLAN.md` - The ONLY refactoring guide to follow
-- `REFACTORING_RULES.md` - The behavioral contract (for reference)
-- `src/main.rs` - Currently 4,580 lines, ready for extraction
-- `src/lib.rs` - Will need module declarations added
+- `REFACTORING_RULES.md` - The behavioral contract (critical for safe refactoring)
+- `REFACTORING_EXPLAINED.md` - Why AI tends to modify code during refactoring
+- `src/main.rs` - Currently 3,688 lines (down from 4,580)
+- `src/lib.rs` - Contains module declarations for extracted modules
+- Mutation testing scripts:
+  - `run_mutation_testing.sh` - Start background testing
+  - `check_mutation_progress.sh` - Monitor progress
 
 ### Important Reminders
 - Use ONLY mechanical copy-delete method

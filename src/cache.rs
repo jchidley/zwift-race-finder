@@ -1,7 +1,7 @@
 //! Cache-related functionality for storing user stats
 
 use anyhow::Result;
-use chrono::{Utc, DateTime};
+use chrono::Utc;
 use std::fs;
 use std::path::PathBuf;
 use crate::models::{UserStats, CachedStats};

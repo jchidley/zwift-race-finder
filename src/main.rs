@@ -19,7 +19,6 @@ use colored::*;
 use config::{FullConfig, Secrets};
 use database::{Database, RouteData as DbRouteData};
 use regex::Regex;
-use std::fs;
 use std::io::Write;
 use zwift_race_finder::models::*;
 use zwift_race_finder::category::*;
@@ -2774,7 +2773,7 @@ mod tests {
             distance_in_meters: Some(0.0), // Racing Score events have 0
             duration_in_minutes: None,
             duration_in_seconds: None,
-            route_id: Some(9),
+            route_id: Some(3379779247),
             route: Some("Three Village Loop".to_string()),
             description: Some("Distance: 10.6 km".to_string()),
             category_enforcement: false,
@@ -2782,7 +2781,7 @@ mod tests {
                 EventSubGroup {
                     id: 1,
                     name: "0-199".to_string(),
-                    route_id: Some(9),
+                    route_id: Some(3379779247),
                     distance_in_meters: Some(0.0),
                     duration_in_minutes: None,
                     category_enforcement: None,
