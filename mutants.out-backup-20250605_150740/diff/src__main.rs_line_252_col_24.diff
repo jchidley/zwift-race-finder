@@ -1,0 +1,21 @@
+--- src/main.rs
++++ replace == with != in find_user_subgroup
+@@ -244,17 +244,17 @@
+         return None;
+     }
+     
+     let user_category = get_category_from_score(zwift_score);
+     
+     // Try to find exact match first
+     event.event_sub_groups.iter().find(|sg| {
+         sg.name.contains(user_category) || 
+-        (user_category == "D" && sg.name.contains("E"))
++        (user_category != /* ~ changed by cargo-mutants ~ */ "D" && sg.name.contains("E"))
+     })
+ }
+ 
+ // Count events by type for display
+ fn count_events_by_type(events: &[ZwiftEvent]) -> Vec<(String, usize)> {
+     let mut event_counts = std::collections::HashMap::new();
+     for event in events {
+         if event.sport.to_uppercase() == "CYCLING" {

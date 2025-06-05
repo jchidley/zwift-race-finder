@@ -1,0 +1,21 @@
+--- src/config.rs
++++ replace != with == in Config::get_download_path
+@@ -229,17 +229,17 @@
+     
+     /// Get the download path for imported files
+     #[allow(dead_code)]
+     pub fn get_download_path(&self) -> String {
+         let username = self.import.windows_username.clone()
+             .or_else(|| std::env::var("WINDOWS_USERNAME").ok())
+             .unwrap_or_else(|| "YOUR_USERNAME".to_string());
+             
+-        if username != "YOUR_USERNAME" {
++        if username == /* ~ changed by cargo-mutants ~ */ "YOUR_USERNAME" {
+             format!("/mnt/c/Users/{}/Downloads", username)
+         } else {
+             format!("{}/Downloads", std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string()))
+         }
+     }
+     
+     /// Save config to the user's data directory (survives updates)
+     #[allow(dead_code)]

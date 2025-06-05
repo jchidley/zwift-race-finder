@@ -1,0 +1,8 @@
+src/database.rs:263:9: replace Database::add_route -> Result<()> with Ok(())
+src/database.rs:480:9: replace Database::get_unknown_routes -> Result<Vec<(u32, String, i32)>> with Ok(vec![(0, String::new(), -1)])
+src/route_discovery.rs:327:29: replace match guard with true
+src/route_discovery.rs:171:46: replace || with && in RouteDiscovery::detect_world_from_event_name
+src/route_discovery.rs:122:33: replace match guard with true
+src/main.rs:885:23: replace == with != in display_filter_stats
+src/route_discovery.rs:290:50: replace || with && in RouteDiscovery::parse_whatsonzwift_route
+src/main.rs:111:5: replace get_route_data_from_db -> Option<DbRouteData> with None

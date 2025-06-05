@@ -1,0 +1,25 @@
+--- src/main.rs
++++ replace get_route_data_from_db -> Option<DbRouteData> with None
+@@ -103,21 +103,17 @@
+ 
+ 
+ 
+ // Zwift route database - route_id is the primary key for all calculations
+ // This should be expanded with Jack's actual race data
+ 
+ // Get route data from database
+ fn get_route_data_from_db(route_id: u32) -> Option<DbRouteData> {
+-    if let Ok(db) = Database::new() {
+-        db.get_route(route_id).ok().flatten()
+-    } else {
+-        None
+-    }
++    None /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ // Common Zwift route data indexed by route_id (fallback for when DB is not available)
+ fn get_route_data(route_id: u32) -> Option<RouteData> {
+     // First try database
+     if let Some(db_route) = get_route_data_from_db(route_id) {
+         return Some(RouteData {
+             distance_km: db_route.distance_km,

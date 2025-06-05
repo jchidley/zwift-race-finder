@@ -1,0 +1,21 @@
+--- src/main.rs
++++ delete match arm
+@@ -630,17 +630,17 @@
+         eprintln!("Debug: {} events after time filter", events.len());
+     }
+ 
+     // Event type filter
+     let pre_type = events.len();
+     events.retain(|event| match args.event_type.to_lowercase().as_str() {
+         "all" => true,
+         "race" => event.event_type == "RACE",
+-        "tt" | "time_trial" => event.event_type == "TIME_TRIAL",
++         /* ~ changed by cargo-mutants ~ */
+         "workout" => event.event_type == "GROUP_WORKOUT",
+         "group" => {
+             event.event_type == "GROUP_RIDE"
+                 && !event.name.to_lowercase().contains("fondo")
+                 && !event.name.to_lowercase().contains("sportive")
+         }
+         "fondo" => {
+             event.event_type == "GROUP_RIDE"

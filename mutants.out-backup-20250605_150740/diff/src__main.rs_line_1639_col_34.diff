@@ -1,0 +1,21 @@
+--- src/main.rs
++++ replace += with -= in discover_unknown_routes
+@@ -1631,17 +1631,17 @@
+                     )?;
+                     
+                     println!("✅ Found! {}km, {}m elevation, ID: {}", 
+                         discovered.distance_km, discovered.elevation_m, final_route_id);
+                     batch_discovered += 1;
+                 }
+                 Err(e) => {
+                     println!("❌ Failed: {}", e);
+-                    batch_failed += 1;
++                    batch_failed -= /* ~ changed by cargo-mutants ~ */ 1;
+                 }
+             }
+             
+             // Small delay to be polite to external services
+             tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+         }
+         
+         total_discovered += batch_discovered;

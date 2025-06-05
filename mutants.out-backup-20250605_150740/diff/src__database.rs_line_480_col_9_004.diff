@@ -1,0 +1,32 @@
+--- src/database.rs
++++ replace Database::get_unknown_routes -> Result<Vec<(u32, String, i32)>> with Ok(vec![(0, String::new(), -1)])
+@@ -472,28 +472,17 @@
+         })?
+         .collect::<Result<Vec<_>, rusqlite::Error>>()?;
+         
+         Ok(results)
+     }
+     
+     /// Get unknown routes that need mapping
+     pub fn get_unknown_routes(&self) -> Result<Vec<(u32, String, i32)>> {
+-        let mut stmt = self.conn.prepare(
+-            "SELECT route_id, event_name, times_seen 
+-             FROM unknown_routes 
+-             ORDER BY times_seen DESC, route_id"
+-        )?;
+-        
+-        let routes = stmt.query_map([], |row| {
+-            Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+-        })?
+-        .collect::<std::result::Result<Vec<_>, _>>()?;
+-        
+-        Ok(routes)
++        Ok(vec![(0, String::new(), -1)]) /* ~ changed by cargo-mutants ~ */
+     }
+     
+     /// Get rider stats from the database
+     pub fn get_rider_stats(&self) -> Result<Option<RiderStats>> {
+         let result = self.conn.query_row(
+             "SELECT height_m, weight_kg, ftp_watts FROM rider_stats WHERE id = 1",
+             [],
+             |row| {

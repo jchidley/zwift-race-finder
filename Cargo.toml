@@ -48,6 +48,11 @@ serde_yaml = "0.9.34"
 name = "performance"
 harness = false
 
+[profile.mutants]
+inherits = "test"
+debug = "none"
+opt-level = 1
+
 [features]
 default = []
 keyring-storage = ["keyring"]

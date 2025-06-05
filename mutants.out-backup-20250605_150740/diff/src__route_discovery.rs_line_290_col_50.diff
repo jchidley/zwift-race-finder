@@ -1,0 +1,21 @@
+--- src/route_discovery.rs
++++ replace || with && in RouteDiscovery::parse_whatsonzwift_route
+@@ -282,17 +282,17 @@
+         let name = name_regex.captures(html)
+             .and_then(|cap| cap.get(1))
+             .map(|m| m.as_str().trim().to_string())
+             .unwrap_or_else(|| event_name.to_string());
+         
+         // Determine surface type (default to road, check for gravel/mixed indicators)
+         let surface = if html.contains("gravel") || html.contains("Gravel") {
+             "gravel".to_string()
+-        } else if html.contains("mixed surface") || html.contains("Mixed") {
++        } else if html.contains("mixed surface") && /* ~ changed by cargo-mutants ~ */ html.contains("Mixed") {
+             "mixed".to_string()
+         } else {
+             "road".to_string()
+         };
+         
+         eprintln!("    Found route: {} (ID: {})", name, route_id);
+         
+         Ok(DiscoveredRoute {

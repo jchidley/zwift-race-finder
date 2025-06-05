@@ -1,0 +1,21 @@
+--- src/main.rs
++++ replace * with + in estimate_duration_with_distance
+@@ -398,17 +398,17 @@
+             // Weight affects climbing ability - heavier riders struggle more on hills
+             let weight_factor = if route_data.elevation_m > 500 {
+                 // On hilly routes, lighter is better
+                 (75.0 / rider_stats.weight_kg).powf(0.15).min(1.1)
+             } else {
+                 1.0  // Weight doesn't matter much on flats due to draft
+             };
+             
+-            let speed_kmh = base_pack_speed * elevation_factor * surface_factor * weight_factor;
++            let speed_kmh = base_pack_speed * elevation_factor + /* ~ changed by cargo-mutants ~ */ surface_factor * weight_factor;
+             
+             let duration_hours = distance_km / speed_kmh;
+             return Some((duration_hours * 60.0) as u32);
+         }
+     }
+     
+     // Fallback to category-based estimation
+     let category = get_category_from_score(zwift_score);

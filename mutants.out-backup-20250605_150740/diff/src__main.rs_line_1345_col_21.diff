@@ -1,0 +1,21 @@
+--- src/main.rs
++++ delete match arm
+@@ -1337,17 +1337,17 @@
+                 let route_name = event.route.as_deref().unwrap_or(&event.name);
+                 let estimated_duration = estimate_duration_for_category(distance_km, route_name, zwift_score);
+                 
+                 println!("{}: {:.1} km", "Distance".bright_blue(), distance_km);
+                 let cat_string = match zwift_score {
+                     0..=149 => "D",
+                     150..=189 => "D",
+                     190..=199 => "D+",
+-                    200..=249 => "C",
++                     /* ~ changed by cargo-mutants ~ */
+                     250..=299 => "B",
+                     _ => "A",
+                 };
+                 println!(
+                     "{}: {} (estimated for Cat {} rider, unknown route)",
+                     "Duration".bright_blue(),
+                     format_duration(estimated_duration).green(),
+                     cat_string

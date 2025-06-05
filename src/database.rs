@@ -3,6 +3,7 @@
 //! Stores route information and actual race completion times
 
 use anyhow::Result;
+use colored::Colorize;
 use rusqlite::{params, Connection, OptionalExtension};
 use std::path::PathBuf;
 
@@ -85,7 +86,17 @@ impl Database {
     /// Create a new database connection
     pub fn new() -> Result<Self> {
         let db_path = get_database_path()?;
-        let conn = Connection::open(db_path)?;
+        let conn = Connection::open(&db_path)
+            .map_err(|e| {
+                eprintln!("\n{} Failed to open database", "❌ Error:".red().bold());
+                eprintln!("   Path: {}", db_path.display());
+                eprintln!("   {}", e);
+                eprintln!("\n{}", "💡 Suggestions:".yellow());
+                eprintln!("   • Check if the directory exists and is writable");
+                eprintln!("   • Try: mkdir -p {}", db_path.parent().unwrap_or(&db_path).display());
+                eprintln!();
+                e
+            })?;
         
         let db = Database { conn };
         db.create_tables()?;

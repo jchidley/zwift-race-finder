@@ -1,0 +1,21 @@
+--- src/route_discovery.rs
++++ replace match guard with true
+@@ -114,17 +114,17 @@
+                 .replace(")", "");
+             
+             let route_url = format!("https://whatsonzwift.com/world/{}/route/{}", world, route_slug);
+             
+             // Add small delay to be respectful
+             tokio::time::sleep(Duration::from_millis(500)).await;
+             
+             match self.client.get(&route_url).send().await {
+-                Ok(response) if response.status().is_success() => {
++                Ok(response) if true /* ~ changed by cargo-mutants ~ */ => {
+                     let route_html = response.text().await?;
+                     
+                     // Check if this is actually a route page (not 404 or redirect)
+                     if route_html.contains("Distance:") && route_html.contains("Elevation:") {
+                         // Parse route data from the page
+                         if let Ok(mut route) = self.parse_whatsonzwift_route(&route_html, event_name) {
+                             // Set the correct world
+                             route.world = self.format_world_name(world);

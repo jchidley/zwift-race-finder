@@ -1,0 +1,15 @@
+src/cache.rs:20:8: delete ! in load_cached_stats
+src/main.rs:406:64: replace * with + in estimate_duration_with_distance
+src/main.rs:485:8: delete ! in generate_filter_description
+src/route_discovery.rs:185:48: replace || with && in RouteDiscovery::detect_world_from_event_name
+src/main.rs:252:24: replace == with != in find_user_subgroup
+src/parsing.rs:61:5: replace parse_distance_from_description -> Option<f64> with None
+src/main.rs:168:9: delete match arm
+src/main.rs:1005:61: replace != with == in print_events_table
+src/main.rs:401:23: replace / with % in estimate_duration_with_distance
+src/main.rs:885:52: replace == with != in display_filter_stats
+src/config.rs:320:9: replace FullConfig::zwiftpower_session_id -> Option<&String> with None
+src/route_discovery.rs:179:45: replace || with && in RouteDiscovery::detect_world_from_event_name
+src/database.rs:480:9: replace Database::get_unknown_routes -> Result<Vec<(u32, String, i32)>> with Ok(vec![(0, "xyzzy".into(), 1)])
+src/route_discovery.rs:144:9: replace RouteDiscovery::detect_world_from_event_name -> Option<String> with Some(String::new())
+src/main.rs:447:38: replace / with % in estimate_duration_for_category

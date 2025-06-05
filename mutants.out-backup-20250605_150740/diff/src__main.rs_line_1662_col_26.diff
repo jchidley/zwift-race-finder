@@ -1,0 +1,21 @@
+--- src/main.rs
++++ replace < with > in discover_unknown_routes
+@@ -1654,17 +1654,17 @@
+         // Check if we should continue
+         if batch_start.elapsed().as_secs() > BATCH_TIMEOUT_MINS * 60 - 30 {
+             println!("\n⏰ Timeout reached. {} routes remaining for next run.", 
+                 total_count - (batch_num + 1) * BATCH_SIZE);
+             break;
+         }
+         
+         // Pause between batches
+-        if batch_num + 1 < (unknown.len() + BATCH_SIZE - 1) / BATCH_SIZE {
++        if batch_num + 1 > /* ~ changed by cargo-mutants ~ */ (unknown.len() + BATCH_SIZE - 1) / BATCH_SIZE {
+             println!("\n⏸️  Pausing 5 seconds before next batch...");
+             tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+         }
+     }
+     
+     println!("\n📊 Discovery Summary:");
+     println!("  ✅ Successfully discovered: {}", total_discovered);
+     println!("  ❌ Failed to discover: {}", total_failed);

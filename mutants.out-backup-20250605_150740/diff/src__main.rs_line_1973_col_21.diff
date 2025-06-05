@@ -1,0 +1,21 @@
+--- src/main.rs
++++ replace > with < in main
+@@ -1965,17 +1965,17 @@
+         format_duration(min_duration).yellow(),
+         format_duration(max_duration).yellow()
+     );
+ 
+     let events = fetch_events().await?;
+     println!("Fetched {} upcoming events", events.len());
+     
+     // Notify if API returns unexpected number of events
+-    if events.len() > 250 {
++    if events.len() < /* ~ changed by cargo-mutants ~ */ 250 {
+         println!("\n{} Zwift API returned {} events (expected ~200)", "🎉 Unexpected:".green(), events.len());
+         println!("   The API may have been updated to return more data!");
+         println!("   Please report this at: https://github.com/anthropics/claude-code/issues");
+     }
+     
+     // Display the actual time range covered by the fetched events
+     if !events.is_empty() {
+         let earliest_start = events.iter()

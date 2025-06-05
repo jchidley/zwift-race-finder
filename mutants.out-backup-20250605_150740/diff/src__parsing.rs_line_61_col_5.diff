@@ -1,0 +1,41 @@
+--- src/parsing.rs
++++ replace parse_distance_from_description -> Option<f64> with None
+@@ -53,37 +53,17 @@
+             }
+         }
+     }
+     
+     data
+ }
+ 
+ pub fn parse_distance_from_description(description: &Option<String>) -> Option<f64> {
+-    if let Some(desc) = description {
+-        // Look for patterns like "Distance: X km" or "Distance: X miles"
+-        // This is common in Racing Score events and stage events
+-        let distance_re = Regex::new(r"Distance:\s*(\d+(?:\.\d+)?)\s*(km|miles?)").unwrap();
+-        if let Some(caps) = distance_re.captures(desc) {
+-            if let (Some(value), Some(unit)) = (caps.get(1), caps.get(2)) {
+-                let distance = value.as_str().parse::<f64>().ok()?;
+-                // Convert miles to km if necessary
+-                return Some(if unit.as_str().contains("mile") {
+-                    distance * 1.60934
+-                } else {
+-                    distance
+-                });
+-            }
+-        }
+-        
+-        // Fallback to general distance parsing
+-        parse_distance_from_name(desc)
+-    } else {
+-        None
+-    }
++    None /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ pub fn parse_distance_from_name(name: &str) -> Option<f64> {
+     // Try to find km distance first
+     let km_re = Regex::new(r"(\d+(?:\.\d+)?)\s*km").unwrap();
+     if let Some(caps) = km_re.captures(name) {
+         return caps.get(1)?.as_str().parse().ok();
+     }

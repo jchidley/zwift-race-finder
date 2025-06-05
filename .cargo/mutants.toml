@@ -1,0 +1,14 @@
+# Cargo mutants configuration for optimized performance
+
+# Use the optimized profile
+profile = "mutants"
+
+# Use nextest for faster test execution
+test_tool = "nextest"
+
+# Timeout for hanging tests in seconds (default is 300)
+minimum_test_timeout = 120
+
+# Additional arguments to pass to cargo test
+# Skip benches to avoid build errors
+additional_cargo_test_args = ["--tests", "--bins", "--examples", "--lib"]

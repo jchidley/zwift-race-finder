@@ -1,0 +1,21 @@
+--- src/main.rs
++++ replace / with % in estimate_duration_for_category
+@@ -439,17 +439,17 @@
+ fn estimate_duration_for_category(distance_km: f64, route_name: &str, zwift_score: u32) -> u32 {
+     // Get category-based speed
+     let category = get_category_from_score(zwift_score);
+     let base_speed = get_category_speed(category);
+ 
+     let difficulty_multiplier = get_route_difficulty_multiplier(route_name);
+     let effective_speed = base_speed * difficulty_multiplier;
+ 
+-    let duration_hours = distance_km / effective_speed;
++    let duration_hours = distance_km % /* ~ changed by cargo-mutants ~ */ effective_speed;
+     (duration_hours * 60.0) as u32
+ }
+ 
+ 
+ /// Generate a descriptive filter summary based on active filters
+ fn generate_filter_description(args: &Args, min_duration: u32, max_duration: u32) -> String {
+     let mut parts = Vec::new();
+     

@@ -1,0 +1,572 @@
+[
+  {
+    "package": "zwift-race-finder",
+    "file": "src/parsing.rs",
+    "function": {
+      "function_name": "parse_description_data",
+      "return_type": "-> DescriptionData",
+      "span": {
+        "start": {
+          "line": 13,
+          "column": 1
+        },
+        "end": {
+          "line": 58,
+          "column": 2
+        }
+      }
+    },
+    "span": {
+      "start": {
+        "line": 38,
+        "column": 77
+      },
+      "end": {
+        "line": 38,
+        "column": 79
+      }
+    },
+    "replacement": "&&",
+    "genre": "BinaryOperator"
+  },
+  {
+    "package": "zwift-race-finder",
+    "file": "src/parsing.rs",
+    "function": {
+      "function_name": "parse_lap_count",
+      "return_type": "-> Option<u32>",
+      "span": {
+        "start": {
+          "line": 102,
+          "column": 1
+        },
+        "end": {
+          "line": 109,
+          "column": 2
+        }
+      }
+    },
+    "span": {
+      "start": {
+        "line": 103,
+        "column": 5
+      },
+      "end": {
+        "line": 108,
+        "column": 6
+      }
+    },
+    "replacement": "Some(1)",
+    "genre": "FnValue"
+  },
+  {
+    "package": "zwift-race-finder",
+    "file": "src/parsing.rs",
+    "function": {
+      "function_name": "parse_description_data",
+      "return_type": "-> DescriptionData",
+      "span": {
+        "start": {
+          "line": 13,
+          "column": 1
+        },
+        "end": {
+          "line": 58,
+          "column": 2
+        }
+      }
+    },
+    "span": {
+      "start": {
+        "line": 14,
+        "column": 5
+      },
+      "end": {
+        "line": 57,
+        "column": 9
+      }
+    },
+    "replacement": "Default::default()",
+    "genre": "FnValue"
+  },
+  {
+    "package": "zwift-race-finder",
+    "file": "src/parsing.rs",
+    "function": {
+      "function_name": "parse_distance_from_description",
+      "return_type": "-> Option<f64>",
+      "span": {
+        "start": {
+          "line": 60,
+          "column": 1
+        },
+        "end": {
+          "line": 82,
+          "column": 2
+        }
+      }
+    },
+    "span": {
+      "start": {
+        "line": 61,
+        "column": 5
+      },
+      "end": {
+        "line": 81,
+        "column": 6
+      }
+    },
+    "replacement": "None",
+    "genre": "FnValue"
+  },
+  {
+    "package": "zwift-race-finder",
+    "file": "src/parsing.rs",
+    "function": {
+      "function_name": "parse_distance_from_description",
+      "return_type": "-> Option<f64>",
+      "span": {
+        "start": {
+          "line": 60,
+          "column": 1
+        },
+        "end": {
+          "line": 82,
+          "column": 2
+        }
+      }
+    },
+    "span": {
+      "start": {
+        "line": 70,
+        "column": 30
+      },
+      "end": {
+        "line": 70,
+        "column": 31
+      }
+    },
+    "replacement": "+",
+    "genre": "BinaryOperator"
+  },
+  {
+    "package": "zwift-race-finder",
+    "file": "src/parsing.rs",
+    "function": {
+      "function_name": "parse_distance_from_name",
+      "return_type": "-> Option<f64>",
+      "span": {
+        "start": {
+          "line": 84,
+          "column": 1
+        },
+        "end": {
+          "line": 99,
+          "column": 2
+        }
+      }
+    },
+    "span": {
+      "start": {
+        "line": 86,
+        "column": 5
+      },
+      "end": {
+        "line": 98,
+        "column": 9
+      }
+    },
+    "replacement": "Some(1.0)",
+    "genre": "FnValue"
+  },
+  {
+    "package": "zwift-race-finder",
+    "file": "src/parsing.rs",
+    "function": {
+      "function_name": "parse_distance_from_name",
+      "return_type": "-> Option<f64>",
+      "span": {
+        "start": {
+          "line": 84,
+          "column": 1
+        },
+        "end": {
+          "line": 99,
+          "column": 2
+        }
+      }
+    },
+    "span": {
+      "start": {
+        "line": 86,
+        "column": 5
+      },
+      "end": {
+        "line": 98,
+        "column": 9
+      }
+    },
+    "replacement": "Some(-1.0)",
+    "genre": "FnValue"
+  },
+  {
+    "package": "zwift-race-finder",
+    "file": "src/parsing.rs",
+    "function": {
+      "function_name": "parse_description_data",
+      "return_type": "-> DescriptionData",
+      "span": {
+        "start": {
+          "line": 13,
+          "column": 1
+        },
+        "end": {
+          "line": 58,
+          "column": 2
+        }
+      }
+    },
+    "span": {
+      "start": {
+        "line": 39,
+        "column": 36
+      },
+      "end": {
+        "line": 39,
+        "column": 37
+      }
+    },
+    "replacement": "%",
+    "genre": "BinaryOperator"
+  },
+  {
+    "package": "zwift-race-finder",
+    "file": "src/parsing.rs",
+    "function": {
+      "function_name": "parse_distance_from_description",
+      "return_type": "-> Option<f64>",
+      "span": {
+        "start": {
+          "line": 60,
+          "column": 1
+        },
+        "end": {
+          "line": 82,
+          "column": 2
+        }
+      }
+    },
+    "span": {
+      "start": {
+        "line": 61,
+        "column": 5
+      },
+      "end": {
+        "line": 81,
+        "column": 6
+      }
+    },
+    "replacement": "Some(-1.0)",
+    "genre": "FnValue"
+  },
+  {
+    "package": "zwift-race-finder",
+    "file": "src/parsing.rs",
+    "function": {
+      "function_name": "parse_lap_count",
+      "return_type": "-> Option<u32>",
+      "span": {
+        "start": {
+          "line": 102,
+          "column": 1
+        },
+        "end": {
+          "line": 109,
+          "column": 2
+        }
+      }
+    },
+    "span": {
+      "start": {
+        "line": 103,
+        "column": 5
+      },
+      "end": {
+        "line": 108,
+        "column": 6
+      }
+    },
+    "replacement": "None",
+    "genre": "FnValue"
+  },
+  {
+    "package": "zwift-race-finder",
+    "file": "src/parsing.rs",
+    "function": {
+      "function_name": "parse_distance_from_description",
+      "return_type": "-> Option<f64>",
+      "span": {
+        "start": {
+          "line": 60,
+          "column": 1
+        },
+        "end": {
+          "line": 82,
+          "column": 2
+        }
+      }
+    },
+    "span": {
+      "start": {
+        "line": 61,
+        "column": 5
+      },
+      "end": {
+        "line": 81,
+        "column": 6
+      }
+    },
+    "replacement": "Some(1.0)",
+    "genre": "FnValue"
+  },
+  {
+    "package": "zwift-race-finder",
+    "file": "src/parsing.rs",
+    "function": {
+      "function_name": "parse_distance_from_description",
+      "return_type": "-> Option<f64>",
+      "span": {
+        "start": {
+          "line": 60,
+          "column": 1
+        },
+        "end": {
+          "line": 82,
+          "column": 2
+        }
+      }
+    },
+    "span": {
+      "start": {
+        "line": 61,
+        "column": 5
+      },
+      "end": {
+        "line": 81,
+        "column": 6
+      }
+    },
+    "replacement": "Some(0.0)",
+    "genre": "FnValue"
+  },
+  {
+    "package": "zwift-race-finder",
+    "file": "src/parsing.rs",
+    "function": {
+      "function_name": "parse_distance_from_name",
+      "return_type": "-> Option<f64>",
+      "span": {
+        "start": {
+          "line": 84,
+          "column": 1
+        },
+        "end": {
+          "line": 99,
+          "column": 2
+        }
+      }
+    },
+    "span": {
+      "start": {
+        "line": 95,
+        "column": 27
+      },
+      "end": {
+        "line": 95,
+        "column": 28
+      }
+    },
+    "replacement": "/",
+    "genre": "BinaryOperator"
+  },
+  {
+    "package": "zwift-race-finder",
+    "file": "src/parsing.rs",
+    "function": {
+      "function_name": "parse_distance_from_description",
+      "return_type": "-> Option<f64>",
+      "span": {
+        "start": {
+          "line": 60,
+          "column": 1
+        },
+        "end": {
+          "line": 82,
+          "column": 2
+        }
+      }
+    },
+    "span": {
+      "start": {
+        "line": 70,
+        "column": 30
+      },
+      "end": {
+        "line": 70,
+        "column": 31
+      }
+    },
+    "replacement": "/",
+    "genre": "BinaryOperator"
+  },
+  {
+    "package": "zwift-race-finder",
+    "file": "src/parsing.rs",
+    "function": {
+      "function_name": "parse_lap_count",
+      "return_type": "-> Option<u32>",
+      "span": {
+        "start": {
+          "line": 102,
+          "column": 1
+        },
+        "end": {
+          "line": 109,
+          "column": 2
+        }
+      }
+    },
+    "span": {
+      "start": {
+        "line": 103,
+        "column": 5
+      },
+      "end": {
+        "line": 108,
+        "column": 6
+      }
+    },
+    "replacement": "Some(0)",
+    "genre": "FnValue"
+  },
+  {
+    "package": "zwift-race-finder",
+    "file": "src/parsing.rs",
+    "function": {
+      "function_name": "parse_distance_from_name",
+      "return_type": "-> Option<f64>",
+      "span": {
+        "start": {
+          "line": 84,
+          "column": 1
+        },
+        "end": {
+          "line": 99,
+          "column": 2
+        }
+      }
+    },
+    "span": {
+      "start": {
+        "line": 86,
+        "column": 5
+      },
+      "end": {
+        "line": 98,
+        "column": 9
+      }
+    },
+    "replacement": "None",
+    "genre": "FnValue"
+  },
+  {
+    "package": "zwift-race-finder",
+    "file": "src/parsing.rs",
+    "function": {
+      "function_name": "parse_distance_from_name",
+      "return_type": "-> Option<f64>",
+      "span": {
+        "start": {
+          "line": 84,
+          "column": 1
+        },
+        "end": {
+          "line": 99,
+          "column": 2
+        }
+      }
+    },
+    "span": {
+      "start": {
+        "line": 95,
+        "column": 27
+      },
+      "end": {
+        "line": 95,
+        "column": 28
+      }
+    },
+    "replacement": "+",
+    "genre": "BinaryOperator"
+  },
+  {
+    "package": "zwift-race-finder",
+    "file": "src/parsing.rs",
+    "function": {
+      "function_name": "parse_distance_from_name",
+      "return_type": "-> Option<f64>",
+      "span": {
+        "start": {
+          "line": 84,
+          "column": 1
+        },
+        "end": {
+          "line": 99,
+          "column": 2
+        }
+      }
+    },
+    "span": {
+      "start": {
+        "line": 86,
+        "column": 5
+      },
+      "end": {
+        "line": 98,
+        "column": 9
+      }
+    },
+    "replacement": "Some(0.0)",
+    "genre": "FnValue"
+  },
+  {
+    "package": "zwift-race-finder",
+    "file": "src/parsing.rs",
+    "function": {
+      "function_name": "parse_description_data",
+      "return_type": "-> DescriptionData",
+      "span": {
+        "start": {
+          "line": 13,
+          "column": 1
+        },
+        "end": {
+          "line": 58,
+          "column": 2
+        }
+      }
+    },
+    "span": {
+      "start": {
+        "line": 39,
+        "column": 36
+      },
+      "end": {
+        "line": 39,
+        "column": 37
+      }
+    },
+    "replacement": "*",
+    "genre": "BinaryOperator"
+  }
+]

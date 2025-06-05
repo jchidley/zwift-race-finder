@@ -1,0 +1,21 @@
+--- src/config.rs
++++ replace FullConfig::default_category -> Option<&String> with None
+@@ -322,17 +322,17 @@
+     
+     /// Get default Zwift score
+     pub fn default_zwift_score(&self) -> Option<u32> {
+         self.config.defaults.zwift_score
+     }
+     
+     /// Get default category
+     pub fn default_category(&self) -> Option<&String> {
+-        self.config.defaults.category.as_ref()
++        None /* ~ changed by cargo-mutants ~ */
+     }
+     
+     /// Get Windows username for WSL
+     #[allow(dead_code)]
+     pub fn windows_username(&self) -> Option<&String> {
+         self.config.import.windows_username.as_ref()
+     }
+     

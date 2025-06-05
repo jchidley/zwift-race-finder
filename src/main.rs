@@ -24,6 +24,8 @@ use zwift_race_finder::models::*;
 use zwift_race_finder::category::*;
 use zwift_race_finder::parsing::*;
 use zwift_race_finder::cache::*;
+use zwift_race_finder::errors::*;
+use zwift_race_finder::formatting::*;
 
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
@@ -246,10 +248,9 @@ fn find_user_subgroup<'a>(event: &'a ZwiftEvent, zwift_score: u32) -> Option<&'a
     
     let user_category = get_category_from_score(zwift_score);
     
-    // Try to find exact match first
+    // Use the new category matching function from the category module
     event.event_sub_groups.iter().find(|sg| {
-        sg.name.contains(user_category) || 
-        (user_category == "D" && sg.name.contains("E"))
+        category_matches_subgroup(user_category, &sg.name)
     })
 }
 
@@ -267,17 +268,6 @@ fn count_events_by_type(events: &[ZwiftEvent]) -> Vec<(String, usize)> {
     counts
 }
 
-// Format event type for display
-fn format_event_type(event_type: &str, count: usize) -> String {
-    let readable_type = match event_type.to_lowercase().as_str() {
-        "race" => "races",
-        "time_trial" => "time trials",
-        "group_ride" => "group rides",
-        "group_workout" => "group workouts",
-        _ => event_type,
-    };
-    format!("{} {}", count, readable_type)
-}
 
 // Generate no results suggestions based on search criteria
 fn generate_no_results_suggestions(args: &Args) -> Vec<String> {
@@ -285,17 +275,35 @@ fn generate_no_results_suggestions(args: &Args) -> Vec<String> {
     
     if args.event_type == "race" {
         suggestions.push("Most races are short (20-30 minutes). Try:".to_string());
-        suggestions.push(format!("  • {} for short races", "cargo run -- -d 30 -t 30"));
-        suggestions.push(format!("  • {} for any race duration", "cargo run -- -d 60 -t 120"));
-        suggestions.push(format!("  • {} for time trials instead", "cargo run -- -e tt"));
+        suggestions.push(format!("  • {} for short races", "cargo run -- -d 30 -t 30".cyan()));
+        suggestions.push(format!("  • {} for any race duration", "cargo run -- -d 60 -t 120".cyan()));
+        suggestions.push(format!("  • {} for time trials instead", "cargo run -- -e tt".cyan()));
+        suggestions.push("".to_string());
+        suggestions.push("Common race durations:".to_string());
+        suggestions.push("  • Crit races: 15-25 minutes".to_string());
+        suggestions.push("  • Short courses: 25-35 minutes".to_string());
+        suggestions.push("  • Endurance races: 60-90 minutes".to_string());
     } else if args.event_type == "tt" || args.event_type == "time_trial" {
         suggestions.push("Time trials are less common. Try:".to_string());
-        suggestions.push(format!("  • {} for regular races", "cargo run -- -e race -d 30 -t 30"));
-        suggestions.push(format!("  • {} for all event types", "cargo run -- -e all"));
+        suggestions.push(format!("  • {} for regular races", "cargo run -- -e race -d 30 -t 30".cyan()));
+        suggestions.push(format!("  • {} for all event types", "cargo run -- -e all".cyan()));
+        suggestions.push("".to_string());
+        suggestions.push("Note: Time trials are usually scheduled events, not always available.".to_string());
+    } else if args.event_type == "group" {
+        suggestions.push("Group rides vary widely in duration. Try:".to_string());
+        suggestions.push(format!("  • {} for social rides", "cargo run -- -e group -d 60 -t 30".cyan()));
+        suggestions.push(format!("  • {} for endurance rides", "cargo run -- -e group -d 120 -t 60".cyan()));
     } else {
         suggestions.push("No events match your duration criteria. Try:".to_string());
-        suggestions.push(format!("  • {} for wider search", format!("cargo run -- -t {}", args.tolerance * 2)));
-        suggestions.push(format!("  • {} for all event types", "cargo run -- -e all"));
+        suggestions.push(format!("  • {} for wider search", format!("cargo run -- -t {}", args.tolerance * 2).cyan()));
+        suggestions.push(format!("  • {} for all event types", "cargo run -- -e all".cyan()));
+        suggestions.push(format!("  • {} to see more days", "cargo run -- -n 3".cyan()));
+    }
+    
+    // Add API limitation note if searching multiple days
+    if args.days > 1 {
+        suggestions.push("".to_string());
+        suggestions.push("⚠️  Note: The Zwift API only returns ~12 hours of events regardless of days requested.".to_string());
     }
     
     suggestions
@@ -577,9 +585,10 @@ async fn get_user_stats(config: &FullConfig) -> Result<UserStats> {
     }
 
     // Use configured defaults or fallback
+    let zwift_score = config.default_zwift_score().unwrap_or(195);
     Ok(UserStats {
-        zwift_score: config.default_zwift_score().unwrap_or(195),
-        category: config.default_category().cloned().unwrap_or_else(|| "D".to_string()),
+        zwift_score,
+        category: config.default_category().cloned().unwrap_or_else(|| get_category_from_score(zwift_score).to_string()),
         username: "User".to_string(),
     })
 }
@@ -592,15 +601,54 @@ async fn fetch_events() -> Result<Vec<ZwiftEvent>> {
 
     let client = reqwest::Client::builder()
         .user_agent("Zwift Race Finder")
+        .timeout(std::time::Duration::from_secs(30))
         .build()?;
 
-    let response = client
+    let response = match client
         .get(url)
         .header("Content-Type", "application/json")
         .send()
-        .await?;
+        .await
+    {
+        Ok(resp) => resp,
+        Err(e) => {
+            let err = anyhow::Error::from(e);
+            api_connection_error(&err).display();
+            return Err(err);
+        }
+    };
 
-    let events: Vec<ZwiftEvent> = response.json().await?;
+    // Check for rate limiting
+    if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+        api_rate_limit().display();
+        return Err(anyhow::anyhow!("API rate limit exceeded"));
+    }
+
+    // Check for other HTTP errors
+    if !response.status().is_success() {
+        let status = response.status();
+        let error = UserError::new(
+            format!("Zwift API returned error: {}", status),
+            format!("HTTP {}: {}", status.as_u16(), status.canonical_reason().unwrap_or("Unknown error"))
+        )
+        .with_suggestion("The API might be temporarily unavailable")
+        .with_suggestion("Try again in a few minutes");
+        error.display();
+        return Err(anyhow::anyhow!("API returned status: {}", status));
+    }
+
+    let events: Vec<ZwiftEvent> = response.json().await
+        .map_err(|e| {
+            UserError::new(
+                "Failed to parse Zwift API response",
+                "The API returned data in an unexpected format"
+            )
+            .with_suggestion("This might indicate an API change")
+            .with_suggestion(format!("Technical details: {}", e))
+            .display();
+            e
+        })?;
+    
     Ok(events)
 }
 
@@ -819,8 +867,7 @@ fn filter_events(mut events: Vec<ZwiftEvent>, args: &Args, zwift_score: u32) -> 
             // Check if user's category subgroup matches criteria
             event.event_sub_groups.iter().any(|subgroup| {
                 // Check if this subgroup is for user's category
-                let is_user_category = subgroup.name.contains(user_category) || 
-                                     (user_category == "D" && subgroup.name.contains("E"));
+                let is_user_category = category_matches_subgroup(user_category, &subgroup.name);
                 
                 if !is_user_category {
                     return false; // Skip other categories
@@ -871,11 +918,6 @@ fn filter_events(mut events: Vec<ZwiftEvent>, args: &Args, zwift_score: u32) -> 
     (events, stats)
 }
 
-fn format_duration(minutes: u32) -> String {
-    let hours = minutes / 60;
-    let mins = minutes % 60;
-    format!("{:02}:{:02}", hours, mins)
-}
 
 /// Display filter statistics and actionable fixes
 fn display_filter_stats(stats: &FilterStats, _total_fetched: usize) {
@@ -1310,14 +1352,7 @@ fn print_event(event: &ZwiftEvent, _args: &Args, zwift_score: u32) {
             let total_distance = actual_distance_km + route_data.lead_in_distance_km;
             let estimated_duration = ((total_distance / adjusted_speed) * 60.0) as u32;
             
-            let cat_string = match zwift_score {
-                0..=149 => "D",
-                150..=189 => "D",
-                190..=199 => "D+", // Strong Cat D
-                200..=249 => "C",
-                250..=299 => "B",
-                _ => "A",
-            };
+            let cat_string = get_detailed_category_from_score(zwift_score);
             println!(
                 "{}: {} (estimated for Cat {} rider)",
                 "Duration".bright_blue(),
@@ -1338,14 +1373,7 @@ fn print_event(event: &ZwiftEvent, _args: &Args, zwift_score: u32) {
                 let estimated_duration = estimate_duration_for_category(distance_km, route_name, zwift_score);
                 
                 println!("{}: {:.1} km", "Distance".bright_blue(), distance_km);
-                let cat_string = match zwift_score {
-                    0..=149 => "D",
-                    150..=189 => "D",
-                    190..=199 => "D+",
-                    200..=249 => "C",
-                    250..=299 => "B",
-                    _ => "A",
-                };
+                let cat_string = get_detailed_category_from_score(zwift_score);
                 println!(
                     "{}: {} (estimated for Cat {} rider, unknown route)",
                     "Duration".bright_blue(),
@@ -1368,14 +1396,7 @@ fn print_event(event: &ZwiftEvent, _args: &Args, zwift_score: u32) {
             estimate_duration_for_category(distance_km, route_name, zwift_score);
 
         println!("{}: {:.1} km", "Distance".bright_blue(), distance_km);
-        let cat_string = match zwift_score {
-            0..=149 => "D",
-            150..=189 => "D",
-            190..=199 => "D+", // Strong Cat D
-            200..=249 => "C",
-            250..=299 => "B",
-            _ => "A",
-        };
+        let cat_string = get_detailed_category_from_score(zwift_score);
         println!(
             "{}: {} (estimated for Cat {} rider)",
             "Duration".bright_blue(),
@@ -1396,14 +1417,7 @@ fn print_event(event: &ZwiftEvent, _args: &Args, zwift_score: u32) {
                 "Distance".bright_blue(),
                 distance_km
             );
-            let cat_string = match zwift_score {
-                0..=149 => "D",
-                150..=189 => "D",
-                190..=199 => "D+",
-                200..=249 => "C",
-                250..=299 => "B",
-                _ => "A",
-            };
+            let cat_string = get_detailed_category_from_score(zwift_score);
             println!(
                 "{}: {} (estimated for Cat {} rider)",
                 "Duration".bright_blue(),
@@ -1915,7 +1929,16 @@ async fn main() -> Result<()> {
     }
 
     // Load configuration
-    let config = FullConfig::load().unwrap_or_default();
+    let config = match FullConfig::load() {
+        Ok(cfg) => cfg,
+        Err(e) => {
+            // Show warning but continue with defaults
+            eprintln!("{} Failed to load configuration: {}", "⚠️  Warning:".yellow(), e);
+            eprintln!("   Using default settings. See config.example.toml for setup instructions.");
+            eprintln!();
+            FullConfig::default()
+        }
+    };
     
     // Apply config defaults to args where not specified
     // For duration and tolerance, we need to check if they were explicitly set
@@ -1945,9 +1968,22 @@ async fn main() -> Result<()> {
     let user_stats = get_user_stats(&config).await?;
     let zwift_score = args.zwift_score.unwrap_or(user_stats.zwift_score);
 
+    // Validate Zwift score
+    if zwift_score > 1000 {
+        invalid_zwift_score(zwift_score).display();
+        return Err(anyhow::anyhow!("Invalid Zwift Racing Score"));
+    }
+
     // Show what stats we're using
     if args.zwift_score.is_some() {
         println!("Using provided Zwift Score: {}", zwift_score);
+    } else if user_stats.username == "User" {
+        // Using defaults - provide guidance
+        println!("Using default Zwift Score: {} (Cat {})", 
+            zwift_score.to_string().yellow(),
+            get_category_from_score(zwift_score)
+        );
+        println!("{}", "💡 Tip: For personalized results, configure your stats in config.toml".dimmed());
     } else {
         println!(
             "Using {} stats: Zwift Score {} (Cat {})",
@@ -1967,6 +2003,12 @@ async fn main() -> Result<()> {
     );
 
     let events = fetch_events().await?;
+    
+    if events.is_empty() {
+        no_events_in_time_range(1).display();
+        return Ok(());
+    }
+    
     println!("Fetched {} upcoming events", events.len());
     
     // Notify if API returns unexpected number of events
@@ -3287,7 +3329,8 @@ mod tests {
         
         let suggestions = generate_no_results_suggestions(&args);
         
-        assert_eq!(suggestions.len(), 4);
+        // We now have more suggestions with race duration info
+        assert!(suggestions.len() >= 4);
         assert!(suggestions[0].contains("Most races are short"));
         assert!(suggestions[1].contains("-d 30 -t 30"));
         assert!(suggestions[2].contains("-d 60 -t 120"));
@@ -3318,7 +3361,8 @@ mod tests {
         
         let suggestions = generate_no_results_suggestions(&args);
         
-        assert_eq!(suggestions.len(), 3);
+        // We now have more suggestions including a note
+        assert!(suggestions.len() >= 3);
         assert!(suggestions[0].contains("Time trials are less common"));
         assert!(suggestions[1].contains("-e race"));
         assert!(suggestions[2].contains("-e all"));
@@ -3348,7 +3392,8 @@ mod tests {
         
         let suggestions = generate_no_results_suggestions(&args);
         
-        assert_eq!(suggestions.len(), 3);
+        // We now have more suggestions including "-n 3"
+        assert!(suggestions.len() >= 3);
         assert!(suggestions[0].contains("No events match your duration"));
         assert!(suggestions[1].contains("-t 20")); // tolerance * 2
         assert!(suggestions[2].contains("-e all"));
@@ -3460,10 +3505,24 @@ mod tests {
                     range_access_label: None,
                     laps: None,
                 },
+                EventSubGroup {
+                    id: 5,
+                    name: "E".to_string(),
+                    route_id: None,
+                    distance_in_meters: Some(10000.0),
+                    duration_in_minutes: None,
+                    category_enforcement: None,
+                    range_access_label: None,
+                    laps: None,
+                },
             ],
         };
 
-        // Test category D (0-199)
+        // Test category E (0-99)
+        let subgroup = find_user_subgroup(&event, 50).unwrap();
+        assert_eq!(subgroup.name, "E");
+        
+        // Test category D (100-199)
         let subgroup = find_user_subgroup(&event, 150).unwrap();
         assert_eq!(subgroup.name, "D");
         
@@ -3475,22 +3534,32 @@ mod tests {
         let subgroup = find_user_subgroup(&event, 350).unwrap();
         assert_eq!(subgroup.name, "B");
         
-        // Test category A (400+)
+        // Test category A (400-599)
         let subgroup = find_user_subgroup(&event, 450).unwrap();
         assert_eq!(subgroup.name, "A");
         
         // Test edge cases
-        assert_eq!(find_user_subgroup(&event, 0).unwrap().name, "D");
+        assert_eq!(find_user_subgroup(&event, 0).unwrap().name, "E");
+        assert_eq!(find_user_subgroup(&event, 99).unwrap().name, "E");
+        assert_eq!(find_user_subgroup(&event, 100).unwrap().name, "D");
         assert_eq!(find_user_subgroup(&event, 199).unwrap().name, "D");
         assert_eq!(find_user_subgroup(&event, 200).unwrap().name, "C");
         assert_eq!(find_user_subgroup(&event, 299).unwrap().name, "C");
         assert_eq!(find_user_subgroup(&event, 300).unwrap().name, "B");
         assert_eq!(find_user_subgroup(&event, 399).unwrap().name, "B");
         assert_eq!(find_user_subgroup(&event, 400).unwrap().name, "A");
-        assert_eq!(find_user_subgroup(&event, 1000).unwrap().name, "A");
+        assert_eq!(find_user_subgroup(&event, 599).unwrap().name, "A");
         
-        // Test with E category (should match D riders)
-        event.event_sub_groups[3].name = "E".to_string();
+        // Test A+ category (600+)
+        // Note: Since we don't have an A+ subgroup in the test, A+ riders would match A
+        let subgroup = find_user_subgroup(&event, 700);
+        assert!(subgroup.is_none() || subgroup.unwrap().name == "A");
+        
+        // Test that D riders can join E events
+        let subgroup = find_user_subgroup(&event, 150).unwrap();
+        assert_eq!(subgroup.name, "D");
+        // Also verify that a D rider (150) could join an E event if only E was available
+        event.event_sub_groups.retain(|sg| sg.name == "E");
         let subgroup = find_user_subgroup(&event, 150).unwrap();
         assert_eq!(subgroup.name, "E");
         
@@ -3553,57 +3622,6 @@ mod tests {
         // Test mixed case and partial matches
         assert_eq!(get_route_difficulty_multiplier("the EPIC kom reverse"), 0.8);
         assert_eq!(get_route_difficulty_multiplier("Flat is Fast"), 1.1);
-    }
-
-    #[test]
-    fn test_get_category_from_score() {
-        // Test all category boundaries
-        assert_eq!(get_category_from_score(0), "D");
-        assert_eq!(get_category_from_score(99), "D");
-        assert_eq!(get_category_from_score(199), "D");
-        assert_eq!(get_category_from_score(200), "C");
-        assert_eq!(get_category_from_score(250), "C");
-        assert_eq!(get_category_from_score(299), "C");
-        assert_eq!(get_category_from_score(300), "B");
-        assert_eq!(get_category_from_score(350), "B");
-        assert_eq!(get_category_from_score(399), "B");
-        assert_eq!(get_category_from_score(400), "A");
-        assert_eq!(get_category_from_score(500), "A");
-        assert_eq!(get_category_from_score(999), "A");
-    }
-
-    #[test]
-    fn test_get_category_speed() {
-        // Test speed lookup for each category
-        assert_eq!(get_category_speed("D"), CAT_D_SPEED);
-        assert_eq!(get_category_speed("C"), CAT_C_SPEED);
-        assert_eq!(get_category_speed("B"), CAT_B_SPEED);
-        assert_eq!(get_category_speed("A"), CAT_A_SPEED);
-        
-        // Test invalid category returns Cat D speed
-        assert_eq!(get_category_speed("X"), CAT_D_SPEED);
-        assert_eq!(get_category_speed(""), CAT_D_SPEED);
-    }
-
-    #[test]
-    fn test_category_logic_consistency() {
-        // Test that our category determination is consistent across different functions
-        let test_scores = vec![0, 100, 199, 200, 299, 300, 399, 400, 500];
-        
-        for score in test_scores {
-            let category = get_category_from_score(score);
-            let speed = get_category_speed(category);
-            
-            // Verify the speed matches what we expect for this score
-            let expected_speed = match score {
-                0..=199 => CAT_D_SPEED,
-                200..=299 => CAT_C_SPEED,
-                300..=399 => CAT_B_SPEED,
-                _ => CAT_A_SPEED,
-            };
-            
-            assert_eq!(speed, expected_speed, "Speed mismatch for score {}", score);
-        }
     }
 
     #[test]

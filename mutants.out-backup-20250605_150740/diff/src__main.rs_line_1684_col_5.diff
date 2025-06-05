@@ -1,0 +1,83 @@
+--- src/main.rs
++++ replace record_race_result -> Result<()> with Ok(())
+@@ -1676,79 +1676,17 @@
+         println!("\n💡 Tip: Run the tool normally to see the newly discovered routes in action!");
+     }
+     
+     Ok(())
+ }
+ 
+ fn record_race_result(input: &str) -> Result<()> {
+     // Parse format: "route_id,minutes,event_name[,zwift_score]"
+-    let parts: Vec<&str> = input.split(',').collect();
+-    if parts.len() < 3 {
+-        anyhow::bail!("Format: --record-result 'route_id,minutes,event_name[,zwift_score]'");
+-    }
+-    
+-    let route_id: u32 = parts[0].trim().parse()
+-        .map_err(|_| anyhow::anyhow!("Invalid route_id"))?;
+-    let minutes: u32 = parts[1].trim().parse()
+-        .map_err(|_| anyhow::anyhow!("Invalid minutes"))?;
+-    
+-    // Check if zwift_score is provided at position 3 (before event name)
+-    let (event_name, zwift_score_override) = if parts.len() >= 4 && parts[3].trim().parse::<u32>().is_ok() {
+-        // Format: route_id,minutes,event_name,zwift_score
+-        let event_name = parts[2].trim().to_string();
+-        let zwift_score = parts[3].trim().parse::<u32>().unwrap();
+-        (event_name, Some(zwift_score))
+-    } else {
+-        // Format: route_id,minutes,event_name (may contain commas)
+-        let event_name = parts[2..].join(",").trim().to_string();
+-        (event_name, None)
+-    };
+-    
+-    let db = Database::new()?;
+-    
+-    // Check if route exists
+-    if db.get_route(route_id)?.is_none() {
+-        println!("{}: Route {} not found in database", "Warning".yellow(), route_id);
+-        println!("Recording as unknown route for future mapping.");
+-        db.record_unknown_route(route_id, &event_name, "RACE")?;
+-    }
+-    
+-    // Get zwift_score from override or default
+-    let zwift_score = zwift_score_override.unwrap_or(195);
+-    
+-    let result = database::RaceResult {
+-        id: None,
+-        route_id,
+-        event_name: event_name.clone(),
+-        actual_minutes: minutes,
+-        zwift_score,
+-        race_date: Utc::now().format("%Y-%m-%d").to_string(),
+-        notes: None,
+-    };
+-    
+-    db.add_race_result(&result)?;
+-    
+-    println!("\n✅ {} recorded successfully!", "Race result".green().bold());
+-    println!("  Route ID: {}", route_id);
+-    println!("  Event: {}", event_name);
+-    println!("  Time: {}", format_duration(minutes));
+-    println!("  Zwift Score: {}", zwift_score);
+-    
+-    // Show comparison with estimate if route is known
+-    if let Some(estimated) = estimate_duration_from_route_id(route_id, zwift_score) {
+-        let diff = (estimated as i32 - minutes as i32).abs();
+-        let accuracy = 100.0 - (diff as f64 / minutes as f64 * 100.0);
+-        println!("\n  Estimated: {} ({}% accurate)", 
+-            format_duration(estimated),
+-            accuracy.round() as i32
+-        );
+-    }
+-    
+-    Ok(())
++    Ok(()) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ async fn analyze_event_descriptions() -> Result<()> {
+     println!("\n{}", "Analyzing Event Descriptions for Route Names...".yellow().bold());
+     
+     // Fetch current events
+     let client = reqwest::Client::new();
+     let response = client

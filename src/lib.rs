@@ -24,6 +24,12 @@ pub mod config;
 /// Database operations for routes and race results
 pub mod database;
 
+/// Enhanced error handling with user-friendly messages
+pub mod errors;
+
+/// Formatting utilities for display
+pub mod formatting;
+
 /// Route discovery from external sources
 pub mod route_discovery;
 

@@ -1,0 +1,37 @@
+--- src/route_discovery.rs
++++ replace RouteDiscovery::format_world_name -> String with "xyzzy".into()
+@@ -215,33 +215,17 @@
+             name
+         };
+         
+         name
+     }
+     
+     /// Format world name for display
+     fn format_world_name(&self, world_slug: &str) -> String {
+-        match world_slug {
+-            "makuri-islands" => "Makuri Islands".to_string(),
+-            "new-york" => "New York".to_string(),
+-            _ => {
+-                // Capitalize first letter of each word
+-                world_slug.split('-')
+-                    .map(|word| {
+-                        let mut chars = word.chars();
+-                        match chars.next() {
+-                            None => String::new(),
+-                            Some(first) => first.to_uppercase().chain(chars).collect(),
+-                        }
+-                    })
+-                    .collect::<Vec<_>>()
+-                    .join(" ")
+-            }
+-        }
++        "xyzzy".into() /* ~ changed by cargo-mutants ~ */
+     }
+     
+     /// Parse route data from whatsonzwift.com HTML
+     fn parse_whatsonzwift_route(&self, html: &str, event_name: &str) -> Result<DiscoveredRoute> {
+         // Extract route ID from the page
+         // whatsonzwift.com includes route IDs in various places:
+         // 1. In JavaScript: routeId: 123
+         // 2. In data attributes: data-route-id="123"
