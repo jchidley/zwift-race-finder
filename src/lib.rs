@@ -27,6 +27,9 @@ pub mod database;
 /// Enhanced error handling with user-friendly messages
 pub mod errors;
 
+/// Event analysis utilities
+pub mod event_analysis;
+
 /// Formatting utilities for display
 pub mod formatting;
 

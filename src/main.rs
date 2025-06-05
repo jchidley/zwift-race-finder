@@ -25,6 +25,7 @@ use zwift_race_finder::category::*;
 use zwift_race_finder::parsing::*;
 use zwift_race_finder::cache::*;
 use zwift_race_finder::errors::*;
+use zwift_race_finder::event_analysis::*;
 use zwift_race_finder::formatting::*;
 
 #[derive(Parser, Debug, Clone)]
@@ -240,33 +241,6 @@ fn get_route_data(route_id: u32) -> Option<RouteData> {
 
 // Get just the distance for backward compatibility
 
-// Find the subgroup that matches the user's category
-fn find_user_subgroup<'a>(event: &'a ZwiftEvent, zwift_score: u32) -> Option<&'a EventSubGroup> {
-    if event.event_sub_groups.is_empty() {
-        return None;
-    }
-    
-    let user_category = get_category_from_score(zwift_score);
-    
-    // Use the new category matching function from the category module
-    event.event_sub_groups.iter().find(|sg| {
-        category_matches_subgroup(user_category, &sg.name)
-    })
-}
-
-// Count events by type for display
-fn count_events_by_type(events: &[ZwiftEvent]) -> Vec<(String, usize)> {
-    let mut event_counts = std::collections::HashMap::new();
-    for event in events {
-        if event.sport.to_uppercase() == "CYCLING" {
-            *event_counts.entry(event.event_type.clone()).or_insert(0) += 1;
-        }
-    }
-    
-    let mut counts: Vec<_> = event_counts.into_iter().collect();
-    counts.sort_by_key(|(_, count)| std::cmp::Reverse(*count));
-    counts
-}
 
 
 // Generate no results suggestions based on search criteria
