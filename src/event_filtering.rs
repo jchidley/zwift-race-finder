@@ -142,3 +142,319 @@ pub fn event_matches_duration(event: &ZwiftEvent, target_duration: u32, toleranc
     false
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Duration;
+    use crate::models::ZwiftEvent;
+
+    fn create_test_event(name: &str, sport: &str, event_type: &str) -> ZwiftEvent {
+        ZwiftEvent {
+            id: 1,
+            name: name.to_string(),
+            event_start: Utc::now() + Duration::hours(1),
+            event_type: event_type.to_string(),
+            distance_in_meters: Some(40000.0),
+            duration_in_minutes: None,
+            duration_in_seconds: None,
+            route_id: Some(1),
+            route: Some("Watopia".to_string()),
+            description: None,
+            category_enforcement: true,
+            event_sub_groups: vec![],
+            sport: sport.to_string(),
+            tags: vec![],
+        }
+    }
+
+    #[test]
+    fn test_filter_stats_total() {
+        let mut stats = FilterStats::default();
+        stats.sport_filtered = 5;
+        stats.time_filtered = 3;
+        stats.type_filtered = 2;
+        stats.duration_filtered = 1;
+        
+        assert_eq!(stats.total_filtered(), 11);
+        assert_eq!(stats.duration_no_match(), 1);
+    }
+
+    #[test]
+    fn test_filter_by_sport() {
+        let mut events = vec![
+            create_test_event("Cycling Race", "CYCLING", "RACE"),
+            create_test_event("Running Event", "RUNNING", "RACE"),
+            create_test_event("Cycling TT", "cycling", "TIME_TRIAL"), // lowercase
+            create_test_event("Run TT", "RUN", "TIME_TRIAL"),
+        ];
+        
+        let filtered = filter_by_sport(&mut events);
+        assert_eq!(filtered, 2);
+        assert_eq!(events.len(), 2);
+        assert!(events.iter().all(|e| e.sport.to_uppercase() == "CYCLING"));
+    }
+
+    #[test]
+    fn test_filter_by_time() {
+        let now = Utc::now();
+        let mut events = vec![
+            {
+                let mut e = create_test_event("Past Event", "CYCLING", "RACE");
+                e.event_start = now - Duration::hours(1);
+                e
+            },
+            {
+                let mut e = create_test_event("Future Event 1h", "CYCLING", "RACE");
+                e.event_start = now + Duration::hours(1);
+                e
+            },
+            {
+                let mut e = create_test_event("Future Event 25h", "CYCLING", "RACE");
+                e.event_start = now + Duration::hours(25);
+                e
+            },
+        ];
+        
+        let max_date = now + Duration::days(1);
+        let filtered = filter_by_time(&mut events, now, max_date);
+        
+        assert_eq!(filtered, 2); // Past and too far future
+        assert_eq!(events.len(), 1);
+        assert!(events[0].name == "Future Event 1h");
+    }
+
+    #[test]
+    fn test_filter_by_event_type_race() {
+        let mut events = vec![
+            create_test_event("Race 1", "CYCLING", "RACE"),
+            create_test_event("Group Ride", "CYCLING", "GROUP_RIDE"),
+            create_test_event("Time Trial", "CYCLING", "TIME_TRIAL"),
+            create_test_event("Workout", "CYCLING", "GROUP_WORKOUT"),
+        ];
+        
+        let filtered = filter_by_event_type(&mut events, "race");
+        assert_eq!(filtered, 3);
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].event_type, "RACE");
+    }
+
+    #[test]
+    fn test_filter_by_event_type_tt() {
+        let mut events = vec![
+            create_test_event("Race", "CYCLING", "RACE"),
+            create_test_event("TT", "CYCLING", "TIME_TRIAL"),
+        ];
+        
+        let filtered = filter_by_event_type(&mut events, "tt");
+        assert_eq!(filtered, 1);
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].event_type, "TIME_TRIAL");
+        
+        // Test alias
+        let mut events2 = vec![
+            create_test_event("Race", "CYCLING", "RACE"),
+            create_test_event("TT", "CYCLING", "TIME_TRIAL"),
+        ];
+        let filtered2 = filter_by_event_type(&mut events2, "time_trial");
+        assert_eq!(filtered2, 1);
+        assert_eq!(events2.len(), 1);
+    }
+
+    #[test]
+    fn test_filter_by_event_type_group() {
+        let mut events = vec![
+            create_test_event("Group Ride", "CYCLING", "GROUP_RIDE"),
+            create_test_event("Fondo Event", "CYCLING", "GROUP_RIDE"),
+            create_test_event("Sportive", "CYCLING", "GROUP_RIDE"),
+            create_test_event("Race", "CYCLING", "RACE"),
+        ];
+        
+        let filtered = filter_by_event_type(&mut events, "group");
+        assert_eq!(filtered, 3); // Excludes fondo, sportive, and race
+        assert_eq!(events.len(), 1);
+        assert!(events[0].name == "Group Ride");
+    }
+
+    #[test]
+    fn test_filter_by_event_type_fondo() {
+        let mut events = vec![
+            create_test_event("Group Ride", "CYCLING", "GROUP_RIDE"),
+            create_test_event("Gran Fondo", "CYCLING", "GROUP_RIDE"),
+            create_test_event("Spring Sportive", "CYCLING", "GROUP_RIDE"),
+            create_test_event("Century Ride", "CYCLING", "GROUP_RIDE"),
+            create_test_event("Race", "CYCLING", "RACE"),
+        ];
+        
+        let filtered = filter_by_event_type(&mut events, "fondo");
+        assert_eq!(filtered, 2); // Only fondo/sportive/century remain
+        assert_eq!(events.len(), 3);
+        assert!(events.iter().all(|e| 
+            e.name.to_lowercase().contains("fondo") ||
+            e.name.to_lowercase().contains("sportive") ||
+            e.name.to_lowercase().contains("century")
+        ));
+    }
+
+    #[test]
+    fn test_filter_by_event_type_all() {
+        let mut events = vec![
+            create_test_event("Race", "CYCLING", "RACE"),
+            create_test_event("Group", "CYCLING", "GROUP_RIDE"),
+            create_test_event("TT", "CYCLING", "TIME_TRIAL"),
+        ];
+        
+        let filtered = filter_by_event_type(&mut events, "all");
+        assert_eq!(filtered, 0);
+        assert_eq!(events.len(), 3);
+    }
+
+    #[test]
+    fn test_filter_by_event_type_unknown() {
+        let mut events = vec![
+            create_test_event("Race", "CYCLING", "RACE"),
+        ];
+        
+        // Unknown type should keep all events
+        let filtered = filter_by_event_type(&mut events, "unknown_type");
+        assert_eq!(filtered, 0);
+        assert_eq!(events.len(), 1);
+    }
+
+    #[test]
+    fn test_filter_by_tags() {
+        let mut events = vec![
+            {
+                let mut e = create_test_event("Race 1", "CYCLING", "RACE");
+                e.tags = vec!["climbing".to_string(), "hilly".to_string()];
+                e
+            },
+            {
+                let mut e = create_test_event("Race 2", "CYCLING", "RACE");
+                e.tags = vec!["flat".to_string(), "sprint".to_string()];
+                e
+            },
+            {
+                let mut e = create_test_event("Race 3", "CYCLING", "RACE");
+                e.tags = vec!["climbing".to_string(), "mountain".to_string()];
+                e
+            },
+        ];
+        
+        let tags = vec!["climbing".to_string()];
+        let filtered = filter_by_tags(&mut events, &tags);
+        
+        assert_eq!(filtered, 1); // One without climbing tag
+        assert_eq!(events.len(), 2);
+        assert!(events.iter().all(|e| 
+            e.tags.iter().any(|t| t.contains("climbing"))
+        ));
+    }
+
+    #[test]
+    fn test_filter_by_tags_empty() {
+        let mut events = vec![
+            create_test_event("Race 1", "CYCLING", "RACE"),
+        ];
+        
+        let tags: Vec<String> = vec![];
+        let filtered = filter_by_tags(&mut events, &tags);
+        
+        assert_eq!(filtered, 0);
+        assert_eq!(events.len(), 1);
+    }
+
+    #[test]
+    fn test_filter_by_excluded_tags() {
+        let mut events = vec![
+            {
+                let mut e = create_test_event("Race 1", "CYCLING", "RACE");
+                e.tags = vec!["climbing".to_string(), "hilly".to_string()];
+                e
+            },
+            {
+                let mut e = create_test_event("Race 2", "CYCLING", "RACE");
+                e.tags = vec!["flat".to_string(), "sprint".to_string()];
+                e
+            },
+            {
+                let mut e = create_test_event("Race 3", "CYCLING", "RACE");
+                e.tags = vec!["climbing".to_string(), "mountain".to_string()];
+                e
+            },
+        ];
+        
+        let exclude_tags = vec!["climbing".to_string()];
+        let filtered = filter_by_excluded_tags(&mut events, &exclude_tags);
+        
+        assert_eq!(filtered, 2); // Two with climbing tag
+        assert_eq!(events.len(), 1);
+        assert!(events.iter().all(|e| 
+            !e.tags.iter().any(|t| t.contains("climbing"))
+        ));
+    }
+
+    #[test]
+    fn test_filter_by_excluded_tags_empty() {
+        let mut events = vec![
+            create_test_event("Race 1", "CYCLING", "RACE"),
+        ];
+        
+        let exclude_tags: Vec<String> = vec![];
+        let filtered = filter_by_excluded_tags(&mut events, &exclude_tags);
+        
+        assert_eq!(filtered, 0);
+        assert_eq!(events.len(), 1);
+    }
+
+    #[test]
+    fn test_event_matches_duration_fixed_minutes() {
+        let mut event = create_test_event("Race", "CYCLING", "RACE");
+        event.duration_in_minutes = Some(60);
+        
+        assert!(event_matches_duration(&event, 60, 10, 200));
+        assert!(event_matches_duration(&event, 55, 10, 200));
+        assert!(event_matches_duration(&event, 65, 10, 200));
+        assert!(!event_matches_duration(&event, 75, 10, 200));
+        assert!(!event_matches_duration(&event, 45, 10, 200));
+    }
+
+    #[test]
+    fn test_event_matches_duration_fixed_seconds() {
+        let mut event = create_test_event("Race", "CYCLING", "RACE");
+        event.duration_in_seconds = Some(3600); // 60 minutes
+        
+        assert!(event_matches_duration(&event, 60, 10, 200));
+        assert!(event_matches_duration(&event, 55, 10, 200));
+        assert!(event_matches_duration(&event, 65, 10, 200));
+        assert!(!event_matches_duration(&event, 75, 10, 200));
+    }
+
+    #[test]
+    fn test_event_matches_duration_no_fixed() {
+        let event = create_test_event("Race", "CYCLING", "RACE");
+        
+        // Without fixed duration, simplified version returns false
+        assert!(!event_matches_duration(&event, 60, 10, 200));
+    }
+
+    #[test]
+    fn test_event_matches_duration_zero_duration() {
+        let mut event = create_test_event("Race", "CYCLING", "RACE");
+        event.duration_in_minutes = Some(0);
+        event.duration_in_seconds = Some(0);
+        
+        // Zero durations are filtered out
+        assert!(!event_matches_duration(&event, 60, 10, 200));
+    }
+
+    #[test]
+    fn test_event_matches_duration_minutes_takes_precedence() {
+        let mut event = create_test_event("Race", "CYCLING", "RACE");
+        event.duration_in_minutes = Some(60);
+        event.duration_in_seconds = Some(7200); // 120 minutes
+        
+        // Minutes takes precedence over seconds
+        assert!(event_matches_duration(&event, 60, 10, 200));
+        assert!(!event_matches_duration(&event, 120, 10, 200));
+    }
+}

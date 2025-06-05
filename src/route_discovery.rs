@@ -620,4 +620,94 @@ mod tests {
             None
         );
     }
+
+    #[test]
+    fn test_format_world_name() {
+        assert_eq!(RouteDiscovery::format_world_name("watopia"), "Watopia");
+        assert_eq!(RouteDiscovery::format_world_name("london"), "London");
+        assert_eq!(RouteDiscovery::format_world_name("new-york"), "New York");
+        assert_eq!(RouteDiscovery::format_world_name("innsbruck"), "Innsbruck");
+        assert_eq!(RouteDiscovery::format_world_name("yorkshire"), "Yorkshire");
+        assert_eq!(RouteDiscovery::format_world_name("france"), "France");
+        assert_eq!(RouteDiscovery::format_world_name("paris"), "Paris");
+        assert_eq!(RouteDiscovery::format_world_name("makuri-islands"), "Makuri Islands");
+        assert_eq!(RouteDiscovery::format_world_name("richmond"), "Richmond");
+        assert_eq!(RouteDiscovery::format_world_name("scotland"), "Scotland");
+        assert_eq!(RouteDiscovery::format_world_name("unknown"), "Unknown");
+    }
+
+    #[test]
+    fn test_detect_world_edge_cases() {
+        let discovery = RouteDiscovery::new().unwrap();
+        
+        // Test compound detection
+        assert_eq!(
+            discovery.detect_world_from_event_name("Jungle Circuit Race"),
+            Some("watopia".to_string())
+        );
+        
+        // Test London detection
+        assert_eq!(
+            discovery.detect_world_from_event_name("London Loop"),
+            Some("london".to_string())
+        );
+        
+        // Test partial matches
+        assert_eq!(
+            discovery.detect_world_from_event_name("Alpe du Zwift"),
+            Some("watopia".to_string())
+        );
+    }
+
+    #[test]
+    fn test_parse_whatsonzwift_route_edge_cases() {
+        // Test with missing distance
+        let html = r#"
+            <div>
+                <p>Elevation: 500m</p>
+            </div>
+        "#;
+        let result = RouteDiscovery::parse_whatsonzwift_route(html, "Test Route");
+        assert!(result.is_err());
+
+        // Test with missing elevation
+        let html = r#"
+            <div>
+                <p>Distance: 25.5km</p>
+            </div>
+        "#;
+        let result = RouteDiscovery::parse_whatsonzwift_route(html, "Test Route");
+        assert!(result.is_err());
+
+        // Test with valid data but different formats
+        let html = r#"
+            <div>
+                <p>Distance: 25.5 km</p>
+                <p>Elevation: 500 m</p>
+            </div>
+        "#;
+        let result = RouteDiscovery::parse_whatsonzwift_route(html, "Test Route");
+        assert!(result.is_ok());
+        let route = result.unwrap();
+        assert_eq!(route.distance_km, 25.5);
+        assert_eq!(route.elevation_m, 500);
+    }
+
+
+    #[test]
+    fn test_detect_world_priority() {
+        let discovery = RouteDiscovery::new().unwrap();
+        
+        // When multiple worlds are mentioned, first match should win
+        assert_eq!(
+            discovery.detect_world_from_event_name("London to Paris Challenge"),
+            Some("london".to_string())
+        );
+        
+        // Alpe should take precedence as it's more specific
+        assert_eq!(
+            discovery.detect_world_from_event_name("Alpe Loop in Watopia"),
+            Some("watopia".to_string()) // Because "Alpe" maps to Watopia
+        );
+    }
 }
