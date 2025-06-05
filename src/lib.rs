@@ -9,6 +9,9 @@
 /// Data models and structs
 pub mod models;
 
+/// Category-related utility functions
+pub mod category;
+
 /// Configuration management for the application
 pub mod config;
 

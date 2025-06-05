@@ -24,6 +24,7 @@ use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
 use zwift_race_finder::models::*;
+use zwift_race_finder::category::*;
 
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
@@ -180,32 +181,6 @@ fn parse_distance_from_description(description: &Option<String>) -> Option<f64> 
 
 
 
-// Average speeds by category (km/h) - based on actual race data with draft
-const CAT_A_SPEED: f64 = 42.0;  // Estimated based on Cat D scaling
-const CAT_B_SPEED: f64 = 37.0;  // Estimated based on Cat D scaling
-const CAT_C_SPEED: f64 = 33.0;  // Estimated based on Cat D scaling
-const CAT_D_SPEED: f64 = 30.9;  // Jack's actual average from 151 races
-
-// Get category letter from Zwift Racing Score
-fn get_category_from_score(zwift_score: u32) -> &'static str {
-    match zwift_score {
-        0..=199 => "D",
-        200..=299 => "C",
-        300..=399 => "B",
-        _ => "A",
-    }
-}
-
-// Get average speed for a category
-fn get_category_speed(category: &str) -> f64 {
-    match category {
-        "A" => CAT_A_SPEED,
-        "B" => CAT_B_SPEED,
-        "C" => CAT_C_SPEED,
-        "D" => CAT_D_SPEED,
-        _ => CAT_D_SPEED, // Default to Cat D speed for unknown categories
-    }
-}
 
 // Zwift route database - route_id is the primary key for all calculations
 // This should be expanded with Jack's actual race data
