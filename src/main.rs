@@ -1470,7 +1470,11 @@ mod tests {
         ];
 
         for race in test_races {
-            let estimated = zwift_race_finder::duration_estimation::estimate_duration_for_category(race.distance_km, race.route, 195);
+            let estimated = zwift_race_finder::duration_estimation::estimate_duration_for_category(
+                race.distance_km,
+                race.route,
+                195,
+            );
             let diff = (estimated as i32 - race.typical_time_minutes as i32).abs();
 
             assert!(
@@ -1484,7 +1488,6 @@ mod tests {
             );
         }
     }
-
 
     #[test]
     fn test_event_type_filtering() {
@@ -1541,41 +1544,6 @@ mod tests {
         assert_eq!(filtered[0].name, "Sunday Ride");
     }
 
-
-    #[test]
-    fn test_database_route_validation() {
-        // Test that all routes in database have valid data
-        if let Ok(db) = Database::new() {
-            if let Ok(routes) = db.get_all_routes() {
-                for route in routes {
-                    // Distance should be reasonable
-                    assert!(
-                        route.distance_km > 0.0 && route.distance_km < 200.0,
-                        "Route {} has unrealistic distance: {} km",
-                        route.name,
-                        route.distance_km
-                    );
-
-                    // Elevation gain per km should be reasonable
-                    let elevation_per_km = route.elevation_m as f64 / route.distance_km;
-                    assert!(
-                        elevation_per_km < 100.0,
-                        "Route {} has unrealistic elevation: {} m/km",
-                        route.name,
-                        elevation_per_km
-                    );
-
-                    // Surface should be valid
-                    assert!(
-                        matches!(route.surface.as_str(), "road" | "gravel" | "mixed"),
-                        "Route {} has invalid surface: {}",
-                        route.name,
-                        route.surface
-                    );
-                }
-            }
-        }
-    }
 
     #[tokio::test]
     #[ignore] // Run with: cargo test -- --ignored
@@ -1747,7 +1715,6 @@ mod tests {
         assert!(filtered.iter().any(|e| e.name == "Traditional Race"));
         assert!(filtered.iter().any(|e| e.name == "Racing Score Event"));
     }
-
 
     #[test]
     fn test_generate_filter_description() {

@@ -812,4 +812,39 @@ mod tests {
         assert!(!results.is_empty());
         assert_eq!(results[0].actual_minutes, 32);
     }
+
+    #[test]
+    fn test_database_route_validation() {
+        // Test that all routes in database have valid data
+        if let Ok(db) = Database::new() {
+            if let Ok(routes) = db.get_all_routes() {
+                for route in routes {
+                    // Distance should be reasonable
+                    assert!(
+                        route.distance_km > 0.0 && route.distance_km < 200.0,
+                        "Route {} has unrealistic distance: {} km",
+                        route.name,
+                        route.distance_km
+                    );
+
+                    // Elevation gain per km should be reasonable
+                    let elevation_per_km = route.elevation_m as f64 / route.distance_km;
+                    assert!(
+                        elevation_per_km < 100.0,
+                        "Route {} has unrealistic elevation: {} m/km",
+                        route.name,
+                        elevation_per_km
+                    );
+
+                    // Surface should be valid
+                    assert!(
+                        matches!(route.surface.as_str(), "road" | "gravel" | "mixed"),
+                        "Route {} has invalid surface: {}",
+                        route.name,
+                        route.surface
+                    );
+                }
+            }
+        }
+    }
 }

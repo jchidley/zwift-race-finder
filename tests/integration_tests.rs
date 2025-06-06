@@ -2,8 +2,8 @@
 //! These tests verify the complete functionality of the application
 
 use std::process::Command;
-use zwift_race_finder::parsing::parse_lap_count;
 use zwift_race_finder::estimation;
+use zwift_race_finder::parsing::parse_lap_count;
 
 /// Helper to run the binary with arguments
 fn run_command(args: &[&str]) -> (String, String, bool) {
@@ -156,7 +156,7 @@ mod output_format_tests {
 
     // Route discovery integration tests
     // (Moved from route_discovery.rs to avoid module import issues)
-    
+
     #[test]
     fn test_multi_lap_race_detection() {
         // Test that we can detect multi-lap races from event names
@@ -264,9 +264,7 @@ mod output_format_tests {
         ];
 
         for exp in expectations {
-            if let Some(duration) =
-                estimation::estimate_duration_from_route_id(exp.route_id, 195)
-            {
+            if let Some(duration) = estimation::estimate_duration_from_route_id(exp.route_id, 195) {
                 assert!(
                     duration >= exp.min_minutes && duration <= exp.max_minutes,
                     "Route {} ({}) estimate {} should be {}-{} min for Cat D",
