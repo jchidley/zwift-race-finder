@@ -568,3 +568,86 @@ pub fn prepare_event_row(event: &ZwiftEvent, zwift_score: u32) -> EventTableRow 
         duration: duration_str,
     }
 }
+
+/// Print events in table format
+pub fn print_events_table(events: &[ZwiftEvent], zwift_score: u32) {
+    if events.is_empty() {
+        return;
+    }
+    
+    // Check if events span multiple days
+    let first_event_time: DateTime<Local> = events[0].event_start.into();
+    let last_event_time: DateTime<Local> = events[events.len() - 1].event_start.into();
+    let spans_multiple_days = first_event_time.date_naive() != last_event_time.date_naive();
+    
+    // Collect data for all events
+    let mut rows: Vec<(EventTableRow, DateTime<Local>)> = Vec::new();
+    
+    for event in events {
+        let row = prepare_event_row(event, zwift_score);
+        let local_time: DateTime<Local> = event.event_start.into();
+        rows.push((row, local_time));
+    }
+    
+    // Calculate column widths
+    let name_width = rows.iter().map(|(r, _)| r.name.len()).max().unwrap_or(10).max(10);
+    let time_width = rows.iter().map(|(r, _)| r.time.len()).max().unwrap_or(5).max(5);
+    let distance_width = rows.iter().map(|(r, _)| r.distance.len()).max().unwrap_or(8).max(8);
+    let elevation_width = rows.iter().map(|(r, _)| r.elevation.len()).max().unwrap_or(6).max(6);
+    let duration_width = rows.iter().map(|(r, _)| r.duration.len()).max().unwrap_or(8).max(8);
+    let total_width = name_width + time_width + distance_width + elevation_width + duration_width + 17;
+    
+    // Print header
+    println!("\n{}", "─".repeat(total_width).dimmed());
+    println!(
+        "{:<width1$} │ {:<width2$} │ {:<width3$} │ {:<width4$} │ {:<width5$}",
+        "Event Name".bright_blue().bold(),
+        "Time".bright_blue().bold(),
+        "Distance".bright_blue().bold(),
+        "Elev".bright_blue().bold(),
+        "Duration".bright_blue().bold(),
+        width1 = name_width,
+        width2 = time_width,
+        width3 = distance_width,
+        width4 = elevation_width,
+        width5 = duration_width
+    );
+    println!("{}", "─".repeat(total_width).dimmed());
+    
+    // Print rows with day separators if needed
+    let mut current_date = None;
+    for (row, event_time) in rows {
+        let event_date = event_time.date_naive();
+        
+        // Insert day separator if date changes and we span multiple days
+        if spans_multiple_days && current_date.is_some() && current_date != Some(event_date) {
+            println!("{}", "─".repeat(total_width).dimmed());
+            let day_label = event_time.format("%A, %B %d").to_string();
+            println!("{:^width$}", day_label.yellow(), width = total_width);
+            println!("{}", "─".repeat(total_width).dimmed());
+        } else if spans_multiple_days && current_date.is_none() {
+            // First day label
+            let day_label = event_time.format("%A, %B %d").to_string();
+            println!("{:^width$}", day_label.yellow(), width = total_width);
+            println!("{}", "─".repeat(total_width).dimmed());
+        }
+        
+        current_date = Some(event_date);
+        
+        println!(
+            "{:<width1$} │ {:<width2$} │ {:<width3$} │ {:<width4$} │ {:<width5$}",
+            row.name,
+            row.time,
+            row.distance,
+            row.elevation,
+            row.duration.green(),
+            width1 = name_width,
+            width2 = time_width,
+            width3 = distance_width,
+            width4 = elevation_width,
+            width5 = duration_width
+        );
+    }
+    
+    println!("{}", "─".repeat(total_width).dimmed());
+}
