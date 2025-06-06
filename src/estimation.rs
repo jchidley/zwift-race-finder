@@ -6,7 +6,7 @@
 
 use crate::database::{Database, RouteData as DbRouteData};
 use crate::models::RouteData;
-use crate::duration_estimation::estimate_duration_for_category;
+use crate::duration_estimation::{estimate_duration_for_category, get_route_difficulty_multiplier, get_route_difficulty_multiplier_from_elevation};
 
 /// Get route data from the database
 pub fn get_route_data_from_db(route_id: u32) -> Option<DbRouteData> {
@@ -49,8 +49,23 @@ pub fn get_route_data(route_id: u32) -> Option<RouteData> {
 /// Estimate duration based on route_id only
 pub fn estimate_duration_from_route_id(route_id: u32, zwift_score: u32) -> Option<u32> {
     let route_data = get_route_data(route_id)?;
-    let duration = estimate_duration_for_category(route_data.distance_km, route_data.name, zwift_score);
-    Some(duration)
+    
+    // Get category-based speed
+    let category = crate::category::get_category_from_score(zwift_score);
+    let base_speed = crate::category::get_category_speed(category);
+    
+    // Use elevation-based multiplier if we have elevation data
+    let difficulty_multiplier = if route_data.elevation_m > 0 {
+        get_route_difficulty_multiplier_from_elevation(route_data.distance_km, route_data.elevation_m)
+    } else {
+        get_route_difficulty_multiplier(route_data.name)
+    };
+    
+    let effective_speed = base_speed * difficulty_multiplier;
+    let duration_hours = route_data.distance_km / effective_speed;
+    let duration_minutes = (duration_hours * crate::constants::MINUTES_PER_HOUR as f64) as u32;
+    
+    Some(duration_minutes)
 }
 
 /// Estimate duration with a specific distance (for multi-lap races)

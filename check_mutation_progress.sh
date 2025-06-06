@@ -1,82 +1,131 @@
 #!/bin/bash
-# Script to check mutation testing progress
+# ABOUTME: Monitor mutation testing progress with new directory structure
+# Usage: ./check_mutation_progress.sh
+
+set -euo pipefail
+IFS=$'\n\t'
+
+# Script directory for relative paths
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MUTATION_BASE="${SCRIPT_DIR}/mutation_results"
 
 echo "=== Mutation Testing Progress ==="
 echo
 
 # Check if any mutation processes are running
-if pgrep -f "cargo-mutants" > /dev/null; then
+if pgrep -f "cargo.mutants" > /dev/null 2>&1; then
     echo "✓ Mutation testing is currently running"
     echo
     echo "Active processes:"
-    ps aux | grep -E "cargo-mutants|cargo mutants" | grep -v grep
+    ps aux | grep -E "cargo.mutants|cargo mutants" | grep -v grep
     echo
 else
     echo "✗ No mutation testing processes found"
+    # Check for PID file in current run
+    if [ -f "${MUTATION_BASE}/current/mutation.pid" ]; then
+        PID=$(cat "${MUTATION_BASE}/current/mutation.pid")
+        if ! ps -p "$PID" > /dev/null 2>&1; then
+            echo "  (Process $PID has finished)"
+        fi
+    fi
     echo
 fi
 
-# Check log files
-if [ -d mutation_logs ]; then
-    echo "=== Log Files Status ==="
-    LOG="mutation_logs/full_run.log"
+# Check current run directory
+if [ -L "${MUTATION_BASE}/current" ] && [ -d "${MUTATION_BASE}/current" ]; then
+    CURRENT_RUN=$(readlink -f "${MUTATION_BASE}/current")
+    echo "Current run: $(basename "$CURRENT_RUN")"
+    echo
+    
+    # Check main log file
+    LOG="${CURRENT_RUN}/mutation_run.log"
     if [ -f "$LOG" ]; then
-        echo
-        echo "--- Mutation Testing Progress ---"
-        # Show last 20 lines for better context
+        echo "=== Recent Activity ==="
         tail -n 20 "$LOG"
         echo
+    fi
+    
+    # Check mutants.out directory within the run
+    MUTANTS_OUT="${CURRENT_RUN}/mutants.out"
+    if [ -d "$MUTANTS_OUT" ]; then
+        echo "=== Mutation Testing Statistics ==="
         
-        # Extract progress information
-        if grep -q "Found .* mutants" "$LOG"; then
-            TOTAL=$(grep "Found .* mutants" "$LOG" | tail -1 | grep -oE "[0-9]+ mutants" | grep -oE "[0-9]+")
-            echo "Total mutants: $TOTAL"
+        # Count outcomes from files
+        if [ -f "${MUTANTS_OUT}/caught.txt" ]; then
+            CAUGHT=$(wc -l < "${MUTANTS_OUT}/caught.txt" 2>/dev/null || echo 0)
+        else
+            CAUGHT=0
         fi
         
-        # Count different outcomes based on the actual log format
-        # Format is: STATUS  src/file.rs:line:col: description
-        KILLED=$(grep -cE "^(KILLED|ok)" "$LOG" 2>/dev/null | tr -d '[:space:]' || echo "0")
-        SURVIVED=$(grep -cE "^SURVIVED" "$LOG" 2>/dev/null | tr -d '[:space:]' || echo "0")
-        TIMEOUT=$(grep -cE "^TIMEOUT" "$LOG" 2>/dev/null | tr -d '[:space:]' || echo "0")
-        UNVIABLE=$(grep -cE "^UNVIABLE" "$LOG" 2>/dev/null | tr -d '[:space:]' || echo "0")
+        if [ -f "${MUTANTS_OUT}/missed.txt" ]; then
+            MISSED=$(wc -l < "${MUTANTS_OUT}/missed.txt" 2>/dev/null || echo 0)
+        else
+            MISSED=0
+        fi
         
-        # Ensure values are numeric
-        KILLED=${KILLED:-0}
-        SURVIVED=${SURVIVED:-0}
-        TIMEOUT=${TIMEOUT:-0}
-        UNVIABLE=${UNVIABLE:-0}
+        if [ -f "${MUTANTS_OUT}/timeout.txt" ]; then
+            TIMEOUT=$(wc -l < "${MUTANTS_OUT}/timeout.txt" 2>/dev/null || echo 0)
+        else
+            TIMEOUT=0
+        fi
+        
+        if [ -f "${MUTANTS_OUT}/unviable.txt" ]; then
+            UNVIABLE=$(wc -l < "${MUTANTS_OUT}/unviable.txt" 2>/dev/null || echo 0)
+        else
+            UNVIABLE=0
+        fi
+        
+        TOTAL=$((CAUGHT + MISSED + TIMEOUT + UNVIABLE))
         
         echo "Progress:"
-        echo "  Killed: $KILLED"
-        echo "  Survived: $SURVIVED"
+        echo "  Caught (killed by tests): $CAUGHT"
+        echo "  Missed (survived tests): $MISSED"
         echo "  Timeout: $TIMEOUT"
-        echo "  Unviable: $UNVIABLE"
-        echo "  Total processed: $((KILLED + SURVIVED + TIMEOUT + UNVIABLE))"
+        echo "  Unviable (won't compile): $UNVIABLE"
+        echo "  Total processed: $TOTAL"
         
-        # Check if completed
-        if grep -q "mutants tested" "$LOG" || grep -q "Finished" "$LOG"; then
+        # Calculate percentage if we have results
+        if [ "$TOTAL" -gt 0 ]; then
+            COVERAGE=$(awk "BEGIN {printf \"%.1f\", ($CAUGHT / ($CAUGHT + $MISSED)) * 100}")
             echo
-            echo "Status: COMPLETED"
-            grep -A 5 "mutants tested" "$LOG" | tail -10
+            echo "Mutation coverage: ${COVERAGE}%"
         fi
         
-        # Show current/recent activity
-        echo
-        echo "Recent activity:"
-        grep -E "^(KILLED|SURVIVED|TIMEOUT|UNVIABLE|ok)" "$LOG" | tail -5
+        # Check if testing is complete
+        if [ -f "${MUTANTS_OUT}/outcomes.json" ]; then
+            if grep -q '"phase":"test"' "${MUTANTS_OUT}/outcomes.json" && ! pgrep -f "cargo.mutants" > /dev/null 2>&1; then
+                echo
+                echo "Status: COMPLETED"
+            fi
+        fi
+        
+        # Show recent missed mutants
+        if [ -f "${MUTANTS_OUT}/missed.txt" ] && [ "$MISSED" -gt 0 ]; then
+            echo
+            echo "=== Recent Missed Mutants ==="
+            tail -n 5 "${MUTANTS_OUT}/missed.txt"
+        fi
     else
-        echo "Log file not found. Waiting for mutation testing to start..."
+        echo "Waiting for mutation testing to generate results..."
     fi
-else
-    echo "No mutation_logs directory found. Run ./run_mutation_testing.sh first."
-fi
-
-# Check mutants.out directory for detailed results
-if [ -d mutants.out ]; then
+    
     echo
-    echo "=== Detailed Results ==="
-    echo "Check mutants.out/ directory for:"
-    echo "  - mutants.out/outcomes.json (detailed results)"
-    echo "  - mutants.out/mutants.log (full log)"
-    echo "  - mutants.out/*/build.log (individual build logs)"
+    echo "View detailed results:"
+    echo "  cat ${MUTANTS_OUT}/missed.txt     # Mutations that survived"
+    echo "  cat ${MUTANTS_OUT}/caught.txt     # Mutations caught by tests"
+    echo "  less ${MUTANTS_OUT}/outcomes.json # Full JSON results"
+    echo "  tail -f ${LOG}                    # Follow progress"
+    
+else
+    echo "No active mutation testing run found."
+    echo
+    
+    # List recent runs
+    if [ -d "$MUTATION_BASE" ]; then
+        echo "Recent runs:"
+        ls -lt "$MUTATION_BASE" | grep "^d" | grep "run_" | head -5
+    fi
+    
+    echo
+    echo "To start a new run: ./run_mutation_testing.sh"
 fi

@@ -1,23 +1,40 @@
 #!/bin/bash
-# Script to run mutation testing in background with optimizations
+# ABOUTME: Run mutation testing with optimizations and proper output management
+# Usage: ./run_mutation_testing.sh
 
-# Archive any previous runs
-if [ -d mutants.out ] || [ -d mutation_logs ]; then
-    TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-    echo "Archiving previous mutation testing runs to *-backup-${TIMESTAMP}/"
-    [ -d mutants.out ] && mv mutants.out "mutants.out-backup-${TIMESTAMP}"
-    [ -d mutation_logs ] && mv mutation_logs "mutation_logs-backup-${TIMESTAMP}"
+set -euo pipefail
+IFS=$'\n\t'
+
+# Script directory for relative paths
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Error handling
+die() { echo "ERROR: $*" >&2; exit 1; }
+warn() { echo "WARNING: $*" >&2; }
+
+# Create timestamped output directory
+OUTPUT_BASE="${SCRIPT_DIR}/mutation_results"
+mkdir -p "$OUTPUT_BASE"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+OUTPUT_DIR="${OUTPUT_BASE}/run_${TIMESTAMP}"
+
+echo "Creating output directory: $OUTPUT_DIR"
+mkdir -p "$OUTPUT_DIR"
+
+# Archive the most recent mutants.out if it exists
+if [ -d mutants.out ]; then
+    echo "Archiving existing mutants.out to mutants.out.old"
+    rm -rf mutants.out.old
+    mv mutants.out mutants.out.old
 fi
-mkdir -p mutation_logs
 
-# Get number of available cores and use 75% for safety
+# Get number of available cores
 AVAILABLE_CORES=$(nproc)
-# Use 75% of cores (but at least 1, and max 8 as cargo-mutants suggests)
-THREADS=$(( (AVAILABLE_CORES * 3 / 4) > 8 ? 8 : (AVAILABLE_CORES * 3 / 4) ))
-THREADS=$(( THREADS < 1 ? 1 : THREADS ))
+# Use 8 threads as this has been tested to work well
+THREADS=8
 
 echo "System has $AVAILABLE_CORES cores available"
-echo "Running mutation testing with $THREADS threads (safe limit)..."
+echo "Running mutation testing with $THREADS parallel jobs..."
 
 # Check if nextest is available
 if command -v cargo-nextest &> /dev/null; then
@@ -29,46 +46,76 @@ else
     NEXTEST_FLAG=""
 fi
 
-# Use ramdisk for faster I/O if available
-if [ -d "/ram" ] && [ -w "/ram" ]; then
-    export TMPDIR=/ram
-    echo "✓ Using ramdisk at /ram for temporary files"
+# Check if mold is available
+if command -v mold &> /dev/null; then
+    export RUSTFLAGS="-Clink-arg=-fuse-ld=mold"
+    echo "✓ Using mold linker for faster builds"
 else
-    echo "⚠ Ramdisk not available at /ram, using default temp directory"
+    warn "mold linker not found, using default linker"
+    echo "  Install with: sudo apt install mold"
 fi
 
-# Configure mold linker for faster builds
-export RUSTFLAGS="-Clink-arg=-fuse-ld=mold"
-echo "✓ Using mold linker for faster builds"
+# Create mutants profile if it doesn't exist
+if ! grep -q '\[profile.mutants\]' Cargo.toml; then
+    echo "✓ Adding 'mutants' profile to Cargo.toml for optimized builds"
+    cat >> Cargo.toml << 'EOF'
 
-echo "✓ Using 'mutants' profile (no debug symbols, opt-level=1)"
-echo "✓ Skipping doctests and benchmarks for better performance"
+[profile.mutants]
+inherits = "test"
+debug = "none"
+EOF
+fi
 
-# Run mutation testing on all modules with parallel execution
+# Create config file for cargo-mutants
+CONFIG_FILE="${SCRIPT_DIR}/.cargo/mutants.toml"
+mkdir -p "${SCRIPT_DIR}/.cargo"
+cat > "$CONFIG_FILE" << EOF
+# cargo-mutants configuration
+test_tool = "nextest"
+profile = "mutants"
+minimum_test_timeout = 300
+# Note: jobs parameter is not supported in config file, must use command line
+EOF
+
+echo "✓ Created cargo-mutants config at $CONFIG_FILE"
+echo "✓ Using 'mutants' profile (no debug symbols for faster builds)"
+echo "✓ Timeout set to 300 seconds per mutant"
+
+# Run mutation testing in background
 echo
 echo "Starting mutation testing in background..."
+echo "Output directory: $OUTPUT_DIR"
+echo
 
-# Use nohup to survive terminal closure, with all optimizations
-# The -o flag sets the output directory
+# Use nohup to survive terminal closure
+# Redirect all output to the timestamped directory
 nohup cargo mutants \
-    -j $THREADS \
-    --timeout 120 \
-    -o . \
-    $NEXTEST_FLAG \
-    > mutation_logs/full_run.log 2>&1 &
+    --output "$OUTPUT_DIR" \
+    --jobs $THREADS \
+    > "${OUTPUT_DIR}/mutation_run.log" 2>&1 &
 
 PID=$!
 echo "Mutation testing started with PID: $PID"
+echo "$PID" > "${OUTPUT_DIR}/mutation.pid"
+
+# Create a symlink to the current run
+ln -sfn "$OUTPUT_DIR" "${OUTPUT_BASE}/current"
+
 echo
-echo "Optimizations enabled:"
-echo "  • Ramdisk at /ram (faster file I/O)"
-echo "  • Custom 'mutants' profile (no debug symbols)"
-echo "  • Nextest runner (faster test execution)"
-echo "  • Skipping benchmarks and doctests (reduced overhead)"
-echo "  • $THREADS parallel threads"
+echo "Configuration:"
+echo "  • Output directory: $OUTPUT_DIR"
+echo "  • Parallel jobs: $THREADS"
+echo "  • Test tool: ${NEXTEST_FLAG:-cargo test}"
+echo "  • Profile: mutants (no debug symbols)"
+echo "  • Timeout: 300 seconds per mutant"
 echo
 echo "Monitor progress with:"
-echo "  tail -f mutation_logs/full_run.log"
+echo "  tail -f ${OUTPUT_DIR}/mutation_run.log"
 echo "  ./check_mutation_progress.sh"
+echo "  watch -n 10 'cat ${OUTPUT_BASE}/current/mutants.out/caught.txt | wc -l'"
+echo
+echo "View results:"
+echo "  less ${OUTPUT_BASE}/current/mutants.out/outcomes.json"
+echo "  cat ${OUTPUT_BASE}/current/mutants.out/missed.txt"
 echo
 echo "To stop: kill $PID"

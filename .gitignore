@@ -72,6 +72,7 @@ coverage/
 # Mutation testing output
 mutants.out/
 mutants.out.old/
+mutation_results/
 
 # Profiling
 perf.data
@@ -83,3 +84,4 @@ flamegraph.svg
 zwiftmap-reference/
 zwift-data-reference/
 zwift-client-reference/
+cargo-mutants/
