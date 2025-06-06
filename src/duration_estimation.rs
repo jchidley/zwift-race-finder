@@ -131,4 +131,126 @@ mod tests {
         assert!(tempus_time >= 26 && tempus_time <= 29,
             "Tempus Fugit should take 26-29 min for Cat C, got {}", tempus_time);
     }
+
+    #[test]
+    fn test_duration_estimation_for_cat_d() {
+        // Test known distances and expected durations for Cat D (195 score)
+        // Base speed for 195 score is 30.9 km/h
+
+        // Watopia: 40km at 30.9km/h * 1.0 multiplier = 77.7 ≈ 77 min
+        let watopia_time = estimate_duration_for_category(40.0, "Watopia", 195);
+        assert_eq!(watopia_time, 77);
+
+        // Alpe du Zwift: 30km at 30.9km/h * 0.7 multiplier = 83.1 ≈ 83 min
+        let alpe_time = estimate_duration_for_category(30.0, "Alpe du Zwift", 195);
+        assert_eq!(alpe_time, 83);
+
+        // Tempus Fugit: 35km at 30.9km/h * 1.1 multiplier = 61.8 ≈ 61 min
+        let tempus_time = estimate_duration_for_category(35.0, "Tempus Fugit", 195);
+        assert_eq!(tempus_time, 61);
+    }
+
+    #[test]
+    fn test_get_route_difficulty_multiplier() {
+        // Test very hilly routes
+        assert_eq!(get_route_difficulty_multiplier("Alpe du Zwift"), 0.7);
+        assert_eq!(get_route_difficulty_multiplier("Road to Sky"), 1.0);  // doesn't contain special keywords
+        assert_eq!(get_route_difficulty_multiplier("Ven-Top"), 1.0);     // "ventoux" not "ven"
+        assert_eq!(get_route_difficulty_multiplier("Mont Ventoux"), 0.7); // contains "ventoux"
+        assert_eq!(get_route_difficulty_multiplier("ALPE DU ZWIFT"), 0.7); // case insensitive
+        
+        // Test hilly routes
+        assert_eq!(get_route_difficulty_multiplier("Epic KOM"), 0.8);
+        assert_eq!(get_route_difficulty_multiplier("Mountain Route"), 0.8);
+        
+        // Test flat routes
+        assert_eq!(get_route_difficulty_multiplier("Tempus Fugit"), 1.1);
+        assert_eq!(get_route_difficulty_multiplier("Flatlands"), 1.1);
+        
+        // Test normal routes
+        assert_eq!(get_route_difficulty_multiplier("Regular Route"), 1.0);
+        assert_eq!(get_route_difficulty_multiplier(""), 1.0);
+    }
+
+    #[test]
+    fn test_specific_route_multipliers() {
+        // Test that route difficulty multipliers work correctly
+        let flat_distance = 40.0;
+        let zwift_score = 195;
+
+        // Same distance, different routes should give different times
+        let tempus = estimate_duration_for_category(flat_distance, "Tempus Fugit", zwift_score);
+        let alpe = estimate_duration_for_category(flat_distance, "Alpe du Zwift", zwift_score);
+        let normal = estimate_duration_for_category(flat_distance, "Regular Route", zwift_score); // No special keywords
+
+        // Tempus has 1.1x multiplier (faster), normal has 1.0x, Alpe has 0.7x (slower)
+        assert!(
+            tempus < normal,
+            "Tempus Fugit should be faster than normal: {} vs {}",
+            tempus,
+            normal
+        );
+        assert!(
+            alpe > normal,
+            "Alpe du Zwift should be slower than normal: {} vs {}",
+            alpe,
+            normal
+        );
+
+        // Check actual values match expected calculations
+        // 40km at 30.9km/h with multipliers:
+        assert_eq!(tempus, 70);  // 40 / (30.9 * 1.1) * 60 = 70.7 ≈ 70
+        assert_eq!(normal, 77);  // 40 / (30.9 * 1.0) * 60 = 77.7 ≈ 77  
+        assert_eq!(alpe, 110);   // 40 / (30.9 * 0.7) * 60 = 110.9 ≈ 110
+    }
+
+    #[test]
+    fn test_edge_case_estimations() {
+        // Test very short race (sprint)
+        let sprint_duration = estimate_duration_for_category(5.0, "Sprint Route", 195);
+        assert!(sprint_duration >= 8 && sprint_duration <= 12, 
+            "Sprint (5km) should take 8-12 minutes, got {}", sprint_duration);
+        
+        // Test very long race (gran fondo)
+        let fondo_duration = estimate_duration_for_category(100.0, "Epic Route", 195);
+        assert!(fondo_duration >= 180 && fondo_duration <= 250,
+            "Gran Fondo (100km) should take 3-4.2 hours, got {} min", fondo_duration);
+        
+        // Test zero distance (edge case)
+        let zero_duration = estimate_duration_for_category(0.0, "Zero Route", 195);
+        assert_eq!(zero_duration, 0, "Zero distance should give zero duration");
+        
+        // Test with different categories
+        let cat_a_duration = estimate_duration_for_category(40.0, "Test Route", 450);
+        let cat_d_duration = estimate_duration_for_category(40.0, "Test Route", 195);
+        assert!(cat_a_duration < cat_d_duration,
+            "Cat A should be faster than Cat D: {} vs {}", cat_a_duration, cat_d_duration);
+    }
+
+    #[test]
+    fn test_more_elevation_multipliers() {
+        // Test very flat routes (< 5m/km)
+        assert_eq!(get_route_difficulty_multiplier_from_elevation(20.0, 50), 1.1);  // 2.5m/km
+        assert_eq!(get_route_difficulty_multiplier_from_elevation(10.0, 40), 1.1);  // 4m/km
+        
+        // Test flat to rolling (5-10m/km)
+        assert_eq!(get_route_difficulty_multiplier_from_elevation(20.0, 150), 1.0); // 7.5m/km
+        assert_eq!(get_route_difficulty_multiplier_from_elevation(30.0, 270), 1.0); // 9m/km
+        
+        // Test rolling hills (10-20m/km)
+        assert_eq!(get_route_difficulty_multiplier_from_elevation(20.0, 300), 0.9); // 15m/km
+        assert_eq!(get_route_difficulty_multiplier_from_elevation(40.0, 760), 0.9); // 19m/km
+        
+        // Test hilly (20-40m/km)
+        assert_eq!(get_route_difficulty_multiplier_from_elevation(20.0, 500), 0.8); // 25m/km
+        assert_eq!(get_route_difficulty_multiplier_from_elevation(30.0, 1100), 0.8); // 36.7m/km
+        
+        // Test very hilly (>40m/km)
+        assert_eq!(get_route_difficulty_multiplier_from_elevation(10.0, 500), 0.7);  // 50m/km
+        assert_eq!(get_route_difficulty_multiplier_from_elevation(12.2, 1035), 0.7); // 84.8m/km (Alpe)
+        
+        // Test edge cases
+        assert_eq!(get_route_difficulty_multiplier_from_elevation(0.1, 1), 0.9);    // 10m/km = rolling hills
+        assert_eq!(get_route_difficulty_multiplier_from_elevation(1000.0, 5000), 1.0); // 5m/km on long route
+    }
 }
