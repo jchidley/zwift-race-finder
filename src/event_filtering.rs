@@ -634,4 +634,161 @@ mod tests {
         assert!(filtered <= initial_count as u32);
         assert!(events.len() <= initial_count);
     }
+
+    #[test]
+    fn test_event_matches_duration_comparison_operators() {
+        // Test <= comparison in event_matches_duration
+        // Mutations: replace <= with <, <=  with >, <= with ==
+        
+        // Test edge case: duration exactly at tolerance boundary
+        let mut event = create_test_event("Edge Case Race", "CYCLING", "RACE");
+        event.distance_in_meters = Some(15450.0); // Exactly 30 min for Cat D
+        
+        // With tolerance 0, only exact matches should pass
+        assert!(event_matches_duration(&event, 30, 0, 195));
+        
+        // Test that <= includes the boundary
+        assert!(event_matches_duration(&event, 30, 5, 195)); // Within tolerance
+        assert!(event_matches_duration(&event, 25, 5, 195)); // Exactly at upper bound
+        assert!(event_matches_duration(&event, 35, 5, 195)); // Exactly at lower bound
+        
+        // If <= became <, exact boundary would fail
+        // If <= became >, opposite results
+        // If <= became ==, only exact matches would pass
+    }
+
+    #[test]
+    fn test_filter_stats_arithmetic_operations() {
+        // Test addition in FilterStats::total_filtered
+        // Mutation: replace + with -
+        let stats = FilterStats {
+            sport_filtered: 10,
+            time_filtered: 5,
+            type_filtered: 3,
+            duration_filtered: 8,
+            tag_filtered: 2,
+            completed_routes_filtered: 1,
+            unknown_routes: 0,
+            missing_distance: 0,
+        };
+        
+        let total = stats.total_filtered();
+        assert_eq!(total, 29); // 10 + 5 + 3 + 8 + 2 + 1 = 29
+        
+        // If + became -, we'd get negative or very different values
+        assert!(total > 20);
+        assert!(total < 40);
+    }
+
+    #[test]
+    fn test_duration_no_match_arithmetic() {
+        // Test addition in FilterStats::duration_no_match
+        // Mutation: replace + with -
+        let stats = FilterStats {
+            sport_filtered: 0,
+            time_filtered: 0,
+            type_filtered: 0,
+            duration_filtered: 8,
+            tag_filtered: 0,
+            completed_routes_filtered: 0,
+            unknown_routes: 4,
+            missing_distance: 2,
+        };
+        
+        let no_match = stats.duration_no_match();
+        assert_eq!(no_match, 8); // duration_no_match only returns duration_filtered
+        
+        // Test that it equals duration_filtered
+        assert_eq!(no_match, stats.duration_filtered);
+    }
+
+    #[test] 
+    fn test_is_racing_score_event_conditions() {
+        use crate::models::{is_racing_score_event, EventSubGroup};
+        
+        // Test various conditions that identify racing score events
+        let mut event = create_test_event("Test Race", "CYCLING", "RACE");
+        
+        // Not a racing score event by default
+        assert!(!is_racing_score_event(&event));
+        
+        // Add racing score subgroup
+        event.event_sub_groups = vec![EventSubGroup {
+            id: 1,
+            name: "0-199".to_string(),
+            route_id: None,
+            distance_in_meters: Some(0.0),
+            duration_in_minutes: None,
+            category_enforcement: None,
+            range_access_label: Some("0-199".to_string()),
+            laps: None,
+        }];
+        
+        assert!(is_racing_score_event(&event));
+        
+        // Test with different range labels
+        event.event_sub_groups[0].range_access_label = Some("200-299".to_string());
+        assert!(is_racing_score_event(&event));
+        
+        event.event_sub_groups[0].range_access_label = None;
+        assert!(!is_racing_score_event(&event));
+    }
+
+    #[test]
+    fn test_filter_by_tags_inclusion() {
+        // Test tag filtering logic
+        let mut events = vec![
+            {
+                let mut e = create_test_event("Tagged Race", "CYCLING", "RACE");
+                e.tags = vec!["3R".to_string(), "flat".to_string()];
+                e
+            },
+            {
+                let mut e = create_test_event("Untagged Race", "CYCLING", "RACE");
+                e.tags = vec![];
+                e
+            },
+            {
+                let mut e = create_test_event("Different Tags", "CYCLING", "RACE");
+                e.tags = vec!["hilly".to_string(), "ranked".to_string()];
+                e
+            },
+        ];
+        
+        let tags = vec!["3R".to_string()];
+        let filtered = filter_by_tags(&mut events, &tags);
+        
+        assert_eq!(filtered, 2); // Should filter out 2 events
+        assert_eq!(events.len(), 1); // Only one event with "3R" tag remains
+        assert_eq!(events[0].name, "Tagged Race");
+    }
+
+    #[test]
+    fn test_filter_by_excluded_tags_comprehensive() {
+        // Test exclude tag filtering
+        let mut events = vec![
+            {
+                let mut e = create_test_event("Women's Race", "CYCLING", "RACE");
+                e.tags = vec!["women_only".to_string()];
+                e
+            },
+            {
+                let mut e = create_test_event("Open Race", "CYCLING", "RACE");
+                e.tags = vec!["3R".to_string()];
+                e
+            },
+            {
+                let mut e = create_test_event("Mixed Tags", "CYCLING", "RACE");
+                e.tags = vec!["3R".to_string(), "women_only".to_string()];
+                e
+            },
+        ];
+        
+        let exclude = vec!["women_only".to_string()];
+        let filtered = filter_by_excluded_tags(&mut events, &exclude);
+        
+        assert_eq!(filtered, 2); // Should filter out 2 events with "women_only"
+        assert_eq!(events.len(), 1); // Only "Open Race" remains
+        assert_eq!(events[0].name, "Open Race");
+    }
 }

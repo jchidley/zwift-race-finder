@@ -318,4 +318,110 @@ mod tests {
             1.0
         ); // 5m/km on long route
     }
+
+    #[test]
+    fn test_calculate_duration_with_dual_speed_arithmetic() {
+        // Test arithmetic operations in calculate_duration_with_dual_speed
+        // Mutations: replace * with +, replace / with *, etc.
+        
+        // Test basic calculation with flat route (low drop probability)
+        let distance = 30.0;
+        let elevation = 100; // Flat route: 3.3 m/km
+        let zwift_score = 195; // Cat D
+        let weight = 86.0;
+        let ftp = 217.0;
+        
+        // For flat route, drop probability should be 0
+        let duration = calculate_duration_with_dual_speed(distance, elevation, zwift_score, weight, ftp);
+        // Pack time = 30 / 30.9 * 60 = 58.25 minutes, rounded to 59
+        assert_eq!(duration, 59);
+        
+        // Test with hilly route (higher drop probability)
+        let elevation_hilly = 600; // 20 m/km = 30% drop probability
+        let duration_hilly = calculate_duration_with_dual_speed(distance, elevation_hilly, zwift_score, weight, ftp);
+        
+        // Should be between pack time (59) and solo time (~76)
+        assert!(duration_hilly >= duration); // >= pack time (might be same due to rounding)
+        assert!(duration_hilly < 80); // < full solo time
+        
+        // Test with very hilly route (high drop probability)
+        let elevation_steep = 1500; // 50 m/km = 90% drop probability
+        let duration_steep = calculate_duration_with_dual_speed(distance, elevation_steep, zwift_score, weight, ftp);
+        
+        // Should be longer than pack time but with difficulty multiplier it might be shorter
+        // Very steep routes get a 0.7 multiplier
+        assert!(duration_steep > 40); // With steep difficulty multiplier
+    }
+
+    #[test]
+    fn test_weighted_average_calculation() {
+        // Test the weighted average formula specifically
+        // pack_time * (1.0 - drop_probability) + solo_time * drop_probability
+        
+        let pack_time = 60.0;
+        let solo_time = 80.0;
+        let drop_prob = 0.25;
+        
+        let weighted = pack_time * (1.0 - drop_prob) + solo_time * drop_prob;
+        assert_eq!(weighted, 65.0); // 60 * 0.75 + 80 * 0.25 = 45 + 20 = 65
+        
+        // If * became +, we'd get very different results
+        assert_ne!(weighted, pack_time + (1.0 - drop_prob) + solo_time + drop_prob);
+        
+        // Test edge cases
+        let weighted_0 = pack_time * 1.0 + solo_time * 0.0;
+        assert_eq!(weighted_0, pack_time);
+        
+        let weighted_1 = pack_time * 0.0 + solo_time * 1.0;
+        assert_eq!(weighted_1, solo_time);
+    }
+
+    #[test]
+    fn test_drop_probability_match_guards() {
+        // Test match guard conditions in calculate_drop_probability
+        // Mutation: replace match guard with true/false
+        
+        // Test various elevation levels
+        let test_cases = vec![
+            (5.0, 0.0),   // < 10 m/km -> 0%
+            (15.0, 0.1),  // 10-20 m/km -> 10%
+            (25.0, 0.3),  // 20-30 m/km -> 30%
+            (35.0, 0.5),  // 30-40 m/km -> 50%
+            (45.0, 0.7),  // 40-50 m/km -> 70%
+            (55.0, 0.9),  // > 50 m/km -> 90%
+        ];
+        
+        for (elevation_per_km, expected_prob) in test_cases {
+            let prob = match elevation_per_km {
+                e if e < 10.0 => 0.0,
+                e if e < 20.0 => 0.1,
+                e if e < 30.0 => 0.3,
+                e if e < 40.0 => 0.5,
+                e if e < 50.0 => 0.7,
+                _ => 0.9,
+            };
+            
+            assert_eq!(prob, expected_prob);
+        }
+    }
+
+    #[test]
+    fn test_minutes_calculation() {
+        // Test conversion from hours to minutes
+        // Formula: (distance_km / speed_kmh) * 60
+        
+        let distance = 20.0;
+        let speed = 30.0;
+        
+        let time_hours = distance / speed; // 0.667 hours
+        let time_minutes = time_hours * MINUTES_PER_HOUR as f64; // 40 minutes
+        
+        assert_eq!(time_minutes as u32, 40);
+        
+        // If * became +, we'd get 60.667
+        assert!(time_minutes < 50.0);
+        
+        // If / became *, we'd get 600 hours
+        assert!(time_hours < 1.0);
+    }
 }

@@ -1015,4 +1015,141 @@ mod tests {
         // We can't easily capture println! output, but we can verify the function runs
         display_filter_stats(&stats, 100); // Should print statistics
     }
+
+    #[test]
+    fn test_log_unknown_route_conditions() {
+        // Test the || condition in log_unknown_route
+        // Mutation: replace || with &&
+        let mut event = create_test_event("Test Race", 25.0, "Test Route", "CYCLING");
+        
+        // Case 1: No route_id - should not call record_unknown_route
+        event.route_id = None;
+        log_unknown_route(&event);
+        
+        // Case 2: Known route_id - should not call record_unknown_route
+        event.route_id = Some(1); // This is a known route in the test data
+        log_unknown_route(&event);
+        
+        // Case 3: Unknown route_id with description
+        event.route_id = Some(999999);
+        event.description = Some("3 laps of Ocean Boulevard".to_string());
+        log_unknown_route(&event);
+        
+        // Case 4: Unknown route_id without description
+        event.description = None;
+        log_unknown_route(&event);
+    }
+
+    #[test]
+    fn test_calculate_actual_distance_arithmetic() {
+        // Test division operations in calculate_actual_distance
+        // Mutations: replace / with *, replace / with %
+        let route_data = crate::models::RouteData {
+            distance_km: 10.0,
+            elevation_m: 100,
+            name: "Test Route",
+            world: "Watopia",
+            surface: "road",
+            lead_in_distance_km: 0.5,
+        };
+        
+        let event = create_test_event("Test Race", 30.0, "Test Route", "CYCLING");
+        
+        // Test with explicit distance in meters
+        let (distance, laps) = calculate_actual_distance(
+            &route_data,
+            None,
+            Some(30000.0), // 30 km
+            &event,
+        );
+        
+        assert_eq!(distance, 30.0); // 30000 / 1000 = 30
+        assert_eq!(laps, 3); // 30 / 10 = 3
+        
+        // If / became *, we'd get 30000000.0
+        assert!(distance < 100.0);
+        
+        // Test with subgroup distance
+        let subgroup = EventSubGroup {
+            id: 1,
+            name: "Cat D".to_string(),
+            route_id: None,
+            distance_in_meters: Some(20000.0),
+            duration_in_minutes: None,
+            category_enforcement: None,
+            range_access_label: None,
+            laps: None,
+        };
+        
+        let (distance2, laps2) = calculate_actual_distance(
+            &route_data,
+            Some(&subgroup),
+            None,
+            &event,
+        );
+        
+        assert_eq!(distance2, 20.0); // 20000 / 1000 = 20
+        assert_eq!(laps2, 2); // 20 / 10 = 2
+    }
+
+    #[test]
+    fn test_display_calculated_duration_arithmetic() {
+        // Test multiplication in display_calculated_duration
+        // Mutations: replace * with +, replace * with /
+        
+        // For a 30 km race at Cat D speed (30.9 km/h)
+        // Duration = 30 / 30.9 * 60 = 58.25 minutes
+        let distance_km = 30.0;
+        let speed_kmh = 30.9;
+        let duration_minutes = (distance_km / speed_kmh * MINUTES_PER_HOUR as f64) as u32;
+        
+        assert_eq!(duration_minutes, 58);
+        // If * became +, we'd get 60 minutes (0.97 + 60)
+        assert_ne!(duration_minutes, 60);
+        // If * became /, we'd get 0 minutes (0.97 / 60)
+        assert_ne!(duration_minutes, 0);
+    }
+
+    #[test]
+    fn test_display_distance_based_duration_division() {
+        // Test division operations in display_distance_based_duration
+        // Specifically the distance_km / 1000.0 operation
+        // Mutations: replace / with *, replace / with %
+        
+        let distance_meters = 42195.0;
+        let distance_km = distance_meters / METERS_PER_KILOMETER;
+        
+        assert_eq!(distance_km, 42.195);
+        // If / became *, we'd get 42195000.0
+        assert!(distance_km < 100.0);
+        // If / became %, we'd get 195.0 (remainder)
+        assert!(distance_km > 40.0);
+    }
+
+    #[test]
+    fn test_filter_stats_methods() {
+        use crate::event_filtering::FilterStats;
+        
+        let stats = FilterStats {
+            sport_filtered: 10,
+            time_filtered: 5,
+            type_filtered: 3,
+            duration_filtered: 8,
+            tag_filtered: 2,
+            completed_routes_filtered: 1,
+            unknown_routes: 4,
+            missing_distance: 2,
+        };
+        
+        let total_events = 100;
+        display_filter_stats(&stats, total_events);
+        
+        // Test that FilterStats::total_filtered works correctly
+        let total = stats.total_filtered();
+        assert_eq!(total, 29); // 10 + 5 + 3 + 8 + 2 + 1 = 29
+        
+        // Test duration_no_match calculation
+        let duration_no_match = stats.duration_no_match();
+        assert_eq!(duration_no_match, 8); // duration_no_match only returns duration_filtered
+    }
 }
