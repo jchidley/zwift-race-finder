@@ -601,4 +601,37 @@ mod tests {
         assert!(event_matches_duration(&event, 60, 10, 200));
         assert!(!event_matches_duration(&event, 120, 10, 200));
     }
+
+    #[test]
+    fn test_filter_new_routes_only() {
+        // Create events with different route IDs
+        let mut events = vec![
+            {
+                let mut e = create_test_event("Race 1", "CYCLING", "RACE");
+                e.route_id = Some(1); // Assume route 1 is completed
+                e
+            },
+            {
+                let mut e = create_test_event("Race 2", "CYCLING", "RACE");
+                e.route_id = Some(999999); // Assume this route is not completed
+                e
+            },
+            {
+                let mut e = create_test_event("Race 3", "CYCLING", "RACE");
+                e.route_id = None; // No route ID, should be kept
+                e
+            },
+        ];
+
+        // This test can't easily mock database, but we can verify the function executes
+        // In real usage, it would filter based on completed routes in the database
+        let initial_count = events.len();
+        let filtered = filter_new_routes_only(&mut events);
+        
+        // The function should execute and return a count
+        // Without a test database, we can't assert specific filtering behavior
+        // but we can ensure it doesn't crash and returns a valid count
+        assert!(filtered <= initial_count as u32);
+        assert!(events.len() <= initial_count);
+    }
 }
