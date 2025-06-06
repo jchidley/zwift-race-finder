@@ -627,7 +627,7 @@ mod tests {
         // In real usage, it would filter based on completed routes in the database
         let initial_count = events.len();
         let filtered = filter_new_routes_only(&mut events);
-        
+
         // The function should execute and return a count
         // Without a test database, we can't assert specific filtering behavior
         // but we can ensure it doesn't crash and returns a valid count
