@@ -1,6 +1,27 @@
 # Handoff Document - Zwift Race Finder
 
-## Current State (2025-01-06)
+## Current State (2025-01-06 - Evening Update)
+
+### Latest Session Update (Continued Evening Session)
+1. **Completed Database Test Migration**
+   - Moved test_database_route_validation from main.rs to database.rs module
+   - This was the last database test that needed migration
+   
+2. **Added Comprehensive Mutation Tests**
+   - Analyzed mutation testing log showing 178+ missed mutations
+   - Added 15+ new tests across event_display, event_filtering, and duration_estimation modules
+   - Tests specifically target arithmetic operators (+/-/*), comparison operators (</>/<=/==), and boolean operators (&&/||)
+   - All new tests passing - ready for mutation testing verification
+
+3. **Test Coverage Improvements**
+   - test_log_unknown_route_conditions - tests || vs && mutations
+   - test_calculate_actual_distance_arithmetic - tests division operations 
+   - test_display_calculated_duration_arithmetic - tests multiplication vs addition
+   - test_event_matches_duration_comparison_operators - tests <= boundary conditions
+   - test_filter_stats_arithmetic_operations - tests addition in total calculations
+   - test_calculate_duration_with_dual_speed_arithmetic - tests dual-speed model math
+   - test_weighted_average_calculation - tests weighted average formula
+   - And more...
 
 ### Latest Session Update (Evening)
 1. **Completed Test Refactoring**
@@ -79,17 +100,45 @@
 - Test reorganization progressing well
 - Mutation testing ready to resume with better organized tests
 
+### Latest Session - Mutation Analysis and Yak Shaving (Evening Continuation)
+1. **Analyzed Mutation Testing Results**
+   - User reported 649 missed mutations from cargo-mutants
+   - Read mutants.rs documentation - learned that 100% mutation coverage is NOT the goal
+   - Many missed mutations are in display/logging code that doesn't need unit tests
+   - Focus should be on business-critical paths
+
+2. **Created Function Mapping Documentation**
+   - Mapped functions from old mutation results to current locations after refactoring
+   - Many functions moved from main.rs to specialized modules
+   - Created comprehensive analysis of which mutations matter
+
+3. **Added Targeted Tests for Critical Mutations**
+   - test_display_filter_stats_empty_case - tests == vs != mutation
+   - test_prepare_event_row_multi_lap_calculation - tests * vs + mutation
+   - test_display_distance_based_duration_conversion - tests / vs % mutation
+   - test_analyze_event_descriptions_counter - tests += vs -= mutation
+
+4. **Added Yak Shaving Concept to PROJECT_WISDOM.md**
+   - Systematic technical debt reduction workflow
+   - Git workflow: Create branch at start, commit/push at end
+   - Process: Format → Mutation test → Map functions → Fill gaps → Refactor
+   - Focus on idiomatic code that LLMs understand
+   - Tool chain includes rustfmt, cargo-mutants, clippy, etc.
+
 ### Next Actions
 ```bash
-# Continue test reorganization per DUPLICATE_TESTS_REPORT.md:
-# - Move database tests from main.rs to database.rs (2 remaining)
-# - Write tests to catch missed mutations (178+ found by cargo-mutants)
+# Run a yak shaving session following the documented workflow:
+git checkout -b yak-20250107
+git add -A && git commit -m "chore: start yak shaving session"
+git push -u origin yak-20250107
+# ... perform systematic improvements ...
+git add -A && git commit -m "chore: complete yak shaving session"
+git push
+# Create PR for review
 
-# Check remaining tests in main.rs:
-cargo test --bin zwift-race-finder --lib
+# Focus on integration tests rather than forcing unit tests with mocks
 
-# Start mutation testing to identify gaps:
-./run_mutation_testing.sh
+# Review the 649 missed mutations for business impact, not coverage %
 ```
 
 ### Test Migration Status
@@ -97,10 +146,15 @@ cargo test --bin zwift-race-finder --lib
 - ✅ Event display tests → event_display.rs (6 tests moved)
 - ✅ Route discovery tests → tests/integration_tests.rs (3 tests moved)
 - ✅ Duplicate tests removed from main.rs (2 tests removed)
+- ✅ Database tests → database.rs (1 test moved: test_database_route_validation)
+- ✅ Mutation gap tests written (15+ new tests added across 3 modules)
 
-**Remaining**:
-- ⏳ Database tests → database.rs (2 tests)
-- ⏳ Write tests for missed mutations (178+ identified)
+**Test Improvements Made**:
+- Added arithmetic operation tests to catch +/-/* mutations
+- Added comparison operator tests to catch </>/<=/== mutations
+- Added boolean operator tests to catch &&/|| mutations
+- Added tests for match guard conditions
+- Added tests for function return value mutations
 
 ### Refactoring Status
 **Documentation Created**: 
@@ -158,6 +212,8 @@ cargo test --bin zwift-race-finder --lib
 7. "fix: use elevation-based difficulty for Mt. Fuji duration estimation"
 8. "refactor: move event display tests and functions to event_display module"
 9. "refactor: move route discovery tests to integration tests"
+10. "refactor: move database test from main.rs to database.rs module"
+11. "test: add comprehensive tests to catch mutation testing gaps"
 
 ### Files Modified
 - src/constants.rs (created)

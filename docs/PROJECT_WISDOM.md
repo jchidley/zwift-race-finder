@@ -547,3 +547,56 @@ Details:
   - Tools provide objective metrics to guide work
   - Documentation captures decisions and rationale
 - Best Practice: Schedule regular maintenance windows, use tooling output to prioritize work
+
+### 2025-01-06: Yak Shaving as Systematic Technical Debt Reduction
+Insight: Regular "yak shaving" sessions using automated tools provide systematic approach to reducing technical debt with LLMs
+Impact: Creates repeatable process for maintaining code quality without manual analysis of every change
+Key Learning: Combine static analysis tools with mutation testing to identify concrete improvement opportunities
+Command Concept: `/yak` - automated technical debt reduction workflow
+Details:
+- Yak shaving in this context: Methodical cleanup of accumulated technical debt
+- The workflow:
+  1. Git workflow start: Create branch, add, commit, push
+     - `git checkout -b yak-YYYYMMDD` or `git checkout -b technical-debt-YYYYMMDD`
+     - `git add -A && git commit -m "chore: start yak shaving session"`
+     - `git push -u origin yak-YYYYMMDD`
+  2. Format all code (rustfmt, prettier, etc.) for consistency
+  3. Run mutation tests on code changed since last yak session
+  4. Map functions between mutation test start and analysis completion (handles refactoring)
+  5. Identify testing gaps from mutation results
+  6. Write tests to fill identified gaps
+  7. Refactor code to reduce complexity
+  8. Focus on obvious, idiomatic, straightforward improvements
+  9. Avoid clever code that LLMs might not have seen in training
+  10. Git workflow end: Add, commit, push final changes
+      - `git add -A && git commit -m "chore: complete yak shaving session"`
+      - `git push`
+      - Create PR for review before merging
+- Why this matters for LLM development:
+  - LLMs accumulate technical debt faster than humans
+  - They generate working but often poorly organized code
+  - Without guard rails, functionality drifts or gets lost
+  - Consistent formatting helps LLMs recognize patterns
+  - Well-tested code constrains LLM modifications
+  - Idiomatic code matches LLM training data
+- Tool chain for comprehensive analysis:
+  - rustfmt/prettier: Consistent formatting
+  - cargo-mutants: Find weak tests
+  - cargo clippy: Rust-specific lints
+  - cargo-audit: Security vulnerabilities
+  - cargo-outdated: Dependency updates
+  - cargo-machete: Unused dependencies
+  - cargo-expand: Macro debugging
+  - rust-analyzer: IDE-level insights
+- The iterative nature:
+  - Run regularly (weekly/bi-weekly)
+  - Each session builds on the last
+  - Track metrics over time
+  - Celebrate small improvements
+- Expected outcomes:
+  - Tests that catch real bugs
+  - Code that's easier to understand
+  - Reduced cognitive load
+  - Better LLM comprehension
+  - Fewer regression bugs
+- Best Practice: Make yak shaving a regular ritual, not emergency response
