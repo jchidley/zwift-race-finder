@@ -1,5 +1,5 @@
 //! Formatting utilities for display
-//! 
+//!
 //! This module contains formatting functions for durations and event types.
 
 use crate::constants::MINUTES_PER_HOUR;
@@ -37,7 +37,7 @@ mod tests {
         assert_eq!(format_duration(61), "01:01");
         assert_eq!(format_duration(120), "02:00");
         assert_eq!(format_duration(150), "02:30");
-        
+
         // Test larger values
         assert_eq!(format_duration(599), "09:59");
         assert_eq!(format_duration(600), "10:00");

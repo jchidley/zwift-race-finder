@@ -12,20 +12,20 @@ proptest! {
         let hours = (minutes / 60.0) as u32;
         let mins = (minutes % 60.0) as u32;
         let result = format!("{:02}:{:02}", hours, mins);
-        
+
         // Result should always be in HH:MM format for reasonable durations
         assert!(result.len() >= 5);  // Could be longer for > 99 hours
         assert!(result.contains(':'));
-        
+
         // Parse hours and minutes from the formatted string
         let parts: Vec<&str> = result.split(':').collect();
         assert_eq!(parts.len(), 2);
         let parsed_hours: u32 = parts[0].parse().unwrap();
         let parsed_mins: u32 = parts[1].parse().unwrap();
-        
+
         // Minutes should be < 60
         assert!(parsed_mins < 60);
-        
+
         // Total should approximately match input
         let total_minutes = parsed_hours * 60 + parsed_mins;
         let diff = f64::abs(total_minutes as f64 - minutes);
@@ -57,7 +57,7 @@ proptest! {
             lead_in_elevation_meetups_m: None,
             slug: None,
         };
-        
+
         // Inline duration estimation logic
         let base_speed = match zwift_score {
             0..=199 => 30.0,   // Cat D
@@ -65,18 +65,18 @@ proptest! {
             300..=399 => 36.0, // Cat B
             _ => 39.0,         // Cat A
         };
-        
+
         let elevation_factor = 1.0 - (route.elevation_m as f64 / route.distance_km / 100.0).min(0.3);
         let effective_speed = base_speed * elevation_factor;
         let duration = route.distance_km / effective_speed * 60.0;
-        
+
         // Duration should be positive
         assert!(duration > 0.0);
-        
+
         // Duration should be reasonable (between 1 min and 10 hours for these ranges)
         assert!(duration >= 1.0);  // 1km races can be very short
         assert!(duration <= 600.0); // 200km races can be very long
-        
+
         // Longer distances should take more time
         if distance_km > 50.0 {
             assert!(duration > 30.0);
@@ -109,7 +109,7 @@ proptest! {
             lead_in_elevation_meetups_m: None,
             slug: None,
         };
-        
+
         let route2 = RouteData {
             route_id: 2,
             distance_km: base_distance + extra_distance,
@@ -125,7 +125,7 @@ proptest! {
             lead_in_elevation_meetups_m: None,
             slug: None,
         };
-        
+
         // Calculate durations using same logic
         let base_speed = match zwift_score {
             0..=199 => 30.0,   // Cat D
@@ -133,17 +133,17 @@ proptest! {
             300..=399 => 36.0, // Cat B
             _ => 39.0,         // Cat A
         };
-        
+
         let elevation_factor1 = 1.0 - (route1.elevation_m as f64 / route1.distance_km / 100.0).min(0.3);
         let effective_speed1 = base_speed * elevation_factor1;
         let duration1 = route1.distance_km / effective_speed1 * 60.0;
-        
+
         let elevation_factor2 = 1.0 - (route2.elevation_m as f64 / route2.distance_km / 100.0).min(0.3);
         let effective_speed2 = base_speed * elevation_factor2;
         let duration2 = route2.distance_km / effective_speed2 * 60.0;
-        
+
         // INVARIANT: Longer route must take more time
-        assert!(duration2 > duration1, 
+        assert!(duration2 > duration1,
             "Longer route should take more time: {} km in {} min vs {} km in {} min",
             route2.distance_km, duration2, route1.distance_km, duration1);
     }
@@ -174,7 +174,7 @@ proptest! {
             lead_in_elevation_meetups_m: None,
             slug: None,
         };
-        
+
         let hilly_route = RouteData {
             route_id: 2,
             distance_km,
@@ -190,7 +190,7 @@ proptest! {
             lead_in_elevation_meetups_m: None,
             slug: None,
         };
-        
+
         // Calculate durations
         let base_speed = match zwift_score {
             0..=199 => 30.0,   // Cat D
@@ -198,15 +198,15 @@ proptest! {
             300..=399 => 36.0, // Cat B
             _ => 39.0,         // Cat A
         };
-        
+
         let flat_elevation_factor = 1.0 - (flat_route.elevation_m as f64 / flat_route.distance_km / 100.0).min(0.3);
         let flat_effective_speed = base_speed * flat_elevation_factor;
         let flat_duration = flat_route.distance_km / flat_effective_speed * 60.0;
-        
+
         let hilly_elevation_factor = 1.0 - (hilly_route.elevation_m as f64 / hilly_route.distance_km / 100.0).min(0.3);
         let hilly_effective_speed = base_speed * hilly_elevation_factor;
         let hilly_duration = hilly_route.distance_km / hilly_effective_speed * 60.0;
-        
+
         // INVARIANT: More elevation must increase duration (slower speed)
         assert!(hilly_duration > flat_duration,
             "Hilly route should take more time: {}m elevation in {} min vs {}m elevation in {} min",
@@ -236,20 +236,20 @@ proptest! {
             lead_in_elevation_meetups_m: None,
             slug: None,
         };
-        
+
         // Calculate duration for each category
         let cat_d_speed = 30.0;
         let cat_c_speed = 33.0;
         let cat_b_speed = 36.0;
         let cat_a_speed = 39.0;
-        
+
         let elevation_factor = 1.0 - (route.elevation_m as f64 / route.distance_km / 100.0).min(0.3);
-        
+
         let duration_d = route.distance_km / (cat_d_speed * elevation_factor) * 60.0;
         let duration_c = route.distance_km / (cat_c_speed * elevation_factor) * 60.0;
         let duration_b = route.distance_km / (cat_b_speed * elevation_factor) * 60.0;
         let duration_a = route.distance_km / (cat_a_speed * elevation_factor) * 60.0;
-        
+
         // INVARIANT: Higher categories complete routes faster
         assert!(duration_a < duration_b);
         assert!(duration_b < duration_c);
@@ -268,9 +268,9 @@ proptest! {
         // If actual is within range, it should pass filter
         let min = (target - tolerance) as f64;
         let max = (target + tolerance) as f64;
-        
+
         let passes_filter = actual >= min && actual <= max;
-        
+
         // Test the inverse - if outside range, should not pass
         if actual < min || actual > max {
             assert!(!passes_filter);
@@ -279,7 +279,6 @@ proptest! {
         }
     }
 }
-
 
 // Test race result parsing edge cases
 proptest! {
@@ -290,19 +289,19 @@ proptest! {
         name in "[a-zA-Z0-9 ]{1,100}"
     ) {
         let result_string = format!("{},{},{}", route_id, time, name);
-        
+
         // Test parsing logic inline
         let parts: Vec<&str> = result_string.split(',').collect();
-        
+
         if parts.len() == 3 {
             let route_parse = parts[0].parse::<u32>();
             let time_parse = parts[1].parse::<f64>();
             let parsed_name = parts[2].to_string();
-            
+
             if time > 0.0 && !name.trim().is_empty() {
                 assert!(route_parse.is_ok());
                 assert!(time_parse.is_ok());
-                
+
                 if let (Ok(r_id), Ok(r_time)) = (route_parse, time_parse) {
                     assert_eq!(r_id, route_id);
                     let time_diff = f64::abs(r_time - time);

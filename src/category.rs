@@ -5,14 +5,14 @@
 
 // Average speeds by category (km/h) - based on actual race data with draft
 pub const CAT_A_PLUS_SPEED: f64 = 45.0; // Elite racers, estimated ~7% faster than Cat A
-pub const CAT_A_SPEED: f64 = 42.0;      // Estimated based on Cat D scaling
-pub const CAT_B_SPEED: f64 = 37.0;      // Estimated based on Cat D scaling
-pub const CAT_C_SPEED: f64 = 33.0;      // Estimated based on Cat D scaling
-pub const CAT_D_SPEED: f64 = 30.9;      // Jack's actual average from 151 races
-pub const CAT_E_SPEED: f64 = 28.0;      // Beginner category, ~10% slower than Cat D
+pub const CAT_A_SPEED: f64 = 42.0; // Estimated based on Cat D scaling
+pub const CAT_B_SPEED: f64 = 37.0; // Estimated based on Cat D scaling
+pub const CAT_C_SPEED: f64 = 33.0; // Estimated based on Cat D scaling
+pub const CAT_D_SPEED: f64 = 30.9; // Jack's actual average from 151 races
+pub const CAT_E_SPEED: f64 = 28.0; // Beginner category, ~10% slower than Cat D
 
 /// Get category letter from Zwift Racing Score
-/// 
+///
 /// Returns the appropriate category based on Zwift Racing Score ranges:
 /// - 0-99: Category E (beginners)
 /// - 100-199: Category D
@@ -32,7 +32,7 @@ pub fn get_category_from_score(zwift_score: u32) -> &'static str {
 }
 
 /// Get detailed category string with subcategories (e.g., "D+", "C-")
-/// 
+///
 /// Provides more granular categorization for display purposes:
 /// - Shows "+" for strong riders in their category
 /// - Shows "-" for riders at the bottom of their category
@@ -56,7 +56,7 @@ pub fn get_detailed_category_from_score(zwift_score: u32) -> &'static str {
 }
 
 /// Get average speed for a category
-/// 
+///
 /// Returns the typical race speed (km/h) for each category in draft.
 /// These speeds are calibrated from real race data.
 pub fn get_category_speed(category: &str) -> f64 {
@@ -71,7 +71,7 @@ pub fn get_category_speed(category: &str) -> f64 {
 }
 
 /// Check if a subgroup name matches the user's category
-/// 
+///
 /// Handles special cases like:
 /// - Category D riders can join Category E events
 /// - Category names might include modifiers (e.g., "Cat C Women")
@@ -80,26 +80,27 @@ pub fn category_matches_subgroup(user_category: &str, subgroup_name: &str) -> bo
     if subgroup_name.contains(user_category) {
         return true;
     }
-    
+
     // Special case: Cat D riders can join Cat E events
     if user_category == "D" && subgroup_name.contains("E") {
         return true;
     }
-    
+
     // Handle detailed categories (e.g., user is "D+" but event just says "D")
     // Only check base category if user has a detailed category
     if user_category.len() > 1 {
         let base_category = &user_category[0..1];
         // Make sure we're matching the category letter with word boundaries
-        if subgroup_name.contains(&format!(" {}", base_category)) ||
-           subgroup_name.contains(&format!("{} ", base_category)) ||
-           subgroup_name.contains(&format!("({})", base_category)) ||
-           subgroup_name.contains(&format!("Category {}", base_category)) ||
-           subgroup_name.contains(&format!("Cat {}", base_category)) {
+        if subgroup_name.contains(&format!(" {}", base_category))
+            || subgroup_name.contains(&format!("{} ", base_category))
+            || subgroup_name.contains(&format!("({})", base_category))
+            || subgroup_name.contains(&format!("Category {}", base_category))
+            || subgroup_name.contains(&format!("Cat {}", base_category))
+        {
             return true;
         }
     }
-    
+
     false
 }
 
@@ -113,27 +114,27 @@ mod tests {
         assert_eq!(get_category_from_score(0), "E");
         assert_eq!(get_category_from_score(50), "E");
         assert_eq!(get_category_from_score(99), "E");
-        
+
         // Category D
         assert_eq!(get_category_from_score(100), "D");
         assert_eq!(get_category_from_score(150), "D");
         assert_eq!(get_category_from_score(199), "D");
-        
+
         // Category C
         assert_eq!(get_category_from_score(200), "C");
         assert_eq!(get_category_from_score(250), "C");
         assert_eq!(get_category_from_score(299), "C");
-        
+
         // Category B
         assert_eq!(get_category_from_score(300), "B");
         assert_eq!(get_category_from_score(350), "B");
         assert_eq!(get_category_from_score(399), "B");
-        
+
         // Category A
         assert_eq!(get_category_from_score(400), "A");
         assert_eq!(get_category_from_score(500), "A");
         assert_eq!(get_category_from_score(599), "A");
-        
+
         // Category A+
         assert_eq!(get_category_from_score(600), "A+");
         assert_eq!(get_category_from_score(700), "A+");
@@ -145,22 +146,22 @@ mod tests {
         // E categories
         assert_eq!(get_detailed_category_from_score(25), "E-");
         assert_eq!(get_detailed_category_from_score(75), "E");
-        
+
         // D categories
         assert_eq!(get_detailed_category_from_score(125), "D-");
         assert_eq!(get_detailed_category_from_score(175), "D");
         assert_eq!(get_detailed_category_from_score(195), "D+");
-        
+
         // C categories
         assert_eq!(get_detailed_category_from_score(225), "C-");
         assert_eq!(get_detailed_category_from_score(275), "C");
         assert_eq!(get_detailed_category_from_score(295), "C+");
-        
+
         // B categories
         assert_eq!(get_detailed_category_from_score(325), "B-");
         assert_eq!(get_detailed_category_from_score(375), "B");
         assert_eq!(get_detailed_category_from_score(395), "B+");
-        
+
         // A categories
         assert_eq!(get_detailed_category_from_score(450), "A-");
         assert_eq!(get_detailed_category_from_score(550), "A");
@@ -170,20 +171,20 @@ mod tests {
     #[test]
     fn test_get_category_speed() {
         // Basic categories
-        assert_eq!(get_category_speed("A++"), 45.0);  // Elite racers
-        assert_eq!(get_category_speed("A+"), 42.0);   // A+ maps to A speed
+        assert_eq!(get_category_speed("A++"), 45.0); // Elite racers
+        assert_eq!(get_category_speed("A+"), 42.0); // A+ maps to A speed
         assert_eq!(get_category_speed("A"), 42.0);
         assert_eq!(get_category_speed("B"), 37.0);
         assert_eq!(get_category_speed("C"), 33.0);
         assert_eq!(get_category_speed("D"), 30.9);
         assert_eq!(get_category_speed("E"), 28.0);
-        
+
         // Detailed categories
         assert_eq!(get_category_speed("D+"), 30.9);
         assert_eq!(get_category_speed("C-"), 33.0);
         assert_eq!(get_category_speed("B+"), 37.0);
         assert_eq!(get_category_speed("A-"), 42.0);
-        
+
         // Unknown category defaults to D
         assert_eq!(get_category_speed("X"), 30.9);
         assert_eq!(get_category_speed(""), 30.9);
@@ -195,15 +196,15 @@ mod tests {
         assert!(category_matches_subgroup("A", "Category A"));
         assert!(category_matches_subgroup("B", "Cat B Men"));
         assert!(category_matches_subgroup("C", "C - Women"));
-        
+
         // D can join E
         assert!(category_matches_subgroup("D", "Category E"));
         assert!(category_matches_subgroup("D", "Cat D/E Mixed"));
-        
+
         // Detailed categories
         assert!(category_matches_subgroup("D+", "Category D"));
         assert!(category_matches_subgroup("C-", "Cat C"));
-        
+
         // Non-matches - using more realistic subgroup names
         assert!(!category_matches_subgroup("C", "B - Men's Race"));
         assert!(!category_matches_subgroup("A", "Cat D"));

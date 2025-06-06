@@ -1440,24 +1440,6 @@ mod tests {
     }
 
     #[test]
-    fn test_duration_estimation_for_cat_d() {
-        // Test known distances and expected durations for Cat D (195 score)
-        // Base speed for 195 score is 30.9 km/h
-
-        // Watopia: 40km at 30.9km/h * 1.0 multiplier = 77.7 ≈ 77 min
-        let watopia_time = estimate_duration_for_category(40.0, "Watopia", 195);
-        assert_eq!(watopia_time, 77);
-
-        // Alpe du Zwift: 30km at 30.9km/h * 0.7 multiplier = 83.1 ≈ 83 min
-        let alpe_time = estimate_duration_for_category(30.0, "Alpe du Zwift", 195);
-        assert_eq!(alpe_time, 83);
-
-        // Tempus Fugit: 35km at 30.9km/h * 1.1 multiplier = 61.8 ≈ 61 min
-        let tempus_time = estimate_duration_for_category(35.0, "Tempus Fugit", 195);
-        assert_eq!(tempus_time, 61);
-    }
-
-    #[test]
     fn test_duration_filtering() {
         let events = vec![
             create_test_event("Short Race", 20.0, "Watopia Flat", "CYCLING"), // ~39 min
@@ -1828,38 +1810,6 @@ mod tests {
     }
 
     #[test]
-    fn test_specific_route_multipliers() {
-        // Test that route difficulty multipliers work correctly
-        let flat_distance = 40.0;
-        let zwift_score = 195;
-
-        // Same distance, different routes should give different times
-        let tempus = estimate_duration_for_category(flat_distance, "Tempus Fugit", zwift_score);
-        let alpe = estimate_duration_for_category(flat_distance, "Alpe du Zwift", zwift_score);
-        let normal = estimate_duration_for_category(flat_distance, "Regular Route", zwift_score); // No special keywords
-
-        // Tempus has 1.1x multiplier (faster), normal has 1.0x, Alpe has 0.7x (slower)
-        assert!(
-            tempus < normal,
-            "Tempus Fugit should be faster than normal: {} vs {}",
-            tempus,
-            normal
-        );
-        assert!(
-            alpe > normal,
-            "Alpe du Zwift should be slower than normal: {} vs {}",
-            alpe,
-            normal
-        );
-        assert!(
-            alpe > tempus + 10,
-            "Alpe should be significantly slower than Tempus: {} vs {}",
-            alpe,
-            tempus
-        );
-    }
-    
-    #[test]
     fn test_route_id_regression_with_actual_results() {
         // This test will use Jack's actual race results once provided
         // For now, we test the route_id infrastructure
@@ -1934,24 +1884,6 @@ mod tests {
         // let jacks_results = vec![
         //     ActualResult { route_id: 2698009951, actual_minutes: 52, date: "2025-01" },
         // ];
-    }
-
-    #[test]
-    fn test_edge_case_estimations() {
-        // Test very short race (sprint)
-        let sprint_duration = estimate_duration_for_category(5.0, "Sprint Route", 195);
-        assert!(sprint_duration >= 8 && sprint_duration <= 12, 
-            "Sprint (5km) should take 8-12 minutes, got {}", sprint_duration);
-        
-        // Test very long race (gran fondo)
-        let fondo_duration = estimate_duration_for_category(100.0, "Epic Route", 195);
-        assert!(fondo_duration >= 180 && fondo_duration <= 250,
-            "Gran Fondo (100km) should take 3-4.2 hours, got {} min", fondo_duration);
-        
-        // Test extreme elevation (Alpe du Zwift)
-        let alpe_duration = estimate_duration_for_category(12.2, "Alpe du Zwift", 195);
-        assert!(alpe_duration >= 33 && alpe_duration <= 45,
-            "Alpe (12.2km with 1035m elevation) should take 33-45 min, got {}", alpe_duration);
     }
 
     #[test]
@@ -2254,27 +2186,6 @@ mod tests {
         assert!(desc_tt.contains("time trials"));
     }
 
-    #[test]
-    fn test_estimate_duration_for_category() {
-        // Test Cat D rider on flat route
-        let duration_d_flat = estimate_duration_for_category(20.0, "Watopia Flat Route", 195);
-        // 20km at 30.9 km/h = ~38.8 minutes
-        assert!(duration_d_flat >= 35 && duration_d_flat <= 42, "Expected ~39 min, got {}", duration_d_flat);
-        
-        // Test Cat C rider on flat route
-        let duration_c_flat = estimate_duration_for_category(20.0, "Watopia Flat Route", 250);
-        // 20km at 33.8 km/h = ~35.5 minutes
-        assert!(duration_c_flat >= 32 && duration_c_flat <= 38, "Expected ~35 min, got {}", duration_c_flat);
-        
-        // Test with hilly route (should be slower)
-        let duration_d_hilly = estimate_duration_for_category(20.0, "Epic KOM", 195);
-        assert!(duration_d_hilly > duration_d_flat, "Hilly route should take longer");
-        
-        // Test with Alpe du Zwift (0.7 multiplier = 30% slower)
-        let duration_alpe = estimate_duration_for_category(12.2, "Alpe du Zwift", 195);
-        // 12.2km / (30.9 km/h * 0.7) * 60 = ~33.8 minutes
-        assert!(duration_alpe >= 30 && duration_alpe <= 36, "Expected ~34 min for Alpe, got {}", duration_alpe);
-    }
 
 
     #[test]
@@ -2423,61 +2334,7 @@ mod tests {
 
 
 
-    #[test]
-    fn test_get_route_difficulty_multiplier_from_elevation() {
-        // Test very flat routes (< 5m/km)
-        assert_eq!(get_route_difficulty_multiplier_from_elevation(20.0, 50), 1.1);  // 2.5m/km
-        assert_eq!(get_route_difficulty_multiplier_from_elevation(10.0, 40), 1.1);  // 4m/km
-        
-        // Test flat to rolling (5-10m/km)
-        assert_eq!(get_route_difficulty_multiplier_from_elevation(20.0, 150), 1.0); // 7.5m/km
-        assert_eq!(get_route_difficulty_multiplier_from_elevation(30.0, 270), 1.0); // 9m/km
-        
-        // Test rolling hills (10-20m/km)
-        assert_eq!(get_route_difficulty_multiplier_from_elevation(20.0, 300), 0.9); // 15m/km
-        assert_eq!(get_route_difficulty_multiplier_from_elevation(40.0, 760), 0.9); // 19m/km
-        
-        // Test hilly (20-40m/km)
-        assert_eq!(get_route_difficulty_multiplier_from_elevation(20.0, 500), 0.8); // 25m/km
-        assert_eq!(get_route_difficulty_multiplier_from_elevation(30.0, 1100), 0.8); // 36.7m/km
-        
-        // Test very hilly (> 40m/km)
-        assert_eq!(get_route_difficulty_multiplier_from_elevation(20.0, 1000), 0.7); // 50m/km
-        assert_eq!(get_route_difficulty_multiplier_from_elevation(12.0, 1035), 0.7); // 86.25m/km (Alpe du Zwift)
-        
-        // Test edge cases
-        assert_eq!(get_route_difficulty_multiplier_from_elevation(100.0, 0), 1.1);   // 0m/km - perfectly flat
-        assert_eq!(get_route_difficulty_multiplier_from_elevation(5.0, 250), 0.7);   // 50m/km - extreme climb
-    }
 
-    #[test]
-    fn test_get_route_difficulty_multiplier() {
-        // Test very hilly routes
-        assert_eq!(get_route_difficulty_multiplier("Alpe du Zwift"), 0.7);
-        assert_eq!(get_route_difficulty_multiplier("Road to Sky"), 1.0);  // doesn't contain special keywords
-        assert_eq!(get_route_difficulty_multiplier("Ven-Top"), 1.0);     // "ventoux" not "ven"
-        assert_eq!(get_route_difficulty_multiplier("Mont Ventoux"), 0.7); // contains "ventoux"
-        assert_eq!(get_route_difficulty_multiplier("ALPE DU ZWIFT"), 0.7); // case insensitive
-        
-        // Test hilly routes
-        assert_eq!(get_route_difficulty_multiplier("Epic KOM"), 0.8);
-        assert_eq!(get_route_difficulty_multiplier("Mountain Route"), 0.8);
-        assert_eq!(get_route_difficulty_multiplier("The Mega Pretzel"), 1.0); // doesn't contain "epic" or "mountain"
-        
-        // Test flat routes
-        assert_eq!(get_route_difficulty_multiplier("Tempus Fugit"), 1.1);
-        assert_eq!(get_route_difficulty_multiplier("Watopia Flat Route"), 1.1);
-        assert_eq!(get_route_difficulty_multiplier("Tick Tock"), 1.0); // Doesn't contain "flat" or "tempus"
-        
-        // Test default routes
-        assert_eq!(get_route_difficulty_multiplier("Watopia Hilly Route"), 1.0);
-        assert_eq!(get_route_difficulty_multiplier("Richmond UCI Worlds"), 1.0);
-        assert_eq!(get_route_difficulty_multiplier("London Loop"), 1.0);
-        
-        // Test mixed case and partial matches
-        assert_eq!(get_route_difficulty_multiplier("the EPIC kom reverse"), 0.8);
-        assert_eq!(get_route_difficulty_multiplier("Flat is Fast"), 1.1);
-    }
 
     #[test]
     fn test_generate_no_results_suggestions() {
@@ -2726,6 +2583,5 @@ mod tests {
         };
         assert_eq!(result, 0);
     }
-
 }
 

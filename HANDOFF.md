@@ -33,45 +33,75 @@
      - `estimate_duration_with_distance()` (was commented)
    - These functions properly exist in estimation.rs module
 
+#### Evening Session - Mutation Testing & Maintenance
+1. **Updated Mutation Testing Infrastructure**
+   - Migrated from RAM disk to filesystem-based testing
+   - Added timestamped output directories (mutation_results/run_YYYYMMDD_HHMMSS/)
+   - Configured to use 8 threads, mold linker, and nextest
+   - Added proper background execution with PID tracking
+   - Successfully running with 1053 mutants
+
+2. **Fixed Mt. Fuji Duration Estimation**
+   - Issue: Mt. Fuji (route 2663908549) was estimating 39 minutes instead of 52-70
+   - Root cause: estimate_duration_from_route_id was using route name instead of elevation data
+   - Solution: Modified to use elevation-based multiplier when elevation data available
+   - Result: All tests now passing, mutation testing can proceed
+
+3. **Removed Duplicate Tests from main.rs**
+   - Found 6 duplicate tests that existed in both main.rs and duration_estimation.rs
+   - Removed: test_specific_route_multipliers, test_estimate_duration_for_category, 
+     test_get_route_difficulty_multiplier_from_elevation, test_get_route_difficulty_multiplier
+   - Created DUPLICATE_TESTS_REPORT.md documenting all 44 tests that need reorganization
+
+4. **Updated PROJECT_WISDOM.md**
+   - Added insight about continuous maintenance as foundation of software quality
+   - Documented three pillars: comprehensive testing, code organization, disciplined refactoring
+   - Included references to Rust-specific refactoring documents
+   - Added critical note about LLM behavior requiring constraints to prevent wandering/rewriting
+
 ### Session Summary
 - Deep research on Rust refactoring tools and best practices
 - Successfully installed and used refactoring tools
 - Created constants module to replace magic numbers throughout codebase
 - Improved code organization by extracting display logic to separate module
 - Enhanced test organization with tests in their appropriate modules
-- Cleaned up 199 lines of duplicate/dead code
-- All tests passing (except pre-existing Mt. Fuji test)
-- Mutation testing shows 27% coverage - needs improvement
+- Cleaned up 199 lines of duplicate/dead code + 130 lines of duplicate tests
+- All tests passing after Mt. Fuji fix
+- Mutation testing running successfully with improved infrastructure
+- Comprehensive documentation created for refactoring and testing
 
 ### Active Processes
-- None currently running
+- Mutation testing running in background (check with ./check_mutation_progress.sh)
+- Finding mutations that tests don't catch (9+ found so far)
 
 ### Next Actions
 ```bash
-# Run full test suite:
-cargo test
+# Monitor mutation testing:
+./check_mutation_progress.sh
 
-# Check specific module tests:
-cargo test --lib duration_estimation::tests
-cargo test --lib event_filtering::tests
+# Continue test reorganization per DUPLICATE_TESTS_REPORT.md:
+# - 13 tests to move to event_filtering.rs
+# - 9 tests to move to event_display.rs
+# - 5 tests to move to route_discovery.rs
+# - 2 tests to move to database.rs
 
-# Check mutation test results (if completed):
-cat mutants.out/missed.txt | wc -l  # Count of uncaught mutants
+# Write tests to catch missed mutations:
+# - Database functions returning early without doing work
+# - Logical operators being flipped (&&/||, >/< etc)
+# - Arithmetic operations being changed
 
-# Priority tasks:
-# 1. Fix Mt. Fuji duration estimation test
-# 2. Remove duplicate tests from main.rs (already in modules)
-# 3. Extract more large functions from main.rs
-# 4. Improve test coverage for mutation testing
+# Extract more large functions from main.rs
 ```
 
 ### Refactoring Status
 **Documentation Created**: 
 - RUST_REFACTORING_RULES.md - Comprehensive refactoring guide
 - RUST_REFACTORING_TOOLS.md - Tool installation and usage
+- RUST_REFACTORING_BEST_PRACTICES.md - Rust idioms and conventions
 - MIGRATION_TO_UOM_PLAN.md - Future type-safe units migration
 - TEST_ORGANIZATION.md - Test structure guide
 - TEST_REORGANIZATION_SUMMARY.md - Changes made
+- DUPLICATE_TESTS_REPORT.md - Test migration plan
 
 **Code Improvements**:
 - Removed unused urlencoding dependency
@@ -81,16 +111,21 @@ cat mutants.out/missed.txt | wc -l  # Count of uncaught mutants
 - Updated ~50 magic number occurrences
 - Extracted event_display.rs module (329 lines)
 - Removed 199 lines of duplicate/dead code
+- Removed 130 lines of duplicate tests
+- Fixed Mt. Fuji elevation-based duration calculation
 
 **Modules Refactored**:
 - event_display.rs - All event display functions extracted
-- duration_estimation.rs - Tests added from main.rs
+- duration_estimation.rs - Tests added from main.rs, Mt. Fuji fix
+- estimation.rs - Fixed to use elevation data when available
 - Code duplication between main.rs and estimation.rs resolved
 
-**Tools Installed**: cargo-edit, cargo-expand, cargo-machete
+**Tools Installed**: cargo-edit, cargo-expand, cargo-machete, cargo-mutants
 
 ### Key Commands
-- `cargo test` - All tests passing (except Mt. Fuji)
+- `cargo test` - All tests passing ✅
+- `./run_mutation_testing.sh` - Start mutation testing
+- `./check_mutation_progress.sh` - Monitor mutation testing
 - `cargo rm <dep>` - Remove unused dependencies
 - `cargo expand` - View macro expansions
 - `cargo machete` - Find unused dependencies
@@ -98,11 +133,11 @@ cat mutants.out/missed.txt | wc -l  # Count of uncaught mutants
 - See TEST_ORGANIZATION.md for module-specific test commands
 
 ### Technical Debt Identified
-1. Duplicate tests still exist in main.rs (should be removed)
+1. 38 more tests in main.rs need to be moved to appropriate modules
 2. main.rs is still large and could be further modularized
-3. Mt. Fuji duration estimation needs investigation
+3. Mutation testing revealing gaps in test coverage
 4. Consider shared test utilities module
-5. Mutation test coverage at 27% - needs improvement
+5. Some database functions can return early without validation
 
 ### Commits Made Today
 1. "refactor: integrate constants module and eliminate magic numbers"
@@ -110,11 +145,18 @@ cat mutants.out/missed.txt | wc -l  # Count of uncaught mutants
 3. "test: improve test organization and add duration estimation tests"
 4. "docs: add test reorganization summary"
 5. "refactor: remove duplicate functions from main.rs"
+6. "docs: update HANDOFF.md with session checkpoint"
+7. "fix: use elevation-based difficulty for Mt. Fuji duration estimation"
 
 ### Files Modified
 - src/constants.rs (created)
 - src/event_display.rs (created)
 - src/duration_estimation.rs (tests added)
+- src/estimation.rs (Mt. Fuji fix)
 - src/lib.rs (modules added)
-- src/main.rs (functions extracted, duplicates removed)
+- src/main.rs (functions extracted, duplicates removed, tests removed)
+- run_mutation_testing.sh (rewritten)
+- check_mutation_progress.sh (updated)
+- .cargo/mutants.toml (created)
+- docs/PROJECT_WISDOM.md (continuous maintenance insight)
 - Multiple documentation files created

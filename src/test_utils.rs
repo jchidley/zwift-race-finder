@@ -1,10 +1,15 @@
 //! Test utilities module for unit testing
 
-use crate::models::{ZwiftEvent, EventSubGroup};
-use chrono::{Utc, Duration};
+use crate::models::{EventSubGroup, ZwiftEvent};
+use chrono::{Duration, Utc};
 
 /// Helper to create a test event
-pub fn create_test_event(name: &str, event_type: &str, distance: Option<f64>, route_id: Option<u32>) -> ZwiftEvent {
+pub fn create_test_event(
+    name: &str,
+    event_type: &str,
+    distance: Option<f64>,
+    route_id: Option<u32>,
+) -> ZwiftEvent {
     ZwiftEvent {
         id: 1,
         name: name.to_string(),

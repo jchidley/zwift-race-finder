@@ -73,8 +73,6 @@ pub struct Secrets {
     pub zwiftpower_session_id: Option<String>,
 }
 
-
-
 impl Default for Defaults {
     fn default() -> Self {
         Defaults {
@@ -86,7 +84,6 @@ impl Default for Defaults {
         }
     }
 }
-
 
 impl Default for Preferences {
     fn default() -> Self {
@@ -116,7 +113,7 @@ impl Config {
         // 3. ~/.config/zwift-race-finder/config.toml
         // 4. ~/.local/share/zwift-race-finder/config.toml (survives updates)
         // 5. Default values
-        
+
         let config_paths = vec![
             PathBuf::from("config.toml"),
             dirs::config_dir()
@@ -134,7 +131,7 @@ impl Config {
                 })
                 .unwrap_or_default(),
         ];
-        
+
         // Load from file if found
         let mut config = Config::default();
         for path in config_paths {
@@ -144,13 +141,13 @@ impl Config {
                 break;
             }
         }
-        
+
         // Apply environment variable overrides
         config.apply_env_overrides();
-        
+
         Ok(config)
     }
-    
+
     /// Apply environment variable overrides to config
     fn apply_env_overrides(&mut self) {
         // Override defaults
@@ -159,81 +156,87 @@ impl Config {
                 self.defaults.zwift_score = Some(score);
             }
         }
-        
+
         if let Ok(cat) = std::env::var("ZWIFT_CATEGORY") {
             self.defaults.category = Some(cat);
         }
-        
+
         if let Ok(weight) = std::env::var("ZWIFT_WEIGHT_KG") {
             if let Ok(weight) = weight.parse::<f32>() {
                 self.defaults.weight_kg = Some(weight);
             }
         }
-        
+
         if let Ok(height) = std::env::var("ZWIFT_HEIGHT_M") {
             if let Ok(height) = height.parse::<f32>() {
                 self.defaults.height_m = Some(height);
             }
         }
-        
+
         if let Ok(ftp) = std::env::var("ZWIFT_FTP_WATTS") {
             if let Ok(ftp) = ftp.parse::<u32>() {
                 self.defaults.ftp_watts = Some(ftp);
             }
         }
-        
+
         // Override preferences
         if let Ok(duration) = std::env::var("ZWIFT_DEFAULT_DURATION") {
             if let Ok(duration) = duration.parse::<u32>() {
                 self.preferences.default_duration = Some(duration);
             }
         }
-        
+
         if let Ok(tolerance) = std::env::var("ZWIFT_DEFAULT_TOLERANCE") {
             if let Ok(tolerance) = tolerance.parse::<u32>() {
                 self.preferences.default_tolerance = Some(tolerance);
             }
         }
-        
+
         if let Ok(days) = std::env::var("ZWIFT_DEFAULT_DAYS") {
             if let Ok(days) = days.parse::<u32>() {
                 self.preferences.default_days = Some(days);
             }
         }
     }
-    
+
     /// Get the download path for imported files
     #[allow(dead_code)]
     pub fn get_download_path(&self) -> String {
-        let username = self.import.windows_username.clone()
+        let username = self
+            .import
+            .windows_username
+            .clone()
             .or_else(|| std::env::var("WINDOWS_USERNAME").ok())
             .unwrap_or_else(|| "YOUR_USERNAME".to_string());
-            
+
         if username != "YOUR_USERNAME" {
             format!("/mnt/c/Users/{}/Downloads", username)
         } else {
-            format!("{}/Downloads", std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string()))
+            format!(
+                "{}/Downloads",
+                std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string())
+            )
         }
     }
-    
+
     /// Save config to the user's data directory (survives updates)
     #[allow(dead_code)]
     pub fn save(&self) -> Result<()> {
         let config_dir = dirs::data_dir()
             .ok_or_else(|| anyhow::anyhow!("Could not determine data directory"))?
             .join("zwift-race-finder");
-        
+
         // Create directory if it doesn't exist
         fs::create_dir_all(&config_dir)?;
-        
+
         let config_path = config_dir.join("config.toml");
         let content = toml::to_string_pretty(self)?;
         fs::write(&config_path, content)?;
-        
+
         eprintln!("Config saved to: {}", config_path.display());
         Ok(())
     }
-    
+
     /// Get the path where user config would be saved
     #[allow(dead_code)]
     pub fn get_user_config_path() -> Option<PathBuf> {
@@ -281,48 +284,48 @@ impl FullConfig {
             secrets: Secrets::load(),
         })
     }
-    
+
     // Compatibility methods
     /// Get ZwiftPower profile ID
     #[allow(dead_code)]
     pub fn zwiftpower_profile_id(&self) -> Option<&String> {
         self.secrets.zwiftpower_profile_id.as_ref()
     }
-    
+
     /// Get ZwiftPower session ID
     #[allow(dead_code)]
     pub fn zwiftpower_session_id(&self) -> Option<&String> {
         self.secrets.zwiftpower_session_id.as_ref()
     }
-    
+
     /// Get default Zwift score
     pub fn default_zwift_score(&self) -> Option<u32> {
         self.config.defaults.zwift_score
     }
-    
+
     /// Get default category
     pub fn default_category(&self) -> Option<&String> {
         self.config.defaults.category.as_ref()
     }
-    
+
     /// Get Windows username for WSL
     #[allow(dead_code)]
     pub fn windows_username(&self) -> Option<&String> {
         self.config.import.windows_username.as_ref()
     }
-    
+
     /// Get default weight in kg
     #[allow(dead_code)]
     pub fn default_weight_kg(&self) -> Option<f32> {
         self.config.defaults.weight_kg
     }
-    
+
     /// Get default height in meters
     #[allow(dead_code)]
     pub fn default_height_m(&self) -> Option<f32> {
         self.config.defaults.height_m
     }
-    
+
     /// Get default FTP in watts
     #[allow(dead_code)]
     pub fn default_ftp_watts(&self) -> Option<u32> {

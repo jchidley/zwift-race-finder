@@ -1,5 +1,5 @@
 //! Database module for managing Zwift route data and race results
-//! 
+//!
 //! Stores route information and actual race completion times
 
 use anyhow::Result;
@@ -86,25 +86,27 @@ impl Database {
     /// Create a new database connection
     pub fn new() -> Result<Self> {
         let db_path = get_database_path()?;
-        let conn = Connection::open(&db_path)
-            .map_err(|e| {
-                eprintln!("\n{} Failed to open database", "❌ Error:".red().bold());
-                eprintln!("   Path: {}", db_path.display());
-                eprintln!("   {}", e);
-                eprintln!("\n{}", "💡 Suggestions:".yellow());
-                eprintln!("   • Check if the directory exists and is writable");
-                eprintln!("   • Try: mkdir -p {}", db_path.parent().unwrap_or(&db_path).display());
-                eprintln!();
-                e
-            })?;
-        
+        let conn = Connection::open(&db_path).map_err(|e| {
+            eprintln!("\n{} Failed to open database", "❌ Error:".red().bold());
+            eprintln!("   Path: {}", db_path.display());
+            eprintln!("   {}", e);
+            eprintln!("\n{}", "💡 Suggestions:".yellow());
+            eprintln!("   • Check if the directory exists and is writable");
+            eprintln!(
+                "   • Try: mkdir -p {}",
+                db_path.parent().unwrap_or(&db_path).display()
+            );
+            eprintln!();
+            e
+        })?;
+
         let db = Database { conn };
         db.create_tables()?;
         db.seed_initial_data()?;
-        
+
         Ok(db)
     }
-    
+
     fn create_tables(&self) -> Result<()> {
         // Routes table
         self.conn.execute(
@@ -127,7 +129,7 @@ impl Database {
             )",
             [],
         )?;
-        
+
         // Race results table for regression testing
         self.conn.execute(
             "CREATE TABLE IF NOT EXISTS race_results (
@@ -143,7 +145,7 @@ impl Database {
             )",
             [],
         )?;
-        
+
         // Route completion tracking
         self.conn.execute(
             "CREATE TABLE IF NOT EXISTS route_completion (
@@ -155,7 +157,7 @@ impl Database {
             )",
             [],
         )?;
-        
+
         // Unknown routes table for data collection
         self.conn.execute(
             "CREATE TABLE IF NOT EXISTS unknown_routes (
@@ -167,7 +169,7 @@ impl Database {
             )",
             [],
         )?;
-        
+
         // Rider stats table for physics calculations
         self.conn.execute(
             "CREATE TABLE IF NOT EXISTS rider_stats (
@@ -179,7 +181,7 @@ impl Database {
             )",
             [],
         )?;
-        
+
         // Route discovery attempts table to avoid repeated searches
         self.conn.execute(
             "CREATE TABLE IF NOT EXISTS route_discovery_attempts (
@@ -195,36 +197,83 @@ impl Database {
             )",
             [],
         )?;
-        
+
         Ok(())
     }
-    
+
     fn seed_initial_data(&self) -> Result<()> {
         // Check if we already have data
-        let count: i64 = self.conn.query_row(
-            "SELECT COUNT(*) FROM routes",
-            [],
-            |row| row.get(0),
-        )?;
-        
+        let count: i64 = self
+            .conn
+            .query_row("SELECT COUNT(*) FROM routes", [], |row| row.get(0))?;
+
         if count > 0 {
             return Ok(()); // Already seeded
         }
-        
+
         // Seed with known routes
         let routes: Vec<(u32, f64, u32, &str, &str, &str)> = vec![
             (1_258_415_487, 14.1, 59, "Bell Lap", "Crit City", "road"),
-            (2_143_464_829, 33.4, 170, "Watopia Flat Route", "Watopia", "road"),
-            (2_927_651_296, 67.5, 654, "Makuri Pretzel", "Makuri Islands", "road"),
-            (3_742_187_716, 24.5, 168, "Castle to Castle", "Makuri Islands", "road"),
-            (2_698_009_951, 22.9, 80, "Downtown Dolphin", "Crit City", "road"),
-            (2_663_908_549, 20.3, 1159, "Mt. Fuji", "Makuri Islands", "road"),
-            (3_368_626_651, 27.4, 223, "eRacing Course", "Various", "road"),
-            (1_656_629_976, 19.8, 142, "Ottawa TopSpeed", "Various", "road"),
+            (
+                2_143_464_829,
+                33.4,
+                170,
+                "Watopia Flat Route",
+                "Watopia",
+                "road",
+            ),
+            (
+                2_927_651_296,
+                67.5,
+                654,
+                "Makuri Pretzel",
+                "Makuri Islands",
+                "road",
+            ),
+            (
+                3_742_187_716,
+                24.5,
+                168,
+                "Castle to Castle",
+                "Makuri Islands",
+                "road",
+            ),
+            (
+                2_698_009_951,
+                22.9,
+                80,
+                "Downtown Dolphin",
+                "Crit City",
+                "road",
+            ),
+            (
+                2_663_908_549,
+                20.3,
+                1159,
+                "Mt. Fuji",
+                "Makuri Islands",
+                "road",
+            ),
+            (
+                3_368_626_651,
+                27.4,
+                223,
+                "eRacing Course",
+                "Various",
+                "road",
+            ),
+            (
+                1_656_629_976,
+                19.8,
+                142,
+                "Ottawa TopSpeed",
+                "Various",
+                "road",
+            ),
             (2_474_227_587, 100.0, 892, "KISS 100", "Watopia", "road"),
             (3_395_698_268, 60.0, 543, "R3R 60km", "Various", "road"),
         ];
-        
+
         for (id, dist, elev, name, world, surface) in routes {
             self.conn.execute(
                 "INSERT OR IGNORE INTO routes (route_id, distance_km, elevation_m, name, world, surface,
@@ -233,10 +282,10 @@ impl Database {
                 params![id, dist, elev, name, world, surface, 0.3, 0],
             )?;
         }
-        
+
         Ok(())
     }
-    
+
     /// Get route data by ID
     pub fn get_route(&self, route_id: u32) -> Result<Option<RouteData>> {
         let mut stmt = self.conn.prepare(
@@ -244,30 +293,32 @@ impl Database {
                     lead_in_distance_km, lead_in_elevation_m,
                     lead_in_distance_free_ride_km, lead_in_elevation_free_ride_m,
                     lead_in_distance_meetups_km, lead_in_elevation_meetups_m, slug
-             FROM routes WHERE route_id = ?1"
+             FROM routes WHERE route_id = ?1",
         )?;
-        
-        let route = stmt.query_row([route_id], |row| {
-            Ok(RouteData {
-                route_id: row.get(0)?,
-                distance_km: row.get(1)?,
-                elevation_m: row.get(2)?,
-                name: row.get(3)?,
-                world: row.get(4)?,
-                surface: row.get(5)?,
-                lead_in_distance_km: row.get(6).unwrap_or(0.0),
-                lead_in_elevation_m: row.get(7).unwrap_or(0),
-                lead_in_distance_free_ride_km: row.get(8).ok(),
-                lead_in_elevation_free_ride_m: row.get(9).ok(),
-                lead_in_distance_meetups_km: row.get(10).ok(),
-                lead_in_elevation_meetups_m: row.get(11).ok(),
-                slug: row.get(12).ok(),
+
+        let route = stmt
+            .query_row([route_id], |row| {
+                Ok(RouteData {
+                    route_id: row.get(0)?,
+                    distance_km: row.get(1)?,
+                    elevation_m: row.get(2)?,
+                    name: row.get(3)?,
+                    world: row.get(4)?,
+                    surface: row.get(5)?,
+                    lead_in_distance_km: row.get(6).unwrap_or(0.0),
+                    lead_in_elevation_m: row.get(7).unwrap_or(0),
+                    lead_in_distance_free_ride_km: row.get(8).ok(),
+                    lead_in_elevation_free_ride_m: row.get(9).ok(),
+                    lead_in_distance_meetups_km: row.get(10).ok(),
+                    lead_in_elevation_meetups_m: row.get(11).ok(),
+                    slug: row.get(12).ok(),
+                })
             })
-        }).optional()?;
-        
+            .optional()?;
+
         Ok(route)
     }
-    
+
     /// Add a new route to the database
     #[allow(dead_code)]
     pub fn add_route(&self, route: &RouteData) -> Result<()> {
@@ -295,7 +346,7 @@ impl Database {
         )?;
         Ok(())
     }
-    
+
     /// Get route data by name
     #[allow(dead_code)]
     pub fn get_route_by_name(&self, name: &str) -> Result<Option<RouteData>> {
@@ -306,9 +357,9 @@ impl Database {
                     lead_in_distance_meetups_km, lead_in_elevation_meetups_m, slug
              FROM routes 
              WHERE LOWER(name) = LOWER(?1)
-             LIMIT 1"
+             LIMIT 1",
         )?;
-        
+
         let route = stmt
             .query_row([name], |row| {
                 Ok(RouteData {
@@ -328,12 +379,17 @@ impl Database {
                 })
             })
             .optional()?;
-        
+
         Ok(route)
     }
-    
+
     /// Record an unknown route for future investigation
-    pub fn record_unknown_route(&self, route_id: u32, event_name: &str, event_type: &str) -> Result<()> {
+    pub fn record_unknown_route(
+        &self,
+        route_id: u32,
+        event_name: &str,
+        event_type: &str,
+    ) -> Result<()> {
         self.conn.execute(
             "INSERT INTO unknown_routes (route_id, event_name, event_type) 
              VALUES (?1, ?2, ?3)
@@ -344,7 +400,7 @@ impl Database {
         )?;
         Ok(())
     }
-    
+
     /// Add a race result
     pub fn add_race_result(&self, result: &RaceResult) -> Result<()> {
         self.conn.execute(
@@ -361,63 +417,73 @@ impl Database {
         )?;
         Ok(())
     }
-    
+
     /// Get race results for a specific route
     #[allow(dead_code)]
-    pub fn get_race_results_for_route(&self, route_id: u32, zwift_score: u32) -> Result<Vec<RaceResult>> {
+    pub fn get_race_results_for_route(
+        &self,
+        route_id: u32,
+        zwift_score: u32,
+    ) -> Result<Vec<RaceResult>> {
         let mut stmt = self.conn.prepare(
             "SELECT id, route_id, event_name, actual_minutes, zwift_score, race_date, notes 
              FROM race_results 
              WHERE route_id = ?1 AND zwift_score BETWEEN ?2 - 10 AND ?2 + 10
-             ORDER BY race_date DESC"
+             ORDER BY race_date DESC",
         )?;
-        
-        let results = stmt.query_map(params![route_id, zwift_score], |row| {
-            Ok(RaceResult {
-                id: Some(row.get(0)?),
-                route_id: row.get(1)?,
-                event_name: row.get(2)?,
-                actual_minutes: row.get(3)?,
-                zwift_score: row.get(4)?,
-                race_date: row.get(5)?,
-                notes: row.get(6)?,
-            })
-        })?
-        .collect::<std::result::Result<Vec<_>, _>>()?;
-        
+
+        let results = stmt
+            .query_map(params![route_id, zwift_score], |row| {
+                Ok(RaceResult {
+                    id: Some(row.get(0)?),
+                    route_id: row.get(1)?,
+                    event_name: row.get(2)?,
+                    actual_minutes: row.get(3)?,
+                    zwift_score: row.get(4)?,
+                    race_date: row.get(5)?,
+                    notes: row.get(6)?,
+                })
+            })?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+
         Ok(results)
     }
-    
+
     /// Get average race time for a route
     #[allow(dead_code)]
     pub fn get_average_race_time(&self, route_id: u32, _zwift_score: u32) -> Result<Option<u32>> {
         // Get average from recent results (last 3 months are most reliable)
         // But if no recent results, use all historical data
-        let recent_result: Option<f64> = self.conn.query_row(
-            "SELECT AVG(actual_minutes) 
+        let recent_result: Option<f64> = self
+            .conn
+            .query_row(
+                "SELECT AVG(actual_minutes) 
              FROM race_results 
              WHERE route_id = ?1 
                AND race_date >= date('now', '-3 months')",
-            [route_id],
-            |row| row.get(0)
-        ).optional()?;
-        
+                [route_id],
+                |row| row.get(0),
+            )
+            .optional()?;
+
         // If no recent results, fall back to all results
         let result = if recent_result.is_some() {
             recent_result
         } else {
-            self.conn.query_row(
-                "SELECT AVG(actual_minutes) 
+            self.conn
+                .query_row(
+                    "SELECT AVG(actual_minutes) 
                  FROM race_results 
                  WHERE route_id = ?1",
-                [route_id],
-                |row| row.get(0)
-            ).optional()?
+                    [route_id],
+                    |row| row.get(0),
+                )
+                .optional()?
         };
-        
+
         Ok(result.map(|avg| avg.round() as u32))
     }
-    
+
     /// Get all routes from the database
     #[allow(dead_code)]
     pub fn get_all_routes(&self) -> Result<Vec<RouteData>> {
@@ -426,27 +492,29 @@ impl Database {
                     lead_in_distance_km, lead_in_elevation_m,
                     lead_in_distance_free_ride_km, lead_in_elevation_free_ride_m,
                     lead_in_distance_meetups_km, lead_in_elevation_meetups_m, slug
-             FROM routes"
+             FROM routes",
         )?;
-        
-        let routes = stmt.query_map([], |row| {
-            Ok(RouteData {
-                route_id: row.get(0)?,
-                distance_km: row.get(1)?,
-                elevation_m: row.get(2)?,
-                name: row.get(3)?,
-                world: row.get(4)?,
-                surface: row.get(5)?,
-                lead_in_distance_km: row.get(6).unwrap_or(0.0),
-                lead_in_elevation_m: row.get(7).unwrap_or(0),
-                lead_in_distance_free_ride_km: row.get(8).ok(),
-                lead_in_elevation_free_ride_m: row.get(9).ok(),
-                lead_in_distance_meetups_km: row.get(10).ok(),
-                lead_in_elevation_meetups_m: row.get(11).ok(),
-                slug: row.get(12).ok(),
-            })
-        })?.collect::<Result<Vec<_>, _>>()?;
-        
+
+        let routes = stmt
+            .query_map([], |row| {
+                Ok(RouteData {
+                    route_id: row.get(0)?,
+                    distance_km: row.get(1)?,
+                    elevation_m: row.get(2)?,
+                    name: row.get(3)?,
+                    world: row.get(4)?,
+                    surface: row.get(5)?,
+                    lead_in_distance_km: row.get(6).unwrap_or(0.0),
+                    lead_in_elevation_m: row.get(7).unwrap_or(0),
+                    lead_in_distance_free_ride_km: row.get(8).ok(),
+                    lead_in_elevation_free_ride_m: row.get(9).ok(),
+                    lead_in_distance_meetups_km: row.get(10).ok(),
+                    lead_in_elevation_meetups_m: row.get(11).ok(),
+                    slug: row.get(12).ok(),
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+
         Ok(routes)
     }
 
@@ -456,108 +524,120 @@ impl Database {
         let mut stmt = self.conn.prepare(
             "SELECT id, route_id, event_name, actual_minutes, zwift_score, race_date, notes 
              FROM race_results 
-             ORDER BY race_date DESC"
+             ORDER BY race_date DESC",
         )?;
-        
-        let results = stmt.query_map([], |row| {
-            // Handle zwift_score as either integer or real
-            let zwift_score_raw: Result<u32, _> = row.get(4);
-            let zwift_score = match zwift_score_raw {
-                Ok(val) => val,
-                Err(_) => {
-                    // Try as f64 and convert
-                    let val: f64 = row.get(4)?;
-                    val.round() as u32
-                }
-            };
-            
-            Ok(RaceResult {
-                id: row.get(0)?,
-                route_id: row.get(1)?,
-                event_name: row.get(2)?,
-                actual_minutes: row.get(3)?,
-                zwift_score,
-                race_date: row.get(5)?,
-                notes: row.get(6)?,
-            })
-        })?
-        .collect::<Result<Vec<_>, rusqlite::Error>>()?;
-        
+
+        let results = stmt
+            .query_map([], |row| {
+                // Handle zwift_score as either integer or real
+                let zwift_score_raw: Result<u32, _> = row.get(4);
+                let zwift_score = match zwift_score_raw {
+                    Ok(val) => val,
+                    Err(_) => {
+                        // Try as f64 and convert
+                        let val: f64 = row.get(4)?;
+                        val.round() as u32
+                    }
+                };
+
+                Ok(RaceResult {
+                    id: row.get(0)?,
+                    route_id: row.get(1)?,
+                    event_name: row.get(2)?,
+                    actual_minutes: row.get(3)?,
+                    zwift_score,
+                    race_date: row.get(5)?,
+                    notes: row.get(6)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, rusqlite::Error>>()?;
+
         Ok(results)
     }
-    
+
     /// Get unknown routes that need mapping
     pub fn get_unknown_routes(&self) -> Result<Vec<(u32, String, i32)>> {
         let mut stmt = self.conn.prepare(
             "SELECT route_id, event_name, times_seen 
              FROM unknown_routes 
-             ORDER BY times_seen DESC, route_id"
+             ORDER BY times_seen DESC, route_id",
         )?;
-        
-        let routes = stmt.query_map([], |row| {
-            Ok((row.get(0)?, row.get(1)?, row.get(2)?))
-        })?
-        .collect::<std::result::Result<Vec<_>, _>>()?;
-        
+
+        let routes = stmt
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+
         Ok(routes)
     }
-    
+
     /// Get rider stats from the database
     pub fn get_rider_stats(&self) -> Result<Option<RiderStats>> {
-        let result = self.conn.query_row(
-            "SELECT height_m, weight_kg, ftp_watts FROM rider_stats WHERE id = 1",
-            [],
-            |row| {
-                Ok(RiderStats {
-                    height_m: row.get(0)?,
-                    weight_kg: row.get(1)?,
-                    ftp_watts: row.get(2)?,
-                })
-            }
-        ).optional()?;
-        
+        let result = self
+            .conn
+            .query_row(
+                "SELECT height_m, weight_kg, ftp_watts FROM rider_stats WHERE id = 1",
+                [],
+                |row| {
+                    Ok(RiderStats {
+                        height_m: row.get(0)?,
+                        weight_kg: row.get(1)?,
+                        ftp_watts: row.get(2)?,
+                    })
+                },
+            )
+            .optional()?;
+
         Ok(result)
     }
-    
+
     /// Get lap count for multi-lap events
     pub fn get_multi_lap_info(&self, event_name: &str) -> Result<Option<u32>> {
         // Try exact match first
-        let result = self.conn.query_row(
-            "SELECT lap_count FROM multi_lap_events WHERE event_name_pattern = ?1",
-            params![event_name],
-            |row| row.get(0)
-        ).optional()?;
-        
+        let result = self
+            .conn
+            .query_row(
+                "SELECT lap_count FROM multi_lap_events WHERE event_name_pattern = ?1",
+                params![event_name],
+                |row| row.get(0),
+            )
+            .optional()?;
+
         if result.is_some() {
             return Ok(result);
         }
-        
+
         // Try pattern match - check if event name contains the pattern
-        let result = self.conn.query_row(
-            "SELECT lap_count FROM multi_lap_events 
+        let result = self
+            .conn
+            .query_row(
+                "SELECT lap_count FROM multi_lap_events 
              WHERE ?1 LIKE '%' || event_name_pattern || '%'
              LIMIT 1",
-            params![event_name],
-            |row| row.get(0)
-        ).optional()?;
-        
+                params![event_name],
+                |row| row.get(0),
+            )
+            .optional()?;
+
         Ok(result)
     }
-    
+
     /// Check if we've already tried to discover this route recently
     pub fn should_attempt_discovery(&self, route_id: u32) -> Result<bool> {
-        let result: Option<i64> = self.conn.query_row(
-            "SELECT COUNT(*) FROM route_discovery_attempts 
+        let result: Option<i64> = self
+            .conn
+            .query_row(
+                "SELECT COUNT(*) FROM route_discovery_attempts 
              WHERE route_id = ?1 
              AND datetime(last_attempt) > datetime('now', '-10 minutes')",
-            params![route_id],
-            |row| row.get(0),
-        ).optional()?;
-        
+                params![route_id],
+                |row| row.get(0),
+            )
+            .optional()?;
+
         // If no recent attempt found, we should try
         Ok(result.unwrap_or(0) == 0)
     }
-    
+
     /// Record a discovery attempt
     pub fn record_discovery_attempt(&self, route_id: u32, event_name: &str) -> Result<()> {
         self.conn.execute(
@@ -570,19 +650,33 @@ impl Database {
         )?;
         Ok(())
     }
-    
+
     /// Save discovered route data
-    pub fn save_discovered_route(&self, route_id: u32, distance_km: f64, elevation_m: u32, 
-                                 world: &str, surface: &str, route_name: &str) -> Result<()> {
+    pub fn save_discovered_route(
+        &self,
+        route_id: u32,
+        distance_km: f64,
+        elevation_m: u32,
+        world: &str,
+        surface: &str,
+        route_name: &str,
+    ) -> Result<()> {
         // Update discovery attempts table
         self.conn.execute(
             "UPDATE route_discovery_attempts 
              SET found = 1, distance_km = ?2, elevation_m = ?3, 
                  world = ?4, surface = ?5, route_name = ?6
              WHERE route_id = ?1",
-            params![route_id, distance_km, elevation_m, world, surface, route_name],
+            params![
+                route_id,
+                distance_km,
+                elevation_m,
+                world,
+                surface,
+                route_name
+            ],
         )?;
-        
+
         // Insert into routes table
         self.conn.execute(
             "INSERT INTO routes (route_id, distance_km, elevation_m, name, world, surface) 
@@ -593,15 +687,27 @@ impl Database {
                 name = ?4,
                 world = ?5,
                 surface = ?6",
-            params![route_id, distance_km, elevation_m, route_name, world, surface],
+            params![
+                route_id,
+                distance_km,
+                elevation_m,
+                route_name,
+                world,
+                surface
+            ],
         )?;
-        
+
         Ok(())
     }
-    
+
     // Route completion tracking methods
     /// Mark a route as completed
-    pub fn mark_route_complete(&self, route_id: u32, time_minutes: Option<u32>, notes: Option<&str>) -> Result<()> {
+    pub fn mark_route_complete(
+        &self,
+        route_id: u32,
+        time_minutes: Option<u32>,
+        notes: Option<&str>,
+    ) -> Result<()> {
         self.conn.execute(
             "INSERT OR REPLACE INTO route_completion (route_id, actual_time_minutes, notes, completed_at) 
              VALUES (?1, ?2, ?3, CURRENT_TIMESTAMP)",
@@ -609,7 +715,7 @@ impl Database {
         )?;
         Ok(())
     }
-    
+
     /// Check if a route has been completed
     pub fn is_route_completed(&self, route_id: u32) -> Result<bool> {
         let count: i64 = self.conn.query_row(
@@ -619,24 +725,22 @@ impl Database {
         )?;
         Ok(count > 0)
     }
-    
+
     /// Get route completion statistics (completed, total)
     pub fn get_completion_stats(&self) -> Result<(u32, u32)> {
-        let total: u32 = self.conn.query_row(
-            "SELECT COUNT(*) FROM routes",
-            [],
-            |row| row.get(0),
-        )?;
-        
-        let completed: u32 = self.conn.query_row(
-            "SELECT COUNT(*) FROM route_completion",
-            [],
-            |row| row.get(0),
-        )?;
-        
+        let total: u32 = self
+            .conn
+            .query_row("SELECT COUNT(*) FROM routes", [], |row| row.get(0))?;
+
+        let completed: u32 =
+            self.conn
+                .query_row("SELECT COUNT(*) FROM route_completion", [], |row| {
+                    row.get(0)
+                })?;
+
         Ok((completed, total))
     }
-    
+
     /// Get route completion statistics by world
     pub fn get_world_completion_stats(&self) -> Result<Vec<(String, u32, u32)>> {
         let mut stmt = self.conn.prepare(
@@ -646,25 +750,25 @@ impl Database {
              FROM routes r
              LEFT JOIN route_completion rc ON r.route_id = rc.route_id
              GROUP BY r.world
-             ORDER BY r.world"
+             ORDER BY r.world",
         )?;
-        
-        let stats = stmt.query_map([], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, u32>(2)?,  // completed
-                row.get::<_, u32>(1)?,  // total
-            ))
-        })?
-        .collect::<Result<Vec<_>, _>>()?;
-        
+
+        let stats = stmt
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, u32>(2)?, // completed
+                    row.get::<_, u32>(1)?, // total
+                ))
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+
         Ok(stats)
     }
 }
 
 fn get_database_path() -> Result<PathBuf> {
-    let mut data_dir = dirs::data_local_dir()
-        .unwrap_or_else(|| PathBuf::from("."));
+    let mut data_dir = dirs::data_local_dir().unwrap_or_else(|| PathBuf::from("."));
     data_dir.push("zwift-race-finder");
     std::fs::create_dir_all(&data_dir)?;
     data_dir.push("races.db");
@@ -675,11 +779,11 @@ fn get_database_path() -> Result<PathBuf> {
 mod tests {
     use super::*;
     use chrono::Utc;
-    
+
     #[test]
     fn test_database_creation() {
         let db = Database::new().unwrap();
-        
+
         // Test getting a known route
         let route = db.get_route(1258415487).unwrap();
         assert!(route.is_some());
@@ -687,11 +791,11 @@ mod tests {
         assert_eq!(route.name, "Bell Lap");
         assert_eq!(route.distance_km, 14.1);
     }
-    
+
     #[test]
     fn test_race_result_storage() {
         let db = Database::new().unwrap();
-        
+
         let result = RaceResult {
             id: None,
             route_id: 1258415487,
@@ -701,9 +805,9 @@ mod tests {
             race_date: Utc::now().format("%Y-%m-%d").to_string(),
             notes: Some("Test result".to_string()),
         };
-        
+
         db.add_race_result(&result).unwrap();
-        
+
         let results = db.get_race_results_for_route(1258415487, 195).unwrap();
         assert!(!results.is_empty());
         assert_eq!(results[0].actual_minutes, 32);

@@ -34,7 +34,10 @@ pub fn default_sport() -> String {
 
 pub fn is_racing_score_event(event: &ZwiftEvent) -> bool {
     // Racing Score events have range_access_label in subgroups
-    event.event_sub_groups.iter().any(|sg| sg.range_access_label.is_some())
+    event
+        .event_sub_groups
+        .iter()
+        .any(|sg| sg.range_access_label.is_some())
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -98,24 +101,22 @@ mod tests {
             route: Some("Watopia".to_string()),
             description: None,
             category_enforcement: false,
-            event_sub_groups: vec![
-                EventSubGroup {
-                    id: 1,
-                    name: "A".to_string(),
-                    route_id: Some(1),
-                    distance_in_meters: Some(40000.0),
-                    duration_in_minutes: None,
-                    category_enforcement: None,
-                    range_access_label: None, // No range label for traditional events
-                    laps: None,
-                },
-            ],
+            event_sub_groups: vec![EventSubGroup {
+                id: 1,
+                name: "A".to_string(),
+                route_id: Some(1),
+                distance_in_meters: Some(40000.0),
+                duration_in_minutes: None,
+                category_enforcement: None,
+                range_access_label: None, // No range label for traditional events
+                laps: None,
+            }],
             sport: "CYCLING".to_string(),
             tags: vec![],
         };
-        
+
         assert!(!is_racing_score_event(&traditional_event));
-        
+
         // Test Racing Score event
         let racing_score_event = ZwiftEvent {
             id: 2,
@@ -129,24 +130,22 @@ mod tests {
             route: Some("Three Village Loop".to_string()),
             description: Some("Distance: 10.6 km".to_string()),
             category_enforcement: false,
-            event_sub_groups: vec![
-                EventSubGroup {
-                    id: 1,
-                    name: "0-199".to_string(),
-                    route_id: Some(9),
-                    distance_in_meters: Some(0.0),
-                    duration_in_minutes: None,
-                    category_enforcement: None,
-                    range_access_label: Some("0-199".to_string()), // This indicates Racing Score
-                    laps: None,
-                },
-            ],
+            event_sub_groups: vec![EventSubGroup {
+                id: 1,
+                name: "0-199".to_string(),
+                route_id: Some(9),
+                distance_in_meters: Some(0.0),
+                duration_in_minutes: None,
+                category_enforcement: None,
+                range_access_label: Some("0-199".to_string()), // This indicates Racing Score
+                laps: None,
+            }],
             sport: "CYCLING".to_string(),
             tags: vec![],
         };
-        
+
         assert!(is_racing_score_event(&racing_score_event));
-        
+
         // Test event with no subgroups
         let no_subgroups_event = ZwiftEvent {
             id: 3,
@@ -164,7 +163,7 @@ mod tests {
             sport: "CYCLING".to_string(),
             tags: vec![],
         };
-        
+
         assert!(!is_racing_score_event(&no_subgroups_event));
     }
 }

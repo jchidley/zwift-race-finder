@@ -501,3 +501,49 @@ Details:
   - Hard: Change Function Declaration
   - Better for humans: Replace Conditional with Polymorphism
 - Key insight: AI's strengths (understanding intent, finding improvements) become weaknesses during refactoring
+
+### 2025-01-06: Continuous Maintenance as Foundation of Software Quality
+Insight: Three pillars of software maintenance must be continuously practiced: comprehensive testing (including mutation testing), code organization, and disciplined refactoring
+Impact: These activities are not "one and done" but require ongoing investment and proper tooling
+Key Learning: Using language-specific tooling and documentation provides objective feedback that guides maintenance
+Critical for LLMs: These practices are especially important when working with AI assistants (particularly Claude) which tend to wander and rewrite or drop functionality without proper constraints
+Technical Debt Warning: Technical debt accumulates extremely easily with LLMs - Jack has spent significant effort over many sessions to alleviate it, as LLMs can quickly generate working but poorly organized code
+Details:
+- Comprehensive Testing:
+  - Unit tests catch bugs early and document behavior
+  - Integration tests verify components work together
+  - Mutation testing finds weak tests (cargo-mutants for Rust)
+  - Property-based testing discovers edge cases
+  - Coverage tools identify untested code paths
+  - Key: Tests must be maintained as code evolves
+- Code Organization:
+  - Modules should have single, clear responsibilities
+  - Dependencies flow in one direction (no cycles)
+  - Public APIs are minimal and well-documented
+  - Private implementation details are hidden
+  - Regular review prevents architectural drift
+  - Tools: cargo clippy, rustfmt, rust-analyzer
+- Disciplined Refactoring:
+  - Follow REFACTORING_RULES.md to preserve behavior
+  - Rust-specific guidance in:
+    - RUST_REFACTORING_RULES.md - Language-specific patterns and gotchas
+    - RUST_REFACTORING_BEST_PRACTICES.md - Rust idioms and conventions
+    - RUST_REFACTORING_TOOLS.md - cargo commands and tooling
+  - Use Rust's compiler as safety net
+  - Run tests after each small change
+  - Document large refactorings in sessions/
+  - Review git diffs to ensure only structural changes
+  - Reference: Martin Fowler's refactoring catalog
+- Rust-specific advantages:
+  - Compiler catches many errors before runtime
+  - Ownership system prevents memory issues
+  - Type system enforces contracts
+  - cargo provides integrated tooling ecosystem
+  - Documentation tests ensure examples work
+- Continuous nature:
+  - Not a one-time cleanup but ongoing practice
+  - Each feature adds technical debt to manage
+  - Regular small improvements prevent big rewrites
+  - Tools provide objective metrics to guide work
+  - Documentation captures decisions and rationale
+- Best Practice: Schedule regular maintenance windows, use tooling output to prioritize work

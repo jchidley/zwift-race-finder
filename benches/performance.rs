@@ -1,15 +1,14 @@
 /// Performance benchmarks for critical functions
 /// Run with: cargo bench
-
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use zwift_race_finder::database::{Database, Route};
 use tempfile::TempDir;
+use zwift_race_finder::database::{Database, Route};
 
 fn create_test_database() -> (Database, TempDir) {
     let temp_dir = TempDir::new().unwrap();
     let db_path = temp_dir.path().join("bench.db");
     let db = Database::new(Some(db_path.to_str().unwrap().to_string())).unwrap();
-    
+
     // Add test routes
     for i in 1..=100 {
         db.add_route(Route {
@@ -22,29 +21,26 @@ fn create_test_database() -> (Database, TempDir) {
             lead_in_distance_km: 0.5,
             lead_in_elevation_m: 10,
             slug: Some(format!("route-{}", i)),
-        }).unwrap();
+        })
+        .unwrap();
     }
-    
+
     (db, temp_dir)
 }
 
 fn bench_route_lookup(c: &mut Criterion) {
     let (db, _temp_dir) = create_test_database();
-    
+
     c.bench_function("route_lookup", |b| {
-        b.iter(|| {
-            db.get_route(black_box(50)).unwrap()
-        })
+        b.iter(|| db.get_route(black_box(50)).unwrap())
     });
 }
 
 fn bench_route_batch_lookup(c: &mut Criterion) {
     let (db, _temp_dir) = create_test_database();
-    
+
     c.bench_function("route_batch_lookup", |b| {
-        b.iter(|| {
-            db.get_all_routes().unwrap()
-        })
+        b.iter(|| db.get_all_routes().unwrap())
     });
 }
 
@@ -55,7 +51,7 @@ fn bench_duration_estimation(c: &mut Criterion) {
             let distance_km = black_box(30.0);
             let elevation_m = black_box(250);
             let zwift_score = black_box(195);
-            
+
             // Simple duration calculation
             let base_speed = match zwift_score {
                 0..=199 => 30.9,
@@ -63,7 +59,7 @@ fn bench_duration_estimation(c: &mut Criterion) {
                 300..=399 => 36.2,
                 _ => 38.9,
             };
-            
+
             let meters_per_km = elevation_m as f64 / distance_km;
             let difficulty_multiplier = match meters_per_km {
                 m if m < 5.0 => 1.1,
@@ -72,7 +68,7 @@ fn bench_duration_estimation(c: &mut Criterion) {
                 m if m < 40.0 => 0.8,
                 _ => 0.7,
             };
-            
+
             let effective_speed = base_speed * difficulty_multiplier;
             distance_km / effective_speed * 60.0
         })
@@ -92,7 +88,7 @@ fn bench_format_duration(c: &mut Criterion) {
 
 fn bench_url_parsing(c: &mut Criterion) {
     let url = "https://example.com/?duration=90&tolerance=30&event-type=race&days=7&zwift-score=195&tags=ranked,zracing&exclude-tags=women_only";
-    
+
     c.bench_function("url_parsing", |b| {
         b.iter(|| {
             let url_str = black_box(url);
@@ -118,24 +114,27 @@ fn bench_url_parsing(c: &mut Criterion) {
 
 fn bench_event_filtering(c: &mut Criterion) {
     use chrono::Utc;
-    
+
     // Create test events
-    let events: Vec<_> = (0..1000).map(|i| {
-        serde_json::json!({
-            "id": i,
-            "name": format!("Event {}", i),
-            "eventStart": Utc::now().to_rfc3339(),
-            "eventType": if i % 3 == 0 { "RACE" } else { "GROUP_RIDE" },
-            "distanceInMeters": 20000.0 + (i as f64 * 100.0),
-            "routeId": i % 100,
-            "sport": "CYCLING",
-            "tags": if i % 5 == 0 { vec!["ranked"] } else { vec![] }
+    let events: Vec<_> = (0..1000)
+        .map(|i| {
+            serde_json::json!({
+                "id": i,
+                "name": format!("Event {}", i),
+                "eventStart": Utc::now().to_rfc3339(),
+                "eventType": if i % 3 == 0 { "RACE" } else { "GROUP_RIDE" },
+                "distanceInMeters": 20000.0 + (i as f64 * 100.0),
+                "routeId": i % 100,
+                "sport": "CYCLING",
+                "tags": if i % 5 == 0 { vec!["ranked"] } else { vec![] }
+            })
         })
-    }).collect();
-    
+        .collect();
+
     c.bench_function("event_filtering", |b| {
         b.iter(|| {
-            events.iter()
+            events
+                .iter()
                 .filter(|e| e["eventType"] == "RACE")
                 .filter(|e| e["sport"] == "CYCLING")
                 .filter(|e| {
