@@ -39,6 +39,9 @@ pub mod estimation;
 /// Event analysis utilities
 pub mod event_analysis;
 
+/// Event display functionality
+pub mod event_display;
+
 /// Event filtering logic
 pub mod event_filtering;
 
