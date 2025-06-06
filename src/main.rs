@@ -9,9 +9,6 @@
 mod config;
 mod database;
 mod route_discovery;
-// Temporarily disabled during refactoring
-// #[cfg(test)]
-// mod regression_test;
 
 use anyhow::Result;
 use chrono::Utc;
