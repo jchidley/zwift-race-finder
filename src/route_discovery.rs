@@ -760,4 +760,7 @@ mod tests {
             Some("watopia".to_string()) // Because "Alpe" maps to Watopia
         );
     }
+
+    // Note: Tests that depend on parsing and estimation modules from main.rs
+    // have been moved to tests/integration_tests.rs to avoid module import issues
 }

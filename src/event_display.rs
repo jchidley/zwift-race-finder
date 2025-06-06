@@ -11,11 +11,11 @@ use crate::duration_estimation::estimate_duration_for_category;
 use crate::duration_estimation::get_route_difficulty_multiplier_from_elevation;
 use crate::estimation::{get_route_data, get_route_data_from_db};
 use crate::event_analysis::find_user_subgroup;
+use crate::event_filtering::FilterStats;
 use crate::formatting::format_duration;
 use crate::models::{EventSubGroup, ZwiftEvent};
 use crate::parsing::{estimate_distance_from_name, parse_description_data};
 use crate::route_discovery;
-use crate::event_filtering::FilterStats;
 use chrono::{DateTime, Local};
 use colored::Colorize;
 
