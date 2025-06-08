@@ -43,18 +43,18 @@ class Region:
 class ZwiftUILayout:
     """Define the Zwift UI layout based on 1920x1080 resolution"""
     
-    # Top middle HUD bar regions
-    SPEED = Region(520, 35, 90, 50, "speed")              # km/h
-    DISTANCE = Region(625, 35, 80, 50, "distance")        # km traveled
-    ALTITUDE = Region(735, 35, 80, 50, "altitude")        # current altitude in meters
-    RACE_TIME = Region(820, 35, 100, 50, "race_time")     # mm:ss elapsed
+    # Top middle HUD bar regions (corrected based on OCR)
+    SPEED = Region(698, 48, 120, 43, "speed")              # km/h
+    DISTANCE = Region(826, 48, 120, 43, "distance")        # km traveled
+    ALTITUDE = Region(954, 48, 120, 43, "altitude")        # current altitude in meters
+    RACE_TIME = Region(1082, 48, 144, 43, "race_time")     # mm:ss elapsed
     
-    # Top left power panel
-    POWER = Region(200, 40, 90, 50, "power")              # current watts
-    CADENCE = Region(180, 105, 60, 35, "cadence")         # current RPM
-    HEART_RATE = Region(260, 105, 60, 35, "heart_rate")   # current BPM
-    AVG_POWER = Region(180, 145, 60, 35, "avg_power")     # average watts
-    ENERGY = Region(260, 145, 60, 35, "energy")           # kJ expended
+    # Top left power panel (corrected based on OCR)
+    POWER = Region(271, 49, 148, 61, "power")              # current watts
+    CADENCE = Region(244, 139, 36, 26, "cadence")         # current RPM
+    HEART_RATE = Region(311, 128, 98, 44, "heart_rate")   # current BPM
+    AVG_POWER = Region(222, 191, 60, 31, "avg_power")     # average watts
+    ENERGY = Region(338, 189, 68, 29, "energy")           # kJ expended
     
     # Progress bars
     XP_PROGRESS = Region(850, 80, 150, 30, "xp_progress")
@@ -67,8 +67,8 @@ class ZwiftUILayout:
     SEGMENT_GRADIENT = Region(290, 150, 80, 40, "segment_gradient")
     SEGMENT_TIME = Region(380, 150, 120, 40, "segment_time")
     
-    # Gradient indicator (top right, visible during climbs)
-    GRADIENT = Region(1300, 30, 80, 60, "gradient")
+    # Gradient indicator (top right, visible during climbs - found at 5%)
+    GRADIENT = Region(1708, 81, 26, 34, "gradient")
     
     # Power-up indicator (center-right when active)
     POWERUP_ACTIVE = Region(900, 200, 150, 150, "powerup_active")
