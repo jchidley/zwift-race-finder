@@ -97,6 +97,9 @@ class ZwiftOCRExtractor:
         # Extract powerup
         results['powerup_name'] = self._extract_powerup(image)
         
+        # Extract leaderboard
+        results['leaderboard'] = self._extract_leaderboard(image)
+        
         return results
     
     def _extract_top_bar(self, image: np.ndarray) -> Dict[str, Any]:
@@ -232,6 +235,44 @@ class ZwiftOCRExtractor:
                 return 'Featherweight'
         
         return None
+    
+    def _extract_leaderboard(self, image: np.ndarray) -> List[Dict[str, Any]]:
+        """Extract leaderboard entries"""
+        leaderboard = []
+        
+        # Focus on the specific area where we found J.Chidley
+        # Based on findings: around y=685 for name, y=707 for stats
+        roi = image[650:800, 1500:1920]  # Leaderboard area
+        result = self.ocr.ocr(roi, cls=True)
+        
+        if result and result[0]:
+            # Look for the pattern: name followed by w/kg and km
+            for i, line in enumerate(result[0]):
+                text = line[1][0]
+                
+                # Check if this looks like a name
+                if 'Chidley' in text or 'J.Y.S' in text:
+                    entry = {'name': text}
+                    
+                    # Look for stats in nearby lines
+                    for j in range(i-2, i+3):
+                        if 0 <= j < len(result[0]):
+                            stats_text = result[0][j][1][0]
+                            
+                            # Parse w/kg
+                            w_kg_match = re.search(r'(\d+\.?\d*)\s*w/kg', stats_text)
+                            if w_kg_match:
+                                entry['watts_per_kg'] = float(w_kg_match.group(1))
+                            
+                            # Parse km
+                            km_match = re.search(r'(\d+\.?\d*)\s*km', stats_text.lower())
+                            if km_match:
+                                entry['distance_km'] = float(km_match.group(1))
+                    
+                    if 'watts_per_kg' in entry:
+                        leaderboard.append(entry)
+        
+        return leaderboard
 
 
 def main():
