@@ -765,6 +765,48 @@ impl Database {
 
         Ok(stats)
     }
+
+    /// Get all routes with basic info (for validation)
+    pub fn get_all_routes_basic(&self) -> Result<Vec<(u32, String, f64, u32)>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT route_id, name, distance_km, elevation_m FROM routes")?;
+
+        let routes = stmt
+            .query_map([], |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                ))
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(routes)
+    }
+
+    /// Get race results for validation
+    pub fn get_race_results_for_validation(&self) -> Result<Vec<(u32, String, u32, u32)>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT route_id, event_name, actual_minutes, zwift_score 
+             FROM race_results 
+             WHERE route_id != 9999"
+        )?;
+
+        let results = stmt
+            .query_map([], |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                ))
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(results)
+    }
 }
 
 fn get_database_path() -> Result<PathBuf> {

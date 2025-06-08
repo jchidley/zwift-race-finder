@@ -54,18 +54,10 @@ fn validate_test_routes() {
     };
     
     // Get all routes from database
-    let all_routes: Vec<(u32, String, f64, u32)> = db
-        .conn
-        .prepare("SELECT route_id, name, distance_km, elevation_m FROM routes")?
-        .query_map([], |row| {
-            Ok((
-                row.get(0)?,
-                row.get(1)?,
-                row.get(2)?,
-                row.get(3)?,
-            ))
-        })?
-        .collect::<Result<Vec<_>, _>>()?;
+    let all_routes = db.get_all_routes_basic().unwrap_or_else(|e| {
+        println!("Error getting routes: {}", e);
+        Vec::new()
+    });
     
     println!("Found {} routes in production database", all_routes.len());
     
@@ -259,18 +251,10 @@ fn validate_against_race_history() {
     };
     
     // Get Jack's race results
-    let results: Vec<(u32, String, u32, u32)> = db
-        .conn
-        .prepare("SELECT route_id, event_name, actual_minutes, zwift_score FROM race_results WHERE route_id != 9999")?
-        .query_map([], |row| {
-            Ok((
-                row.get(0)?,
-                row.get(1)?,
-                row.get(2)?,
-                row.get(3)?,
-            ))
-        })?
-        .collect::<Result<Vec<_>, _>>()?;
+    let results = db.get_race_results_for_validation().unwrap_or_else(|e| {
+        println!("Error getting race results: {}", e);
+        Vec::new()
+    });
     
     println!("Found {} race results to validate against", results.len());
     
