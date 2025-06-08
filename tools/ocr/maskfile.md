@@ -1,0 +1,84 @@
+# Zwift OCR Tasks
+
+## setup
+> Install project dependencies and prepare environment
+
+~~~bash
+uv sync
+~~~
+
+## test
+> Run all tests including OCR comparison
+
+~~~bash
+set -e
+uv run python zwift_ocr_prototype.py
+uv run python test_enhanced_extraction.py
+uv run python test_pose_detection.py
+~~~
+
+## lint
+> Run code quality checks
+
+~~~bash
+set -e
+uv run ruff check .
+uv run ruff format . --check
+~~~
+
+## format
+> Auto-format code
+
+~~~bash
+uv run ruff format .
+uv run ruff check . --fix
+~~~
+
+## screenshot (path)
+> Extract telemetry from a screenshot
+>
+> **POSITIONAL ARGUMENTS**
+> * path - Path to the screenshot file
+
+~~~bash
+uv run python zwift_ocr_improved.py "$path"
+~~~
+
+## video (path)
+> Process a video file for telemetry extraction
+>
+> **POSITIONAL ARGUMENTS**
+> * path - Path to the video file
+
+**OPTIONS**
+* --skip-frames
+* --no-preview
+* --analyze
+
+~~~bash
+uv run python zwift_video_processor.py "$path" "$@"
+~~~
+
+## compare-engines
+> Compare OCR engine performance on test images
+
+~~~bash
+uv run python zwift_ocr_prototype.py
+~~~
+
+## calibrate-poses
+> Calibrate pose detection with sample images
+
+~~~bash
+uv run python test_pose_detection.py
+~~~
+
+## clean
+> Remove generated files and caches
+
+~~~bash
+rm -rf __pycache__/
+rm -rf .ruff_cache/
+rm -f telemetry_*.csv telemetry_*.json telemetry.db
+find . -name "*.pyc" -delete
+~~~

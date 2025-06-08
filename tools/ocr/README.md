@@ -44,6 +44,23 @@ uv add easyocr                  # For EasyOCR
 
 ## Quick Start
 
+### Using mask (recommended)
+
+```bash
+# Show available tasks
+mask --help
+
+# Run tests
+mask test
+
+# Process a video
+mask video recording.mp4 --skip-frames 60
+
+# Lint and format code
+mask lint
+mask format
+```
+
 ### Extract from Screenshots
 
 ```bash
@@ -55,6 +72,9 @@ uv run python test_enhanced_extraction.py
 
 # Compare OCR engines
 uv run python zwift_ocr_prototype.py
+
+# Or use the wrapper script
+./zwift_ocr.sh screenshot docs/screenshots/normal_1_01_16_02_21.jpg
 ```
 
 ### Process Video Files

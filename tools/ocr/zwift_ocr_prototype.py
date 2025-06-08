@@ -16,14 +16,14 @@ try:
     PADDLE_AVAILABLE = True
 except ImportError:
     PADDLE_AVAILABLE = False
-    print("PaddleOCR not available. Install with: pip install paddlepaddle paddleocr")
+    print("PaddleOCR not available. Install with: uv add paddlepaddle paddleocr")
 
 try:
     import easyocr
     EASY_AVAILABLE = True
 except ImportError:
     EASY_AVAILABLE = False
-    print("EasyOCR not available. Install with: pip install easyocr")
+    print("EasyOCR not available. Install with: uv add easyocr")
 
 
 class ZwiftTelemetryExtractor:
