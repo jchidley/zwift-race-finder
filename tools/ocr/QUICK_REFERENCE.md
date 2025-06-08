@@ -27,6 +27,7 @@ mask video file.mp4 --skip-frames 60     # Process every 2 seconds
 mask test                       # Run all tests
 mask compare-engines            # Compare OCR accuracy
 mask calibrate-poses            # Test pose detection
+mask debug image.jpg            # Create debug visualization
 mask lint                       # Check code quality
 mask format                     # Auto-format code
 ```

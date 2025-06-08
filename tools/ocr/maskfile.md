@@ -81,6 +81,22 @@ uv run python zwift_ocr_prototype.py
 uv run python test_pose_detection.py
 ~~~
 
+## debug (path)
+> Create debug visualization showing extraction regions and results
+>
+> **POSITIONAL ARGUMENTS**
+> * path - Path to the screenshot file
+
+~~~bash
+# Convert relative paths to absolute if needed
+if [[ ! "$path" = /* ]]; then
+    path="$(pwd)/$path"
+fi
+
+uv run python debug_visualizer.py "$path" "debug_${path##*/}"
+echo "Debug image created: debug_${path##*/}"
+~~~
+
 ## clean
 > Remove generated files and caches
 
@@ -88,5 +104,6 @@ uv run python test_pose_detection.py
 rm -rf __pycache__/
 rm -rf .ruff_cache/
 rm -f telemetry_*.csv telemetry_*.json telemetry.db
+rm -f debug_*.jpg debug_*.png
 find . -name "*.pyc" -delete
 ~~~
