@@ -3,7 +3,7 @@
 
 import cv2
 import numpy as np
-from zwift_ocr_fixed import ZwiftOCRExtractor, ZwiftUILayout
+from zwift_ocr_improved_v2 import ZwiftOCRExtractorV2, ZwiftUILayoutV2
 import sys
 from datetime import datetime
 
@@ -40,7 +40,7 @@ class DebugVisualizer:
         
         # Run OCR extraction
         print("Running OCR extraction...")
-        extractor = ZwiftOCRExtractor(debug=False)
+        extractor = ZwiftOCRExtractorV2(debug=False)
         results = extractor.extract_telemetry(image_path)
         
         # Draw regions and results
@@ -49,31 +49,41 @@ class DebugVisualizer:
         thickness = 2
         
         # Power panel
-        self._draw_region(vis_image, ZwiftUILayout.POWER, 'power', 
+        self._draw_region(vis_image, ZwiftUILayoutV2.POWER, 'power', 
                          f"Power: {results.get('power', '?')}W", self.colors['power'])
         
-        self._draw_region(vis_image, ZwiftUILayout.HEART_RATE, 'heart_rate',
+        self._draw_region(vis_image, ZwiftUILayoutV2.HEART_RATE, 'heart_rate',
                          f"HR: {results.get('heart_rate', '?')} BPM", self.colors['heart_rate'])
         
-        self._draw_region(vis_image, ZwiftUILayout.CADENCE, 'cadence',
+        self._draw_region(vis_image, ZwiftUILayoutV2.CADENCE, 'cadence',
                          f"Cadence: {results.get('cadence', '?')} RPM", self.colors['cadence'])
         
-        self._draw_region(vis_image, ZwiftUILayout.AVG_POWER, 'avg_power',
+        self._draw_region(vis_image, ZwiftUILayoutV2.AVG_POWER, 'avg_power',
                          f"Avg Power: {results.get('avg_power', '?')}W", self.colors['avg_power'])
         
-        self._draw_region(vis_image, ZwiftUILayout.ENERGY, 'energy',
+        self._draw_region(vis_image, ZwiftUILayoutV2.ENERGY, 'energy',
                          f"Energy: {results.get('energy', '?')} kJ", self.colors['energy'])
         
-        # Top bar
-        self._draw_region(vis_image, ZwiftUILayout.TOP_BAR, 'top_bar',
-                         f"Speed: {results.get('speed', '?')} km/h | "
-                         f"Dist: {results.get('distance', '?')} km | "
-                         f"Alt: {results.get('altitude', '?')}m | "
-                         f"Time: {results.get('race_time', '?')}", 
-                         self.colors['speed'])
+        # Top bar elements (split into 4)
+        self._draw_region(vis_image, ZwiftUILayoutV2.SPEED, 'speed',
+                         f"Speed: {results.get('speed', '?')} km/h", self.colors['speed'])
+        
+        self._draw_region(vis_image, ZwiftUILayoutV2.DISTANCE, 'distance',
+                         f"Dist: {results.get('distance', '?')} km", self.colors['distance'])
+        
+        self._draw_region(vis_image, ZwiftUILayoutV2.ALTITUDE, 'altitude',
+                         f"Alt: {results.get('altitude', '?')}m", self.colors['altitude'])
+        
+        self._draw_region(vis_image, ZwiftUILayoutV2.RACE_TIME, 'race_time',
+                         f"Time: {results.get('race_time', '?')}", self.colors['race_time'])
+        
+        # Distance to finish
+        self._draw_region(vis_image, ZwiftUILayoutV2.DISTANCE_TO_FINISH, 'distance_to_finish',
+                         f"To Finish: {results.get('distance_to_finish', '?')} km", 
+                         self.colors.get('distance_to_finish', self.colors['default']))
         
         # Gradient
-        self._draw_region(vis_image, ZwiftUILayout.GRADIENT_BOX, 'gradient',
+        self._draw_region(vis_image, ZwiftUILayoutV2.GRADIENT_BOX, 'gradient',
                          f"Gradient: {results.get('gradient', '?')}%", self.colors['gradient'])
         
         # Leaderboard area
@@ -88,7 +98,13 @@ class DebugVisualizer:
         if results.get('leaderboard'):
             y_offset = leaderboard_region[1] - 10
             for entry in results['leaderboard']:
-                text = f"{entry['name']}: {entry['watts_per_kg']} w/kg, {entry['distance_km']} km"
+                if isinstance(entry, dict):
+                    name = entry.get('name', 'Unknown')
+                    w_kg = entry.get('watts_per_kg', '?')
+                    km = entry.get('distance_km', '?')
+                    text = f"{name}: {w_kg} w/kg, {km} km"
+                else:
+                    text = str(entry)
                 cv2.putText(vis_image, text, 
                            (leaderboard_region[0], y_offset),
                            font, 0.6, self.colors['leaderboard'], 1)
