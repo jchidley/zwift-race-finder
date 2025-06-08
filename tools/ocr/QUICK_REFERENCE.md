@@ -50,10 +50,16 @@ mask clean                      # Remove generated files
 
 ## Data Fields Extracted
 
-**Performance**: Power (W), Cadence (RPM), Heart Rate (BPM), Speed (km/h)  
-**Progress**: Distance (km), Altitude (m), Race Time, Energy (kJ)  
-**Racing**: Gradient (%), Distance to Finish, Power-ups, Leaderboard  
-**Visual**: Rider Position (cosmetic except supertuck)
+### Working (✓)
+**Power Data**: Power (277W), Cadence (72 RPM), Heart Rate (169 BPM), Avg Power (217W), Energy (400 kJ)  
+**Speed/Distance**: Speed (20 km/h), Distance (18.4 km)  
+**Environment**: Gradient (5%)  
+**Leaderboard**: Rider names (J.Chidley, C.J.Y.S)
+
+### In Development (✗)
+**Navigation**: Altitude, Race Time, Distance to Finish  
+**Power-ups**: Name and timer detection  
+**Segments**: Segment gradient and time
 
 ## Tips
 - Use `--no-preview` for faster processing

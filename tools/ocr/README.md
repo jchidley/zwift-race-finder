@@ -5,28 +5,31 @@ This tool extracts live telemetry data from Zwift screenshots and video recordin
 ## Features
 
 - Extract telemetry data from Zwift UI elements:
-  - **Top Middle HUD**: Speed (km/h), distance traveled (km), current altitude (m), race time (mm:ss)
-  - **Top Left Panel**: Current power (W), cadence (RPM), heart rate (BPM), average power (W), energy expended (kJ)
-  - **Gradient percentage** (visible during climbs in top right)
-  - **Distance to finish** (km remaining in race/route)
+  - **Top Bar** (split into 4 regions for accuracy):
+    - Speed (km/h) - Working ✓
+    - Distance traveled (km) - Working ✓
+    - Current altitude (m) - In development
+    - Race time (mm:ss) - In development
+  - **Top Left Power Panel**:
+    - Current power (W) - Working ✓
+    - Cadence (RPM) - Working ✓
+    - Heart rate (BPM) - Working ✓
+    - Average power (W) - Working ✓
+    - Energy expended (kJ) - Working ✓
+  - **Gradient** (top right box during climbs) - Working ✓
+  - **Distance to finish** (below top bar) - In development
   - **Power-ups**: Active power-up name and remaining duration
-    - Detects: Featherweight, Aero Boost, Draft Boost, Lightweight, etc.
-    - Analyzes circular timer (starts/ends at 3 o'clock, decreases anti-clockwise)
-  - **Rider Pose Detection**: Analyzes avatar position (mostly visual only!)
-    - Seated Hoods: Normal position when drafting or <33 km/h
-    - Seated Drops: Hands on drops when ≥33 km/h and not drafting
-    - Standing: Out of saddle (31-72 RPM on climbs ≥3%)
-    - Supertuck: Descending position (**-25% drag** - only position affecting speed!)
-    - Note: Regular positions are visual only in Zwift - no speed impact!
-  - XP progress, route progress bars
-  - **Enhanced rider leaderboard**: name, watts/kg, distance traveled (km)
-    - Automatically detects current rider (no time gap)
-    - Parses other riders with position gaps
+    - Detects: Featherweight, Aero Boost, Draft Boost, etc.
+    - Circular timer analysis (starts at 3 o'clock position)
+  - **Leaderboard**: Rider names, watts/kg, distance (km) - Partial ✓
+  - **Rider Pose Detection**: Avatar position analysis
+    - Note: Only supertuck affects speed (-25% drag)
+    - Other positions are visual only in Zwift
+- Debug visualization mode showing extraction regions
 - Support for both PaddleOCR and EasyOCR engines
 - Process video files or live streams
 - Multiple output formats: SQLite, CSV, JSON
 - Real-time preview with extraction overlay
-- Benchmarking tools to compare OCR engines
 
 ## Installation
 
@@ -145,9 +148,34 @@ Extracted telemetry is stored in:
 - **CSV file**: For spreadsheet import
 - **JSON file**: For programmatic access
 
-## OCR Engine Comparison
+## Current Extraction Accuracy
 
-Based on testing with Zwift screenshots:
+Based on testing with Zwift screenshots (as of latest session):
+
+### Successfully Extracting (✓)
+- **Power**: 277W (100% accuracy)
+- **Heart Rate**: 169 BPM (100% accuracy)
+- **Cadence**: 72 RPM (fixed in latest version)
+- **Average Power**: 217W (100% accuracy)
+- **Energy**: 400 kJ (100% accuracy)
+- **Speed**: 20 km/h (works when properly positioned)
+- **Distance**: 18.4 km (works when properly positioned)
+- **Gradient**: 5% (fixed with smaller detection box)
+- **Leaderboard**: Names extracted (J.Chidley, C.J.Y.S)
+
+### Still In Development (✗)
+- **Altitude**: Concatenated with other values
+- **Race Time**: Concatenated with other values
+- **Distance to Finish**: Region identified, OCR needs refinement
+- **Power-ups**: Detection logic implemented, needs testing
+- **Segment Gradient**: Region defined, needs active segment
+
+### Overall Success Rate
+- ~57% of fields successfully extracted
+- Power/fitness data: 100% success
+- Navigation/race data: Partial success
+
+## OCR Engine Comparison
 
 | Engine | Pros | Cons | Accuracy |
 |--------|------|------|----------|
@@ -210,21 +238,26 @@ sqlite3 ~/.local/share/zwift-race-finder/races.db < import_telemetry.sql
 
 ## Troubleshooting
 
-### OCR Not Detecting Values
-- Check if UI scale in Zwift matches expected coordinates
-- Try adjusting preprocessing threshold values
-- Ensure video quality is sufficient (720p minimum)
+For comprehensive troubleshooting, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
-### Performance Issues
-- Increase `skip_frames` to process fewer frames
-- Use PaddleOCR for better performance
-- Disable preview window with `--no-preview`
+### Quick Fixes
+
+#### Use Debug Mode First
+```bash
+mask debug screenshot.jpg
+```
+This shows exactly where OCR is looking and what's being extracted.
+
+#### Common Issues
+- **Concatenated text**: Top bar values merged → Use v2 extractor
+- **Cadence not reading**: Region too small → Fixed in v2
+- **Gradient missing**: Box too large → Reduced size in v2
+- **Poor accuracy**: Check image quality (1920x1080 recommended)
 
 ### Installation Issues
-- See [SETUP_GUIDE.md](SETUP_GUIDE.md) for detailed troubleshooting
+- See [SETUP_GUIDE.md](SETUP_GUIDE.md) for setup help
 - Ensure mask is installed: `cargo install mask`
-- Check Python dependencies: `mask setup`
-- Verify system libraries for OpenCV are installed
+- Check dependencies: `mask setup`
 
 ## Future Enhancements
 

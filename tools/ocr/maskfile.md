@@ -49,7 +49,8 @@ if [[ ! "$path" = /* ]]; then
     path="$(pwd)/$path"
 fi
 
-uv run python zwift_ocr_improved.py "$path"
+# Use v2 extractor for better accuracy
+uv run python zwift_ocr_improved_v2.py "$path"
 ~~~
 
 ## video (path)

@@ -151,12 +151,42 @@ sqlite3 telemetry.db "SELECT timestamp, speed, power, heart_rate FROM telemetry 
 sqlite3 telemetry.db "SELECT AVG(power) as avg_power, MAX(speed) as max_speed FROM telemetry;"
 ```
 
-## Troubleshooting
+## Debugging OCR Extraction
 
-### OCR Not Detecting Values
-1. Check video/image quality (minimum 720p recommended)
-2. Ensure Zwift UI scale is at default (100%)
-3. Try adjusting preprocessing threshold in code
+### Visual Debug Mode
+The most effective way to troubleshoot OCR issues is using the debug visualization:
+
+```bash
+# Create debug visualization
+mask debug /path/to/screenshot.jpg
+
+# This creates an image showing:
+# - Colored boxes around each extraction region
+# - Extracted values (or "?" if failed)
+# - Success/failure status for each field
+# - Overall extraction success rate
+```
+
+### Common Issues and Solutions
+
+#### OCR Not Detecting Values
+1. **Use debug mode first** to see if regions are correctly positioned
+2. Check image quality (1920x1080 recommended)
+3. Ensure Zwift UI scale is at default (100%)
+4. Try different OCR engines (PaddleOCR vs EasyOCR)
+
+#### Concatenated Text Problem
+Some UI elements (speed, distance, altitude, time) may be read as one string:
+- Example: "2018.410631:06" instead of "20", "18.4", "106", "31:06"
+- Solution: Split top bar into separate regions (implemented in v2)
+
+#### Cadence Not Reading
+- Issue: Region too small for 2-3 digit numbers
+- Solution: Increased region size and added scaling in preprocessing
+
+#### Gradient Not Found
+- Issue: Gradient box too large, capturing extra elements
+- Solution: Reduced box size to focus on percentage only
 
 ### ImportError: No module named 'paddleocr'
 ```bash
