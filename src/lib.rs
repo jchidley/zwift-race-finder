@@ -6,6 +6,12 @@
 //! - Discover route information from external sources
 //! - Manage configuration and secure credential storage
 
+/// A/B testing framework for comparing implementations
+pub mod ab_testing;
+
+/// Compatibility tracking for behavioral preservation
+pub mod compatibility;
+
 /// Common constants used throughout the application
 pub mod constants;
 
