@@ -30,16 +30,22 @@ This tool extracts live telemetry data from Zwift screenshots and video recordin
 
 ## Installation
 
+For detailed setup instructions, see [SETUP_GUIDE.md](SETUP_GUIDE.md).
+
+### Quick Install
+
 ```bash
+# Install mask (if not already installed)
+cargo install mask
+
 # Navigate to OCR tools directory
 cd tools/ocr/
 
-# Install dependencies with uv
-uv sync
+# Install dependencies with mask
+mask setup
 
-# Or install specific OCR engine:
-uv add paddlepaddle paddleocr  # For PaddleOCR (recommended)
-uv add easyocr                  # For EasyOCR
+# Or manually with uv
+uv sync
 ```
 
 ## Quick Start
@@ -213,6 +219,12 @@ sqlite3 ~/.local/share/zwift-race-finder/races.db < import_telemetry.sql
 - Increase `skip_frames` to process fewer frames
 - Use PaddleOCR for better performance
 - Disable preview window with `--no-preview`
+
+### Installation Issues
+- See [SETUP_GUIDE.md](SETUP_GUIDE.md) for detailed troubleshooting
+- Ensure mask is installed: `cargo install mask`
+- Check Python dependencies: `mask setup`
+- Verify system libraries for OpenCV are installed
 
 ## Future Enhancements
 
