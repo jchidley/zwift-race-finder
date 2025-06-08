@@ -629,10 +629,29 @@ def benchmark_ocr_engines(image_paths: List[str]):
 
 def main():
     """Test the improved OCR extraction on Zwift screenshots"""
-    test_images = [
-        "docs/screenshots/normal_1_01_16_02_21.jpg",
-        "docs/screenshots/with_climbing_1_01_36_01_42.jpg"
-    ]
+    import os
+    import sys
+    
+    # Handle different execution contexts
+    if len(sys.argv) > 1:
+        # Use command line arguments
+        test_images = sys.argv[1:]
+    else:
+        # Default test images with proper path resolution
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        repo_root = os.path.dirname(os.path.dirname(script_dir))
+        test_images = [
+            os.path.join(repo_root, "docs/screenshots/normal_1_01_16_02_21.jpg"),
+            os.path.join(repo_root, "docs/screenshots/with_climbing_1_01_36_01_42.jpg")
+        ]
+    
+    # Check if files exist
+    for img in test_images:
+        if not os.path.exists(img):
+            print(f"Warning: Image not found: {img}")
+            # Try relative to current directory
+            if os.path.exists(os.path.basename(img)):
+                test_images[test_images.index(img)] = os.path.basename(img)
     
     if not PADDLE_AVAILABLE and not EASY_AVAILABLE:
         print("No OCR engines available. Please install:")

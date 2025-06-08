@@ -12,9 +12,11 @@ uv sync
 
 ~~~bash
 set -e
-uv run python zwift_ocr_prototype.py
-uv run python test_enhanced_extraction.py
-uv run python test_pose_detection.py
+# Run from repository root to find test images
+cd ../..
+uv run python tools/ocr/zwift_ocr_prototype.py
+uv run python tools/ocr/test_enhanced_extraction.py
+uv run python tools/ocr/test_pose_detection.py
 ~~~
 
 ## lint
@@ -41,6 +43,12 @@ uv run ruff check . --fix
 > * path - Path to the screenshot file
 
 ~~~bash
+# Convert relative paths to absolute if needed
+if [[ ! "$path" = /* ]]; then
+    # Not an absolute path, make it absolute
+    path="$(pwd)/$path"
+fi
+
 uv run python zwift_ocr_improved.py "$path"
 ~~~
 

@@ -11,9 +11,15 @@ mask setup                      # Install Python dependencies
 
 ### Process Files
 ```bash
-mask screenshot image.jpg       # Extract from screenshot
-mask video recording.mp4        # Process video (1 fps)
-mask video file.mp4 --skip-frames 60  # Process every 2 seconds
+# From OCR directory
+mask screenshot ../../docs/screenshots/normal_1_01_16_02_21.jpg
+
+# Or use absolute paths
+mask screenshot /home/jack/tools/rust/zwift-race-finder/docs/screenshots/normal_1_01_16_02_21.jpg
+
+# Process video
+mask video ~/Videos/zwift_race.mp4        # Process video (1 fps)
+mask video file.mp4 --skip-frames 60     # Process every 2 seconds
 ```
 
 ### Testing & Development
