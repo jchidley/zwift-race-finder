@@ -58,7 +58,18 @@ fn main() -> Result<()> {
                 println!("Distance to finish: {} km", distance_to_finish);
             }
             if let Some(leaderboard) = &telemetry.leaderboard {
-                println!("Leaderboard: {} riders nearby", leaderboard.len());
+                println!("\nLeaderboard:");
+                for (i, entry) in leaderboard.iter().enumerate() {
+                    let you = if entry.current { " <-- YOU" } else { "" };
+                    let delta = entry.delta.as_deref().unwrap_or("---");
+                    let wkg = entry.wkg.map_or("---".to_string(), |w| format!("{:.1}", w));
+                    let km = entry.km.map_or("---".to_string(), |k| format!("{:.1}", k));
+                    println!("  {}. {:15} {:>6} {}w/kg {}km{}",
+                        i + 1, entry.name, delta, wkg, km, you);
+                }
+            }
+            if let Some(pose) = &telemetry.rider_pose {
+                println!("Rider pose: {:?}", pose);
             }
         }
         _ => {

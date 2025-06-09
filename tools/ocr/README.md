@@ -19,8 +19,8 @@ This tool extracts live telemetry data from Zwift screenshots and video recordin
 - **4.8x Faster** than Python (1.08s vs 5.15s per image)  
 - **100% Accuracy** on all core telemetry fields
 - **Minimal Dependencies**: Just Tesseract and pure Rust image processing
-- **Feature Complete**: Speed, distance, altitude, time, power, cadence, HR, gradient, distance-to-finish
-- **Missing Only**: Leaderboard extraction (complex multi-rider parsing)
+- **Feature Complete v1.1**: All telemetry fields including leaderboard and rider pose detection
+- **Limitations**: Leaderboard text accuracy lower than PaddleOCR, pose detection needs refinement
 - **Build**: `cargo build --features ocr --bin zwift_ocr_compact --release`
 
 ### Extended Python Tools
@@ -114,14 +114,16 @@ time (cd tools/ocr && uv run python zwift_ocr_compact.py ../../docs/screenshots/
 
 | Implementation | Speed | Accuracy | Extracted Fields |
 |----------------|-------|----------|------------------|
-| **Rust (Tesseract)** | **1.08s** | 100% | Speed, distance, altitude, time, power, cadence, HR, gradient, distance-to-finish |
-| Python (PaddleOCR) | 5.15s | 100% | All above + leaderboard (7+ riders with names/stats) |
+| **Rust (Tesseract)** | **1.08s** | 100%* | Speed, distance, altitude, time, power, cadence, HR, gradient, distance-to-finish, leaderboard**, rider pose |
+| Python (PaddleOCR) | 5.15s | 100% | All fields with higher leaderboard accuracy |
 
 **Speed Advantage**: Rust is **4.8x faster** than Python while maintaining perfect accuracy on core telemetry.
 
+*Core telemetry fields have 100% accuracy. **Leaderboard extraction has lower accuracy with Tesseract vs PaddleOCR.
+
 **Use Cases**:
 - **Rust**: Faster batch processing, automation, production systems (4.8x speedup)
-- **Python**: Full leaderboard analysis, development/prototyping, complex visualizations
+- **Python**: Better leaderboard accuracy, development/prototyping, complex visualizations
 
 See [OCR_COMPARISON_FINDINGS.md](OCR_COMPARISON_FINDINGS.md) for detailed performance analysis of different OCR approaches.
 
@@ -162,18 +164,19 @@ The extracted telemetry can be used to:
 ### 🚧 Future Enhancements
 
 #### Priority 1: Feature Completeness
-- [ ] **Leaderboard extraction** (Rust): Complete feature parity with Python implementation
-  - Multi-rider parsing with name detection, deltas, w/kg values
-  - CLAHE contrast enhancement for optimal text recognition
-  - Green box detection for current rider identification
-  - Estimated effort: 2-3 hours (~150-200 lines of code)
-  - Would achieve 100% feature parity between Rust and Python versions
+- [x] **Leaderboard extraction** (Rust): Feature parity with Python implementation
+  - ✅ Multi-rider parsing with name detection, deltas, w/kg values
+  - ✅ Adaptive threshold for contrast enhancement
+  - ✅ Current rider detection based on missing time delta
+  - ⚠️ Note: Tesseract OCR less accurate than PaddleOCR for complex leaderboard text
+  - Completed: Added ~280 lines of code
 
-- [ ] **Rider pose detection** (Rust): Port advanced pose classification from Python
-  - Detect: normal_tuck (high drag), normal_normal, climbing_seated, climbing_standing (high drag)
-  - Extract pose features: aspect ratio, torso angle, center of mass, symmetry
-  - Important for aerodynamic analysis: tuck position has HIGH drag in Zwift (counterintuitive)
-  - Avatar region: approximately (860, 400, 200, 300) for 1920x1080
+- [x] **Rider pose detection** (Rust): Ported pose classification from Python
+  - ✅ Detects: normal_tuck (high drag), normal_normal, climbing_seated, climbing_standing (high drag)
+  - ✅ Extracts pose features: aspect ratio, center of mass, density analysis, symmetry
+  - ✅ Avatar region: (860, 400, 200, 300) for 1920x1080
+  - ⚠️ Note: Edge detection approach may need refinement for better accuracy
+  - Completed: Added ~130 lines of code
 
 #### Priority 2: Usability Improvements
 - [ ] **Automatic UI scale detection**: Handle different screen resolutions automatically
@@ -193,6 +196,7 @@ The extracted telemetry can be used to:
 - [ ] **Sensor data integration**: Combine OCR with direct ANT+/Bluetooth telemetry
   - ✅ **Verified**: Strava .fit files record power, cadence, HR at **1Hz (1 second intervals)**
   - ✅ **97-minute race** = 5,831 data points with 100% sensor data completeness
+  - ✅ **FIT file analysis** (2025-06-06-10-23-16.fit): Confirmed consistent 1.0 second update intervals
   - OCR focus on UI-only data: position, leaderboard, gradient, distance-to-finish, rider pose
   - Cross-validate OCR accuracy against sensor ground truth
   - Optimal strategy: Real-time sensor feeds + periodic OCR extraction

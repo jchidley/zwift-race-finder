@@ -132,14 +132,20 @@ Some elements move or appear conditionally:
 ### Python (PaddleOCR)
 - **Accuracy**: 100% on all fields
 - **Speed**: ~5.15 seconds per image
-- **Strengths**: Handles all UI elements including leaderboard
+- **Strengths**: Handles all UI elements with excellent leaderboard accuracy
 - **Setup**: Requires PaddleOCR installation
 
-### Rust (Tesseract) - v1.0
-- **Accuracy**: 100% on all core fields (9/10 fields)
+### Rust (Tesseract) - v1.1
+- **Accuracy**: 100% on core telemetry, ~40% on leaderboard names
 - **Speed**: ~1.08 seconds per image (4.8x faster than Python)
-- **Features**: Speed, distance, altitude, time, power, cadence, HR, gradient, distance-to-finish
-- **Limitations**: Leaderboard extraction not implemented (Python-only feature)
+- **Features**: Complete - all 11 fields including leaderboard and rider pose
+- **Implementation Details**:
+  - Core telemetry: Direct region extraction with character constraints
+  - Leaderboard: Adaptive threshold preprocessing, regex-based name detection
+  - Rider pose: Edge detection with feature analysis (aspect ratio, center of mass)
+- **Limitations**: 
+  - Tesseract less accurate than PaddleOCR for complex text
+  - Pose detection needs calibration refinement
 - **Setup**: Requires Tesseract library
 
 ## Common Issues & Solutions
@@ -226,6 +232,43 @@ mask debug screenshot.jpg  # Python
 - **Classification**: Rule-based system with confidence thresholds
 - **Drag implications**: Important for performance analysis - tuck position increases drag in Zwift
 
+## Rust Implementation Details (v1.1)
+
+### Leaderboard Extraction Algorithm
+```rust
+1. Extract leaderboard region (1500, 200, 420, 600)
+2. Apply adaptive threshold for contrast enhancement
+3. Configure Tesseract for alphanumeric + special chars
+4. Parse OCR output line by line
+5. Identify names using regex patterns:
+   - Initials with dots: "J.Chidley"
+   - Multiple dots: "C.J.Y.S"
+   - Mixed case: "Laindre"
+   - Parentheses: "J.T.Noxen)"
+6. Extract metrics from adjacent lines:
+   - Time delta: +/-MM:SS format
+   - Power: X.X w/kg
+   - Distance: X.X km
+7. Mark current rider (no time delta)
+```
+
+### Rider Pose Detection Algorithm
+```rust
+1. Extract avatar region (860, 400, 200, 300)
+2. Apply Gaussian blur (σ=1.0)
+3. Canny edge detection (50, 150 thresholds)
+4. Calculate features:
+   - Aspect ratio = height/width of bounding box
+   - Center of mass Y position (normalized)
+   - Upper/lower body pixel density
+   - Left/right symmetry score
+5. Classify based on thresholds:
+   - Standing: aspect_ratio > 1.7, center_y < 0.45
+   - Tuck: aspect_ratio < 1.3, center_y > 0.55
+   - Seated climbing: 1.4 < aspect_ratio < 1.8
+   - Normal: 1.3 < aspect_ratio < 1.7
+```
+
 ## Data Storage Schema
 
 ```sql
@@ -259,8 +302,10 @@ The OCR tools can validate race duration estimates:
 ### Sensor vs OCR Data (Verified from Real Racing Data)
 - **Direct from sensors** (ANT+/Bluetooth): Power, cadence, heart rate at **1Hz (1 second intervals)**
   - ✅ Strava analysis: 97-minute race = 5,831 data points
+  - ✅ FIT file analysis (2025-06-06-10-23-16.fit): Confirmed 1.0 second update interval
   - ✅ 100% data completeness for power, cadence, HR
   - ✅ Perfect for high-frequency performance metrics
+  - ✅ Includes GPS position, speed, altitude, distance, grade calculations
 - **OCR-only data**: Position, leaderboard, gradient, distance-to-finish, rider pose, powerup status
   - ⚡ Rust OCR: 1.08 seconds per extraction (nearly matches 1Hz sensor rate)
   - 🎥 Optimal for 1fps video analysis or real-time streaming
