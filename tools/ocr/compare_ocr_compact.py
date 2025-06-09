@@ -30,7 +30,12 @@ def main():
     
     # Rust Compact (Tesseract)
     print("Running Rust Compact OCR...")
-    binary = Path(__file__).parent.parent.parent / "target" / "debug" / "zwift_ocr_compact"
+    binary = Path(__file__).parent.parent.parent / "target" / "release" / "zwift_ocr_compact"
+    
+    if not binary.exists():
+        print(f"Error: Release binary not found at {binary}")
+        print("Build it with: cargo build --features ocr --bin zwift_ocr_compact --release")
+        sys.exit(1)
     
     start = time.time()
     result = subprocess.run([str(binary), str(image_path)], capture_output=True, text=True)
