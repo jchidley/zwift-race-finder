@@ -146,11 +146,34 @@ Some elements move or appear conditionally:
 
 ### 1. Resolution Differences
 **Problem**: Coordinates optimized for 1920x1080
-**Solution**: Scale coordinates proportionally:
+**Current Solution**: Scale coordinates proportionally:
 ```python
 scale_x = actual_width / 1920
 scale_y = actual_height / 1080
 ```
+
+**Future Enhancement**: AI-powered region auto-detection during race join:
+```python
+# Perfect timing: pre-race join window before start
+print("Joined race - calibrating UI regions...")
+regions = detect_zwift_ui_elements(pre_race_frame)
+print("Calibration complete - ready for race start!")
+# Cache for future races: "zwift_v1.60_1920x1080_regions.json"
+save_region_cache(regions, resolution, zwift_version)
+```
+
+**Implementation Approaches**:
+- **Template matching**: Use reference images of UI elements (speed box, power meter)
+- **Feature detection**: SIFT/ORB to find distinctive UI features
+- **Contour analysis**: Detect rectangular UI panels by shape
+- **Text detection**: Use OCR engines to locate text regions, then calibrate boundaries
+
+**Race Join Workflow**:
+1. **Join race** (before start deadline)
+2. **Auto-calibrate** UI regions during pre-race period
+3. **Cache regions** for this resolution/version combo
+4. **Race starts** - immediate high-accuracy extraction
+5. **Future races** - skip calibration, use cached regions
 
 ### 2. OCR Engine Installation
 
@@ -178,16 +201,30 @@ mask debug screenshot.jpg  # Python
 
 ## Zwift Physics Notes
 
-### Rider Positions (Visual Only)
+### Rider Positions and Aerodynamic Effects
+
+#### Detected Pose Types (`rider_pose_detector.py`)
+- **normal_normal**: Standard upright position (NORMAL DRAG)
+- **normal_tuck**: Tucked position (HIGH DRAG - counterintuitive!)
+- **climbing_seated**: Seated climbing (NORMAL DRAG) 
+- **climbing_standing**: Out of saddle climbing (HIGH DRAG)
+
+#### Automatic Position Changes (Visual Only)
 - **Hoods/Drops**: Automatic based on speed (≥33km/h) and drafting
 - **Standing**: Based on cadence (31-72 RPM) on climbs
-- **NO aerodynamic effect** - purely visual
+- **NO aerodynamic effect** - purely visual changes
 
-### Supertuck (Actually Affects Speed)
+#### Supertuck (Actually Affects Speed)
 - Only position that changes aerodynamics
 - Activates on steep descents when not pedaling
 - ~25% drag reduction
 - Cannot be used on TT/MTB bikes
+
+#### Pose Detection Features
+- **Avatar region**: (860, 400, 200, 300) for 1920x1080
+- **Feature extraction**: Aspect ratio, torso angle, head position, center of mass, symmetry
+- **Classification**: Rule-based system with confidence thresholds
+- **Drag implications**: Important for performance analysis - tuck position increases drag in Zwift
 
 ## Data Storage Schema
 
@@ -206,7 +243,7 @@ CREATE TABLE telemetry (
     gradient REAL,
     distance_to_finish REAL,
     powerup_name TEXT,
-    rider_pose TEXT
+    rider_pose TEXT,  -- normal_normal, normal_tuck (high drag), climbing_seated, climbing_standing (high drag)
 );
 ```
 
@@ -217,9 +254,25 @@ The OCR tools can validate race duration estimates:
 2. Compare with predicted durations
 3. Adjust estimation algorithms based on real data
 
+## Data Source Considerations
+
+### Sensor vs OCR Data (Verified from Real Racing Data)
+- **Direct from sensors** (ANT+/Bluetooth): Power, cadence, heart rate at **1Hz (1 second intervals)**
+  - ✅ Strava analysis: 97-minute race = 5,831 data points
+  - ✅ 100% data completeness for power, cadence, HR
+  - ✅ Perfect for high-frequency performance metrics
+- **OCR-only data**: Position, leaderboard, gradient, distance-to-finish, rider pose, powerup status
+  - ⚡ Rust OCR: 1.08 seconds per extraction (nearly matches 1Hz sensor rate)
+  - 🎥 Optimal for 1fps video analysis or real-time streaming
+- **Optimal approach**: Real-time sensor feeds + periodic OCR for complete telemetry
+- **Performance match**: OCR speed (1.08s) ≈ sensor interval (1s) - perfect sync potential
+
+### OCR Use Cases
+- **Post-race analysis**: Extract position data from race recordings
+- **Broadcast overlays**: Real-time leaderboard for streaming
+- **Data validation**: Cross-check sensor accuracy against UI display
+- **Historical analysis**: Process old recordings where sensor data unavailable
+
 ## Future Improvements
 
-1. **Auto-calibration** for different resolutions
-2. **Machine learning** for Zwift-specific fonts
-3. **Real-time streaming** support
-4. **Complete Rust implementation** including all fields
+See [README.md](README.md) for current enhancement roadmap.

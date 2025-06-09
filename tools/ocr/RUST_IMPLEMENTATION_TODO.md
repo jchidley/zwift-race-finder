@@ -63,27 +63,7 @@ pub struct LeaderboardEntry {
 
 ### 🚧 Future Implementation: Leaderboard (v2.0)
 
-This is the only remaining feature for feature parity with Python. Implementation complexity:
-
-#### Technical Challenges
-- **Multi-text detection**: Unlike single values, requires parsing multiple rider entries
-- **Contrast enhancement**: Needs CLAHE algorithm for optimal text recognition
-- **Text grouping logic**: Associate rider names with stats (delta, km, w/kg)
-- **Current rider detection**: Identify green box indicating user's position
-- **Variable entry count**: Handle 3-7+ visible riders dynamically
-
-#### Implementation Effort Estimate
-- **Time**: 2-3 hours (complex logic + testing)
-- **Lines of Code**: ~150-200 additional lines
-- **Dependencies**: Potential need for contrast enhancement algorithms
-- **Testing**: Requires multiple screenshots with different leaderboard states
-
-#### Recommended Approach for v2.0
-1. Start with basic name detection using regex patterns
-2. Implement text region clustering by Y-coordinate
-3. Add green box detection for current rider
-4. Parse numeric values (delta times, distances, w/kg)
-5. Build comprehensive test suite with various leaderboard states
+See [README.md](README.md) for current enhancement roadmap and implementation details.
 
 ## Current Status Summary
 

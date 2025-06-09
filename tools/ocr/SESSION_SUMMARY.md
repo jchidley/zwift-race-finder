@@ -92,15 +92,7 @@ The **30K pixels** processed by region-based extraction vs **2M pixels** for ful
 
 ## 🔮 Future Roadmap
 
-### Next Phase (v2.0)
-- **Leaderboard extraction** in Rust (2-3 hour implementation)
-- **AI-powered region detection** for automatic UI adaptation
-- **Real-time streaming** integration with OBS/capture tools
-
-### Long-term Vision
-- **Integration APIs** for Strava/TrainingPeaks
-- **Multi-resolution support** for different screen sizes
-- **Video processing optimization** with smart frame sampling
+See [README.md](README.md) for current enhancement roadmap.
 
 ## 💡 Lessons Learned
 
