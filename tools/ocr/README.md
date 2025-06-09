@@ -22,6 +22,7 @@ This tool extracts live telemetry data from Zwift screenshots and video recordin
 - **Hybrid OCR**: Tesseract for numbers, ocrs neural network for leaderboard text
 - **Feature Complete v1.1**: All telemetry fields including leaderboard and rider pose detection
 - **Good Leaderboard Accuracy**: ~80% name recognition with ocrs (vs ~10% Tesseract-only)
+- **v1.3 Parallel Implementation**: 1.57x speedup with parallel field extraction (0.52s for full features)
 - **Build**: `cargo build --features ocr --bin zwift_ocr_compact --release`
 
 ### Extended Python Tools
@@ -64,6 +65,9 @@ cargo build --features ocr --bin zwift_ocr_compact --release
 
 # Using cargo run (slower)
 cargo run --features ocr --bin zwift_ocr_compact --release -- screenshot.jpg
+
+# Benchmark sequential vs parallel implementations
+./target/release/zwift_ocr_benchmark screenshot.jpg --iterations 10
 ```
 
 **Example Output (JSON)**:
@@ -117,12 +121,14 @@ time (cd tools/ocr && uv run python zwift_ocr_compact.py ../../docs/screenshots/
 |----------------|-------|----------|------------------|
 | **Rust Core** | **0.9s** | 100% | Speed, distance, altitude, time, power, cadence, HR (7 fields) |
 | **Python Core** | **4.5s** | 100% | Same 7 core telemetry fields |
+| **Rust v1.3 Parallel** | **0.52s** | 100%* | All 11 fields with parallel extraction |
 | **Rust v1.1 (Full)** | **3.53s** | 100%* | All 11 fields including gradient, distance-to-finish, leaderboard**, rider pose |
 | Python (Full) | 12.05s | 100% | All fields with perfect leaderboard accuracy |
 
 **Speed Advantage**: 
 - Core telemetry: Rust is **5x faster** (0.9s vs 4.5s)
-- Full features: Rust is **3.4x faster** (3.53s vs 12.05s)
+- Full features: Rust v1.1 is **3.4x faster** (3.53s vs 12.05s)
+- Full features: Rust v1.3 Parallel is **23x faster** (0.52s vs 12.05s)
 
 *Core telemetry fields have 100% accuracy. **Leaderboard extraction ~80% accurate with ocrs (vs 100% PaddleOCR).
 

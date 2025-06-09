@@ -338,7 +338,7 @@ pub fn parse_leaderboard_data(entry: &mut LeaderboardEntry, text: &str) {
 }
 
 /// Extract rider pose from avatar region
-fn extract_rider_pose(img: &DynamicImage) -> Result<Option<RiderPose>> {
+pub fn extract_rider_pose(img: &DynamicImage) -> Result<Option<RiderPose>> {
     // Avatar region (center of screen)
     let x = regions::AVATAR_X;
     let y = regions::AVATAR_Y;

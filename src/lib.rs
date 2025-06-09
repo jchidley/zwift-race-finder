@@ -87,3 +87,7 @@ pub mod ocr_compact;
 #[cfg(feature = "ocr")]
 pub mod ocr_ocrs;
 
+/// Parallel OCR implementation for high performance
+#[cfg(feature = "ocr")]
+pub mod ocr_parallel;
+

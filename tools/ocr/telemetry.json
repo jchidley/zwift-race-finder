@@ -1,0 +1,61 @@
+{
+  "speed": 34,
+  "altitude": 28,
+  "power": 268,
+  "cadence": 72,
+  "heart_rate": 160,
+  "distance": 6.4,
+  "distance_to_finish": 28.6,
+  "race_time": "11:07",
+  "gradient": 3.0,
+  "leaderboard": [
+    {
+      "name": "J.Matzke",
+      "current": false,
+      "delta": "+2:20",
+      "km": 5.1,
+      "wkg": 1.9
+    },
+    {
+      "name": "J.Chidley",
+      "current": true,
+      "km": 6.4,
+      "wkg": 3.2
+    },
+    {
+      "name": "J.T.Noxen)",
+      "current": false,
+      "delta": "+0:00",
+      "km": 6.4,
+      "wkg": 3.4
+    },
+    {
+      "name": "Y.Kikuchi",
+      "current": false,
+      "delta": "+0:00",
+      "km": 6.3,
+      "wkg": 3.4
+    },
+    {
+      "name": "C.J.Y.S",
+      "current": false,
+      "delta": "+0:00",
+      "km": 6.3,
+      "wkg": 2.8
+    },
+    {
+      "name": "S.Jung",
+      "current": false,
+      "delta": "+0:00",
+      "km": 6.3,
+      "wkg": 3.8
+    },
+    {
+      "name": "e.kim",
+      "current": false,
+      "delta": "+0:00",
+      "km": 6.3,
+      "wkg": 2.4
+    }
+  ]
+}

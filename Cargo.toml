@@ -44,6 +44,11 @@ rten = { version = "0.18", optional = true }
 rten-imageproc = { version = "0.18", optional = true }
 rten-tensor = { version = "0.18", optional = true }
 
+# Parallel processing dependencies
+rayon = { version = "1.7", optional = true }
+once_cell = { version = "1.19", optional = true }
+crossbeam = { version = "0.8", optional = true }
+
 [dev-dependencies]
 tempfile = "3.0"
 proptest = "1.0"
@@ -61,6 +66,10 @@ harness = false
 name = "zwift_ocr_compact"
 required-features = ["ocr"]
 
+[[bin]]
+name = "zwift_ocr_benchmark"
+required-features = ["ocr"]
+
 [profile.mutants]
 inherits = "test"
 debug = "none"
@@ -69,4 +78,4 @@ opt-level = 1
 [features]
 default = []
 keyring-storage = ["keyring"]
-ocr = ["leptess", "image", "imageproc", "ocrs", "rten", "rten-imageproc", "rten-tensor"]
+ocr = ["leptess", "image", "imageproc", "ocrs", "rten", "rten-imageproc", "rten-tensor", "rayon", "once_cell", "crossbeam"]
