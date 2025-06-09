@@ -85,9 +85,10 @@ uv run python compare_ocr_compact.py
 | Implementation | Speed | Accuracy | Features |
 |----------------|-------|----------|----------|
 | Python (PaddleOCR) | 6-20s | 100% all fields | Full telemetry + leaderboard |
-| Rust (Tesseract) | 1-3s | 100% core fields | Speed, distance, power, etc. |
+| Rust (Tesseract) | 0.19s | 100% core fields | Speed, distance, power, etc. |
+| Rust (ocrs) | 0.99s | General OCR | Full document text extraction |
 
-The Rust implementation is 5-6x faster while maintaining perfect accuracy on core telemetry fields.
+The Rust/Tesseract implementation is 5x faster than ocrs and 30-100x faster than Python while maintaining perfect accuracy on core telemetry fields. See [OCR_COMPARISON_FINDINGS.md](OCR_COMPARISON_FINDINGS.md) for detailed performance analysis.
 
 ## Technical Details
 
