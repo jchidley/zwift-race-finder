@@ -50,25 +50,38 @@ def main():
     # Results
     print(f"\nPerformance: Python={py_time:.2f}s, Rust={rs_time:.2f}s ({py_time/rs_time:.1f}x faster)")
     
-    # Compare fields
-    fields = ['speed', 'distance', 'altitude', 'race_time', 'power', 'cadence', 'heart_rate']
-    matches = sum(1 for f in fields if py_result.get(f) == rs_result.get(f))
+    # Compare all fields
+    core_fields = ['speed', 'distance', 'altitude', 'race_time', 'power', 'cadence', 'heart_rate']
+    extra_fields = ['gradient', 'distance_to_finish']
+    all_fields = core_fields + extra_fields
     
-    print(f"Accuracy: {matches}/{len(fields)} core fields match ({matches/len(fields)*100:.0f}%)")
-    print(f"Core fields compared: {', '.join(fields)}")
+    # Compare core and extra fields separately
+    core_matches = sum(1 for f in core_fields if py_result.get(f) == rs_result.get(f))
+    extra_matches = sum(1 for f in extra_fields if py_result.get(f) == rs_result.get(f))
+    total_matches = core_matches + extra_matches
     
-    # Note about additional fields
-    rust_extra_fields = [k for k in rs_result.keys() if k not in fields]
-    if rust_extra_fields:
-        print(f"Additional Rust fields (not compared): {', '.join(rust_extra_fields)}")
+    print(f"\nCore telemetry: {core_matches}/{len(core_fields)} fields match ({core_matches/len(core_fields)*100:.0f}%)")
+    print(f"Extra fields: {extra_matches}/{len(extra_fields)} fields match ({extra_matches/len(extra_fields)*100:.0f}%)")
+    print(f"Total accuracy: {total_matches}/{len(all_fields)} fields match ({total_matches/len(all_fields)*100:.0f}%)")
     
-    if matches < len(fields):
+    # Compare leaderboard
+    py_lb = py_result.get('leaderboard', [])
+    rs_lb = rs_result.get('leaderboard', [])
+    print(f"\nLeaderboard: Python extracted {len(py_lb)} entries, Rust extracted {len(rs_lb)} entries")
+    
+    if total_matches < len(all_fields):
         print("\nDifferences:")
-        for field in fields:
+        for field in all_fields:
             py_val = py_result.get(field)
             rs_val = rs_result.get(field)
             if py_val != rs_val:
                 print(f"  {field}: Python={py_val}, Rust={rs_val}")
+    
+    # Show extracted data only if requested
+    if "--verbose" in sys.argv:
+        print("\n=== Extracted Data ===")
+        print("Python:", json.dumps(py_result, indent=2))
+        print("\nRust:", json.dumps(rs_result, indent=2))
 
 if __name__ == "__main__":
     main()
