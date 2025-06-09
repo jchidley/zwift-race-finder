@@ -34,7 +34,7 @@ uv run ruff check . --fix
 ~~~
 
 ## screenshot (path)
-> Extract telemetry from a screenshot
+> Extract telemetry from a screenshot using Python (full features)
 >
 > **POSITIONAL ARGUMENTS**
 > * path - Path to the screenshot file
@@ -46,8 +46,30 @@ if [[ ! "$path" = /* ]]; then
     path="$(pwd)/$path"
 fi
 
-# Use final extractor with 100% accuracy
+# Use final extractor with 100% accuracy including leaderboard
 uv run python zwift_ocr_improved_final.py "$path"
+~~~
+
+## rust-ocr (path)
+> Extract telemetry using Rust implementation (fastest)
+>
+> **POSITIONAL ARGUMENTS**  
+> * path - Path to the screenshot file
+
+~~~bash
+# Build if needed and run Rust implementation
+cd ../..
+if [ ! -f target/release/zwift_ocr_compact ]; then
+    echo "Building Rust OCR implementation..."
+    cargo build --features ocr --bin zwift_ocr_compact --release
+fi
+
+# Convert relative path for Rust binary
+if [[ ! "$path" = /* ]]; then
+    path="tools/ocr/$path"
+fi
+
+./target/release/zwift_ocr_compact "$path"
 ~~~
 
 ## video (path)
@@ -109,51 +131,60 @@ rm -f debug_*.jpg debug_*.png
 find . -name "*.pyc" -delete
 ~~~
 
-## rust-build
-> Build the Rust OCR binary
-
-~~~bash
-cd ../.. && cargo build --features ocr --bin zwift_ocr
-~~~
-
-## rust-run (path)
-> Run the Rust OCR implementation
->
-> **POSITIONAL ARGUMENTS**
-> * path - Path to the screenshot file
-
-~~~bash
-cd ../.. && cargo run --features ocr --bin zwift_ocr -- "$path"
-~~~
-
-## rust-test
-> Run Rust OCR tests
-
-~~~bash
-cd ../.. && cargo test --features ocr ocr_tests
-~~~
-
-## rust-bench
-> Run Rust OCR benchmarks
-
-~~~bash
-cd ../.. && cargo bench --features ocr ocr_benchmark
-~~~
-
 ## compare (path)
-> Compare Python and Rust OCR outputs
+> Compare Python and Rust OCR performance and output
 >
 > **POSITIONAL ARGUMENTS**
 > * path - Path to the screenshot file
 
 ~~~bash
-echo "=== Python OCR ==="
+echo "=== Performance Comparison ==="
+echo "Python (PaddleOCR):"
 time uv run python zwift_ocr_compact.py "$path" > python_output.json
 
-echo -e "\n=== Rust OCR ==="
-cd ../.. && time cargo run --features ocr --bin zwift_ocr -- "$path" > tools/ocr/rust_output.json
+echo -e "\nRust (Tesseract):"
+cd ../..
+if [ ! -f target/release/zwift_ocr_compact ]; then
+    echo "Building Rust implementation..."
+    cargo build --features ocr --bin zwift_ocr_compact --release
+fi
 
-echo -e "\n=== Comparison ==="
+# Fix path for rust binary
+rust_path="$path"
+if [[ ! "$path" = /* ]]; then
+    rust_path="tools/ocr/$path"
+fi
+
+time ./target/release/zwift_ocr_compact "$rust_path" > tools/ocr/rust_output.json
+
+echo -e "\n=== Output Comparison ==="
 cd tools/ocr
-diff -u python_output.json rust_output.json || true
+
+# Pretty print both outputs
+echo "Python output:"
+cat python_output.json | python -m json.tool | head -15
+
+echo -e "\nRust output:"  
+cat rust_output.json | python -m json.tool | head -15
+
+# Show differences (ignore leaderboard field)
+echo -e "\n=== Field Comparison (ignoring leaderboard) ==="
+python -c "
+import json
+py = json.load(open('python_output.json'))
+rs = json.load(open('rust_output.json'))
+py.pop('leaderboard', None)
+rs.pop('leaderboard', None)
+print('Matching fields:', py == rs)
+for k in py:
+    if k in rs and py[k] != rs[k]:
+        print(f'{k}: Python={py[k]} Rust={rs[k]}')
+"
+~~~
+
+## build-rust
+> Build the Rust OCR binary in release mode
+
+~~~bash
+cd ../.. && cargo build --features ocr --bin zwift_ocr_compact --release
 ~~~

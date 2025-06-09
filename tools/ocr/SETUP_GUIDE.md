@@ -89,17 +89,22 @@ mask test
 mask compare-engines
 ```
 
-### 4. Build Rust OCR (Optional)
+### 4. Build Rust OCR (Recommended)
 ```bash
-# From project root
+# From project root directory
 cd ../..
+
+# Build release version for maximum performance
+cargo build --features ocr --bin zwift_ocr_compact --release
+
+# Test the build
+./target/release/zwift_ocr_compact docs/screenshots/normal_1_01_16_02_21.jpg
+
+# Or build debug version (slower but faster to compile)
 cargo build --features ocr --bin zwift_ocr_compact
 
-# Or if mask has rust-build task
-mask rust-build
-
-# Test the Rust implementation
-./target/debug/zwift_ocr_compact tools/ocr/../../docs/screenshots/normal_1_01_16_02_21.jpg
+# Test the debug build (if needed)
+./target/debug/zwift_ocr_compact docs/screenshots/normal_1_01_16_02_21.jpg
 
 # Compare Python vs Rust
 cd tools/ocr/
@@ -109,12 +114,41 @@ uv run python compare_ocr_compact.py
 ## Quick Start Examples
 
 ### Basic Screenshot Analysis
-```bash
-# Analyze a single screenshot
-mask screenshot ../../docs/screenshots/normal_1_01_16_02_21.jpg
 
-# Or use the wrapper script
-./zwift_ocr.sh screenshot ../../docs/screenshots/with_climbing_1_01_36_01_42.jpg
+#### Rust Implementation (Fastest - Recommended)
+```bash
+# From project root directory
+# Extract telemetry in JSON format (default)
+./target/release/zwift_ocr_compact docs/screenshots/normal_1_01_16_02_21.jpg
+
+# Human-readable text output
+./target/release/zwift_ocr_compact docs/screenshots/normal_1_01_16_02_21.jpg --format text
+
+# Example output:
+# Speed: 34 km/h
+# Distance: 6.4 km  
+# Altitude: 28 m
+# Time: 11:07
+# Power: 268 W
+# Cadence: 72 rpm
+# HR: 160 bpm
+# Gradient: 3.0%
+# Distance to finish: 28.6 km
+```
+
+#### Python Implementation (Full Features)
+```bash
+# From tools/ocr directory
+cd tools/ocr/
+
+# Analyze a single screenshot (includes leaderboard)
+uv run python zwift_ocr_compact.py ../../docs/screenshots/normal_1_01_16_02_21.jpg
+
+# With enhanced debug visualization  
+uv run python zwift_ocr_improved_final.py ../../docs/screenshots/normal_1_01_16_02_21.jpg --debug
+
+# Using mask task runner
+mask screenshot ../../docs/screenshots/normal_1_01_16_02_21.jpg
 ```
 
 ### Video Processing

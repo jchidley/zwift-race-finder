@@ -51,6 +51,15 @@ fn main() -> Result<()> {
             if let Some(heart_rate) = telemetry.heart_rate {
                 println!("HR: {} bpm", heart_rate);
             }
+            if let Some(gradient) = telemetry.gradient {
+                println!("Gradient: {}%", gradient);
+            }
+            if let Some(distance_to_finish) = telemetry.distance_to_finish {
+                println!("Distance to finish: {} km", distance_to_finish);
+            }
+            if let Some(leaderboard) = &telemetry.leaderboard {
+                println!("Leaderboard: {} riders nearby", leaderboard.len());
+            }
         }
         _ => {
             eprintln!("Unknown format: {}. Use 'json' or 'text'", args.format);

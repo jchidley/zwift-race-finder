@@ -48,9 +48,12 @@ POWER = Region(268, 49, 117, 61)         # W
 CADENCE = Region(240, 135, 45, 31)       # RPM
 HEART_RATE = Region(341, 129, 69, 38)    # BPM
 
-# Other elements
-GRADIENT_BOX = Region(1695, 71, 50, 50)  # %
+# Additional telemetry (v1.0+)
+GRADIENT = Region(1695, 71, 50, 50)      # % (special font)
 DISTANCE_TO_FINISH = Region(1143, 138, 50, 27)  # km
+
+# Advanced features
+LEADERBOARD = Region(1500, 200, 420, 600)  # Multi-rider data (Python only)
 POWERUP_NAME = Region(444, 211, 225, 48) # When active
 LEADERBOARD_AREA = Region(1500, 200, 420, 600)
 ```
@@ -86,15 +89,21 @@ def preprocess_top_bar(roi):
     _, binary = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY)
     return cv2.resize(binary, None, fx=3, fy=3)
 
-# Gradient (stylized font) - Python
+# Gradient (stylized font) - Python  
 def preprocess_gradient(roi):
     gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
     inverted = cv2.bitwise_not(gray)  # Invert for contrast
     _, binary = cv2.threshold(inverted, 100, 255, cv2.THRESH_BINARY)
     return cv2.resize(binary, None, fx=4, fy=4)
 
-# Rust equivalent
-let binary = threshold(&gray, 200);
+# Gradient (Rust - optimized approach)
+let binary = threshold(&gray, 150);  # No inversion needed, lower threshold
+let scaled = image::imageops::resize(&binary, width * 4, height * 4, 
+                                     image::imageops::FilterType::CatmullRom);
+ocr.set_variable(Variable::TesseditPagesegMode, "7");  # Single text line
+
+# Standard fields (Rust)
+let binary = threshold(&gray, if field == "distance_to_finish" { 150 } else { 200 });
 let scaled = image::imageops::resize(&binary, width * 3, height * 3, 
                                      image::imageops::FilterType::CatmullRom);
 ```
@@ -122,14 +131,15 @@ Some elements move or appear conditionally:
 
 ### Python (PaddleOCR)
 - **Accuracy**: 100% on all fields
-- **Speed**: ~6-20 seconds per image
+- **Speed**: ~5.15 seconds per image
 - **Strengths**: Handles all UI elements including leaderboard
 - **Setup**: Requires PaddleOCR installation
 
-### Rust (Tesseract)
-- **Accuracy**: 100% on core fields (7/7)
-- **Speed**: ~1-3 seconds per image (5-6x faster)
-- **Limitations**: No gradient/leaderboard extraction yet
+### Rust (Tesseract) - v1.0
+- **Accuracy**: 100% on all core fields (9/10 fields)
+- **Speed**: ~1.08 seconds per image (4.8x faster than Python)
+- **Features**: Speed, distance, altitude, time, power, cadence, HR, gradient, distance-to-finish
+- **Limitations**: Leaderboard extraction not implemented (Python-only feature)
 - **Setup**: Requires Tesseract library
 
 ## Common Issues & Solutions
