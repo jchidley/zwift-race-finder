@@ -15,6 +15,10 @@ struct Args {
     /// Output format (json or text)
     #[arg(short, long, default_value = "json")]
     format: String,
+
+    /// Use parallel extraction (faster)
+    #[arg(short, long)]
+    parallel: bool,
 }
 
 #[cfg(feature = "ocr")]
@@ -22,7 +26,11 @@ fn main() -> Result<()> {
     let args = Args::parse();
     
     // Extract telemetry
-    let telemetry = zwift_race_finder::ocr_compact::extract_telemetry(&args.image_path)?;
+    let telemetry = if args.parallel {
+        zwift_race_finder::ocr_parallel::extract_telemetry_parallel(&args.image_path)?
+    } else {
+        zwift_race_finder::ocr_compact::extract_telemetry(&args.image_path)?
+    };
     
     // Output results
     match args.format.as_str() {

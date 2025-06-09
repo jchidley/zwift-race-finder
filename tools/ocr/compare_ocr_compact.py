@@ -37,9 +37,22 @@ def main():
         print("Build it with: cargo build --features ocr --bin zwift_ocr_compact --release")
         sys.exit(1)
     
+    # Test both sequential and parallel
+    print("  - Sequential mode...")
     start = time.time()
     result = subprocess.run([str(binary), str(image_path)], capture_output=True, text=True)
-    rs_time = time.time() - start
+    rs_seq_time = time.time() - start
+    
+    if result.returncode == 0:
+        rs_seq_result = json.loads(result.stdout)
+    else:
+        print(f"Rust sequential error: {result.stderr}")
+        rs_seq_result = {}
+    
+    print("  - Parallel mode...")
+    start = time.time()
+    result = subprocess.run([str(binary), str(image_path), "--parallel"], capture_output=True, text=True)
+    rs_par_time = time.time() - start
     
     if result.returncode == 0:
         rs_result = json.loads(result.stdout)
@@ -48,7 +61,11 @@ def main():
         rs_result = {}
     
     # Results
-    print(f"\nPerformance: Python={py_time:.2f}s, Rust={rs_time:.2f}s ({py_time/rs_time:.1f}x faster)")
+    print(f"\nPerformance:")
+    print(f"  Python:         {py_time:.2f}s")
+    print(f"  Rust Sequential: {rs_seq_time:.2f}s ({py_time/rs_seq_time:.1f}x faster)")
+    print(f"  Rust Parallel:   {rs_par_time:.2f}s ({py_time/rs_par_time:.1f}x faster)")
+    print(f"  Parallel speedup: {rs_seq_time/rs_par_time:.2f}x")
     
     # Compare all fields
     core_fields = ['speed', 'distance', 'altitude', 'race_time', 'power', 'cadence', 'heart_rate']

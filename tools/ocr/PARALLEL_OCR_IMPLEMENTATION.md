@@ -108,13 +108,27 @@ v                      v                 v
 3. **WebAssembly**: Compile to WASM for browser deployment
 4. **Real-time Pipeline**: Stream processing for live video
 
+## Important Note: Performance Context
+
+The parallel implementation shows different performance depending on usage:
+- **Cold start (single image)**: Parallel is ~27% slower due to initialization overhead
+- **Warm start (batch/video)**: Parallel is 1.55x faster after initialization
+
+See [PARALLEL_OCR_PERFORMANCE_ANALYSIS.md](PARALLEL_OCR_PERFORMANCE_ANALYSIS.md) for detailed analysis.
+
 ## Conclusion
 
-The parallel OCR implementation successfully reduces extraction time from 0.814s to 0.520s, enabling processing at ~2 FPS. This is sufficient for real-time telemetry extraction during Zwift races. The implementation maintains 100% accuracy while providing clean, maintainable code that scales with CPU cores.
+The parallel OCR implementation successfully reduces extraction time from 0.814s to 0.520s when warmed up, enabling processing at ~2 FPS. This is ideal for:
+- Video processing (thousands of frames)
+- Batch screenshot analysis
+- Real-time streaming applications
+- Long-running services
+
+For single-image CLI usage, use the sequential mode (default) to avoid initialization overhead.
 
 The 1.57x speedup, while not reaching the theoretical maximum, represents a practical improvement given that:
 - OCRS neural network inference remains single-threaded
 - Image loading and some preprocessing are inherently sequential
 - The implementation prioritizes code clarity and maintainability
 
-For most use cases, sub-second extraction time is more than adequate, and the parallel architecture provides a solid foundation for future optimizations.
+The parallel architecture provides a solid foundation for production workloads where initialization costs are amortized across many images.
