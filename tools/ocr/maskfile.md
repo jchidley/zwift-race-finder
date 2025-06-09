@@ -108,3 +108,52 @@ rm -f telemetry_*.csv telemetry_*.json telemetry.db
 rm -f debug_*.jpg debug_*.png
 find . -name "*.pyc" -delete
 ~~~
+
+## rust-build
+> Build the Rust OCR binary
+
+~~~bash
+cd ../.. && cargo build --features ocr --bin zwift_ocr
+~~~
+
+## rust-run (path)
+> Run the Rust OCR implementation
+>
+> **POSITIONAL ARGUMENTS**
+> * path - Path to the screenshot file
+
+~~~bash
+cd ../.. && cargo run --features ocr --bin zwift_ocr -- "$path"
+~~~
+
+## rust-test
+> Run Rust OCR tests
+
+~~~bash
+cd ../.. && cargo test --features ocr ocr_tests
+~~~
+
+## rust-bench
+> Run Rust OCR benchmarks
+
+~~~bash
+cd ../.. && cargo bench --features ocr ocr_benchmark
+~~~
+
+## compare (path)
+> Compare Python and Rust OCR outputs
+>
+> **POSITIONAL ARGUMENTS**
+> * path - Path to the screenshot file
+
+~~~bash
+echo "=== Python OCR ==="
+time uv run python zwift_ocr_compact.py "$path" > python_output.json
+
+echo -e "\n=== Rust OCR ==="
+cd ../.. && time cargo run --features ocr --bin zwift_ocr -- "$path" > tools/ocr/rust_output.json
+
+echo -e "\n=== Comparison ==="
+cd tools/ocr
+diff -u python_output.json rust_output.json || true
+~~~

@@ -34,6 +34,11 @@ dirs = "5.0"
 rusqlite = { version = "0.32", features = ["bundled", "chrono"] }
 keyring = { version = "3.0", optional = true }
 
+# OCR dependencies
+leptess = { version = "0.14", optional = true }
+image = { version = "0.24", optional = true }
+imageproc = { version = "0.23", optional = true }
+
 [dev-dependencies]
 tempfile = "3.0"
 proptest = "1.0"
@@ -47,6 +52,10 @@ serde_yaml = "0.9.34"
 name = "performance"
 harness = false
 
+[[bin]]
+name = "zwift_ocr_compact"
+required-features = ["ocr"]
+
 [profile.mutants]
 inherits = "test"
 debug = "none"
@@ -55,3 +64,4 @@ opt-level = 1
 [features]
 default = []
 keyring-storage = ["keyring"]
+ocr = ["leptess", "image", "imageproc"]

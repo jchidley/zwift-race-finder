@@ -67,3 +67,11 @@ pub mod secure_storage;
 /// Test utilities (only available in test builds)
 #[cfg(test)]
 pub mod test_utils;
+
+/// OCR functionality for extracting telemetry from screenshots
+#[cfg(feature = "ocr")]
+pub mod ocr;
+
+/// Compact OCR implementation
+#[cfg(feature = "ocr")]
+pub mod ocr_compact;

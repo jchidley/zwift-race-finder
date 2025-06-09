@@ -1,6 +1,6 @@
 # Zwift OCR Tools - Complete Setup Guide
 
-This guide covers everything you need to get the Zwift OCR telemetry extraction tools running on your system.
+This guide covers everything you need to get the Zwift OCR telemetry extraction tools running on your system, including both Python and Rust implementations.
 
 ## Prerequisites
 
@@ -27,10 +27,12 @@ uv --version
 
 ### 3. System Dependencies
 
-For OCR to work properly, you may need:
-
+#### Python OCR (PaddleOCR)
 ```bash
-# On Debian/Ubuntu
+# Quick install script (recommended)
+./install_ocr_deps.sh
+
+# Or manually install on Debian/Ubuntu
 sudo apt update
 sudo apt install -y \
     python3-dev \
@@ -45,6 +47,21 @@ sudo apt install -y \
 
 # For video processing
 sudo apt install -y ffmpeg
+```
+
+#### Rust OCR (Tesseract)
+```bash
+# Debian/Ubuntu
+sudo apt install -y \
+    libleptonica-dev \
+    libtesseract-dev \
+    tesseract-ocr \
+    tesseract-ocr-eng
+
+# macOS
+brew install tesseract leptonica
+
+# Note: OpenCV is NOT required for the compact implementation
 ```
 
 ## Installation Steps
@@ -70,6 +87,23 @@ mask test
 
 # Or check OCR engines
 mask compare-engines
+```
+
+### 4. Build Rust OCR (Optional)
+```bash
+# From project root
+cd ../..
+cargo build --features ocr --bin zwift_ocr_compact
+
+# Or if mask has rust-build task
+mask rust-build
+
+# Test the Rust implementation
+./target/debug/zwift_ocr_compact tools/ocr/../../docs/screenshots/normal_1_01_16_02_21.jpg
+
+# Compare Python vs Rust
+cd tools/ocr/
+uv run python compare_ocr_compact.py
 ```
 
 ## Quick Start Examples
@@ -291,6 +325,6 @@ EOF
 ## Getting Help
 
 - Check the README.md for feature details
-- Review TECHNICAL_DETAILS.md for implementation info
+- Review TECHNICAL_REFERENCE.md for implementation info
 - Look at example scripts in test files
 - Report issues in the GitHub repository
