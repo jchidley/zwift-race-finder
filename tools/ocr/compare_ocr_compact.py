@@ -54,7 +54,13 @@ def main():
     fields = ['speed', 'distance', 'altitude', 'race_time', 'power', 'cadence', 'heart_rate']
     matches = sum(1 for f in fields if py_result.get(f) == rs_result.get(f))
     
-    print(f"Accuracy: {matches}/{len(fields)} fields match ({matches/len(fields)*100:.0f}%)")
+    print(f"Accuracy: {matches}/{len(fields)} core fields match ({matches/len(fields)*100:.0f}%)")
+    print(f"Core fields compared: {', '.join(fields)}")
+    
+    # Note about additional fields
+    rust_extra_fields = [k for k in rs_result.keys() if k not in fields]
+    if rust_extra_fields:
+        print(f"Additional Rust fields (not compared): {', '.join(rust_extra_fields)}")
     
     if matches < len(fields):
         print("\nDifferences:")
