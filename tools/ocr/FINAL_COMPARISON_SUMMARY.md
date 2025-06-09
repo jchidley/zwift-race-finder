@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-The Rust v1.1 hybrid implementation using Tesseract for numeric fields and ocrs for leaderboard text achieves **3.4x faster performance** than Python/PaddleOCR for full feature extraction. For core telemetry fields only (7 fields), Rust achieves **5x faster performance** (0.9s vs 4.5s) while maintaining perfect accuracy.
+The Rust implementation provides significant performance advantages over Python/PaddleOCR. Sequential mode achieves **5.4x faster performance** (0.88s vs 4.77s) for single images, while parallel mode achieves **9.2x faster performance** (0.52s vs 4.77s) for batch processing. All implementations extract the same 11 fields with Rust maintaining 100% accuracy on telemetry and ~80% on leaderboard names.
 
 ## Performance Results
 
@@ -10,28 +10,29 @@ The Rust v1.1 hybrid implementation using Tesseract for numeric fields and ocrs 
 === Compact OCR Comparison ===
 Image: normal_1_01_16_02_21.jpg
 
-Performance: Python=12.05s, Rust=3.53s (3.4x faster)
-Accuracy: 7/7 core fields match (100%)
+Performance:
+  Python:          4.77s
+  Rust Sequential: 0.88s (5.4x faster)
+  Rust Parallel:   0.52s (9.2x faster when warm)
 ```
 
 ## Detailed Comparison
 
-| Implementation | Time | Core Accuracy | Leaderboard Accuracy | Architecture |
-|----------------|------|---------------|---------------------|--------------|
-| **Rust Core** | **0.9s** | **100%** | **N/A** | Tesseract (7 fields) |
-| **Python Core** | **4.5s** | **100%** | **N/A** | PaddleOCR (7 fields) |
-| **Rust v1.1** | **3.53s** | **100%** | **~80%** | Tesseract + ocrs hybrid |
-| Python Full | 12.05s | 100% | 100% | PaddleOCR neural network |
-| Rust v1.0 | 0.19s | 100% | N/A | Tesseract only (9 fields) |
+| Implementation | Time | Telemetry Accuracy | Leaderboard Accuracy | Best Use Case |
+|----------------|------|-------------------|---------------------|---------------|
+| **Python (PaddleOCR)** | **4.77s** | **100%** | **100%** | Perfect accuracy required |
+| **Rust Sequential** | **0.88s** | **100%** | **~80%** | CLI tools, single images |
+| **Rust Parallel (cold)** | **1.14s** | **100%** | **~80%** | First run overhead |
+| **Rust Parallel (warm)** | **0.52s** | **100%** | **~80%** | Batch/video processing |
 
 ## Key Achievements
 
 1. **Speed**: 
-   - 5x faster for core telemetry (0.9s vs 4.5s)
-   - 3.4x faster for full features (3.53s vs 12.05s)
+   - 5.4x faster for single images (sequential mode)
+   - 9.2x faster for batch/video (parallel mode)
 2. **Accuracy**: 100% on all numeric telemetry fields
-3. **Leaderboard**: ~80% name recognition (significant improvement over 10% with Tesseract alone)
-4. **Architecture**: Successful hybrid approach leveraging strengths of both OCR engines
+3. **Leaderboard**: ~80% name recognition with ocrs hybrid approach
+4. **Parallelization**: 1.55x speedup with warm parallel processing
 
 ## Technical Approach
 
@@ -46,30 +47,43 @@ Accuracy: 7/7 core fields match (100%)
   - Better at anti-aliased text and UI overlays
   - Processes leaderboard region (420x600 pixels)
 
-### Implementation Details
-- Core telemetry (7 fields): 0.9s with Rust vs 4.5s with Python (5x faster)
-- Extended telemetry (9 fields): 0.19s with Rust v1.0
-- Leaderboard: Additional 3.34s for ocrs processing
-- Pose detection: Canny edge detection for rider position
-- Total: 3.53s for complete extraction (all 11 fields)
+### Parallel Architecture (v1.3)
+- **Rayon**: Parallel extraction of 9 telemetry fields
+- **Crossbeam**: Concurrent leaderboard/pose processing
+- **Once_cell**: Cached OCRS engine initialization
+- **Arc**: Zero-copy image sharing between threads
+
+## Fields Extracted (All Implementations)
+
+All implementations extract the same 11 fields:
+1. Speed (km/h)
+2. Distance (km)
+3. Altitude (m)
+4. Race Time (MM:SS)
+5. Power (W)
+6. Cadence (RPM)
+7. Heart Rate (BPM)
+8. Gradient (%)
+9. Distance to Finish (km)
+10. Leaderboard (multiple entries with names, deltas, w/kg)
+11. Rider Pose (standing, seated, tuck positions)
 
 ## Use Case Recommendations
 
-1. **Production/Automation** (Rust v1.1)
-   - 3.4x faster processing
-   - Good accuracy for most use cases
-   - Lower resource requirements
+1. **CLI Tools** (Rust Sequential)
+   - 5.4x faster than Python
+   - No initialization overhead
+   - Default mode
 
-2. **Perfect Accuracy Required** (Python)
+2. **Batch/Video Processing** (Rust Parallel)
+   - 9.2x faster than Python when warm
+   - Best for >5 images
+   - Use --parallel flag
+
+3. **Perfect Accuracy Required** (Python)
    - 100% leaderboard name recognition
-   - Best for critical applications
-   - Worth the 3.4x speed penalty
-
-3. **Speed Critical** (Rust v1.0)
-   - 0.19s extraction time
-   - Core telemetry only
-   - 63x faster than Python
+   - Worth the speed penalty for critical apps
 
 ## Conclusion
 
-The hybrid Rust implementation successfully balances speed and accuracy, making it the recommended choice for most Zwift telemetry extraction use cases. The 3.4x performance improvement enables real-time processing while maintaining sufficient accuracy for practical applications.
+The Rust implementation provides excellent performance for Zwift telemetry extraction. Sequential mode is ideal for CLI tools with 5.4x speedup, while parallel mode excels at batch processing with 9.2x speedup. The hybrid Tesseract/ocrs approach maintains high accuracy while delivering the speed needed for real-time applications.

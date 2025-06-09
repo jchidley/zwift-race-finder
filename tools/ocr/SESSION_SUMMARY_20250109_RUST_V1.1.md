@@ -3,6 +3,11 @@
 **Date**: January 9, 2025  
 **Task**: Implement Priority 1 enhancements - leaderboard extraction and rider pose detection in Rust
 
+**Update**: A follow-up v1.3 parallel implementation was completed the same day, achieving:
+- 1.55x speedup over sequential (0.52s vs 0.88s) when warm
+- 9.2x faster than Python for batch/video processing
+- See [PARALLEL_OCR_IMPLEMENTATION.md](PARALLEL_OCR_IMPLEMENTATION.md) for details
+
 ## Overview
 
 Successfully implemented complete feature parity between Rust and Python OCR implementations, adding the final two missing features to achieve v1.1.

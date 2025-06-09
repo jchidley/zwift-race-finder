@@ -234,16 +234,14 @@ mask debug screenshot.jpg  # Python
 
 ## Performance Comparison
 
-| Implementation | Time | Accuracy | Notes |
-|----------------|------|----------|-------|
-| Python Core | 4.5s | 100% | 7 core telemetry fields |
-| Rust Core | 0.9s | 100% | 7 core fields - **5x faster** |
-| Python Full | 12.05s | 100% | Full neural network pipeline |
-| Rust v1.1 Hybrid | 3.53s | Core: 100%, Leaderboard: ~80% | Tesseract + ocrs |
-| Rust v1.0 | 0.19s | 100% | 9 fields (no leaderboard), Tesseract |
-| ocrs CLI | ~1s | High | General purpose |
+| Implementation | Time | vs Python | Accuracy | Notes |
+|----------------|------|-----------|----------|-------|
+| **Python (PaddleOCR)** | **4.77s** | 1.0x | 100% all fields | All 11 fields extracted |
+| **Rust Sequential** | **0.88s** | 5.4x | 100% telemetry, 80% leaderboard | Default mode, best for CLI |
+| **Rust Parallel (cold)** | **1.14s** | 4.2x | 100% telemetry, 80% leaderboard | First run initialization overhead |
+| **Rust Parallel (warm)** | **0.52s** | 9.2x | 100% telemetry, 80% leaderboard | Best for batch/video processing |
 
-**Note**: Core telemetry includes speed, distance, altitude, time, power, cadence, and heart rate. The 5x performance improvement (0.9s vs 4.5s) highlights the efficiency gain for the most commonly needed fields.
+**All implementations extract 11 fields**: speed, distance, altitude, race_time, power, cadence, heart_rate, gradient, distance_to_finish, leaderboard, rider_pose
 
 ## Rust Implementation Details (v1.1)
 

@@ -16,13 +16,13 @@ This tool extracts live telemetry data from Zwift screenshots and video recordin
 - **Engine**: PaddleOCR for best accuracy
 
 ### Rust Implementation (`zwift_ocr_compact`)
-- **5x Faster** for core telemetry (0.9s vs 4.5s for 7 fields)
-- **3.4x Faster** for full features (3.53s vs 12.05s per image)  
+- **5.4x Faster** than Python for single images (0.88s vs 4.77s)
+- **9.2x Faster** with parallel mode for batch/video (0.52s vs 4.77s)
 - **100% Accuracy** on all core telemetry fields
 - **Hybrid OCR**: Tesseract for numbers, ocrs neural network for leaderboard text
-- **Feature Complete v1.1**: All telemetry fields including leaderboard and rider pose detection
-- **Good Leaderboard Accuracy**: ~80% name recognition with ocrs (vs ~10% Tesseract-only)
-- **v1.3 Parallel Implementation**: 1.57x speedup with parallel field extraction (0.52s for full features)
+- **Feature Complete**: All 11 fields including leaderboard and rider pose detection
+- **Good Leaderboard Accuracy**: ~80% name recognition with ocrs
+- **Two Modes**: Sequential (default, best for CLI) and Parallel (--parallel, best for batch)
 - **Build**: `cargo build --features ocr --bin zwift_ocr_compact --release`
 
 ### Extended Python Tools
@@ -117,24 +117,23 @@ time (cd tools/ocr && uv run python zwift_ocr_compact.py ../../docs/screenshots/
 
 ## Performance Comparison
 
-| Implementation | Speed | Accuracy | Extracted Fields |
-|----------------|-------|----------|------------------|
-| **Rust Core** | **0.9s** | 100% | Speed, distance, altitude, time, power, cadence, HR (7 fields) |
-| **Python Core** | **4.5s** | 100% | Same 7 core telemetry fields |
-| **Rust v1.3 Parallel** | **0.52s** | 100%* | All 11 fields with parallel extraction |
-| **Rust v1.1 (Full)** | **3.53s** | 100%* | All 11 fields including gradient, distance-to-finish, leaderboard**, rider pose |
-| Python (Full) | 12.05s | 100% | All fields with perfect leaderboard accuracy |
+| Implementation | Speed | Accuracy | Use Case |
+|----------------|-------|----------|----------|
+| **Python (PaddleOCR)** | **4.77s** | 100% all fields | Perfect accuracy needed |
+| **Rust Sequential** | **0.88s** | 100% telemetry, 80% leaderboard | CLI tools, single images |
+| **Rust Parallel (warm)** | **0.52s** | 100% telemetry, 80% leaderboard | Batch processing, video |
+| **Rust Parallel (cold)** | **1.14s** | 100% telemetry, 80% leaderboard | First run penalty |
 
-**Speed Advantage**: 
-- Core telemetry: Rust is **5x faster** (0.9s vs 4.5s)
-- Full features: Rust v1.1 is **3.4x faster** (3.53s vs 12.05s)
-- Full features: Rust v1.3 Parallel is **23x faster** (0.52s vs 12.05s)
+**Speed Comparisons**: 
+- Single image: Rust Sequential is **5.4x faster** than Python
+- Batch/video: Rust Parallel is **9.2x faster** than Python
+- Parallel speedup: **1.55x faster** than sequential (after warm-up)
 
-*Core telemetry fields have 100% accuracy. **Leaderboard extraction ~80% accurate with ocrs (vs 100% PaddleOCR).
-
-**Use Cases**:
-- **Rust**: Faster batch processing, automation, production systems (3.4x speedup)
-- **Python**: Perfect leaderboard accuracy required, development/prototyping, complex visualizations
+**Key Notes**:
+- All implementations extract the same 11 fields
+- Rust has 100% accuracy on telemetry, ~80% on leaderboard names
+- Python has 100% accuracy on all fields including leaderboard
+- Parallel mode requires warm-up to achieve best performance
 
 See [OCR_COMPARISON_FINDINGS.md](OCR_COMPARISON_FINDINGS.md) for detailed performance analysis of different OCR approaches.
 

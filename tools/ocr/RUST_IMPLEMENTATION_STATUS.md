@@ -1,6 +1,25 @@
 # Rust OCR Implementation Status
 
-## Current Version: v1.2 (Refactored)
+## Current Version: v1.3 (Parallel)
+
+### v1.3 - Parallel Implementation (2025-01-09)
+
+**Architecture**: Rayon + once_cell + crossbeam for parallelization
+
+**✅ Parallel Features:**
+- **Rayon**: Parallel field extraction across 9 telemetry fields
+- **Once_cell**: Cached OCRS engine (eliminates 200ms initialization)
+- **Crossbeam**: Concurrent leaderboard/pose extraction
+- **Arc**: Zero-copy image sharing between threads
+- **Tesseract Pool**: 8 instances for parallel extraction
+
+**Performance**: 
+- Cold start (single image): 1.14s (27% slower than sequential)
+- Warm start (batch/video): 0.52s (1.55x faster than sequential)
+- vs Python: 9.2x faster when warm
+- Break-even: ~5 images for parallel to be worthwhile
+
+**Usage**: `--parallel` flag enables parallel mode
 
 ### v1.2 - Code Quality Refactoring (2025-01-09)
 
@@ -34,9 +53,8 @@ Following mechanical refactoring principles from REFACTORING_RULES.md:
 - ✅ **rider_pose** (RiderPose) - Rider position detection
 
 **Performance**: 
-- Core telemetry (7 fields): 0.9s (5x faster than Python's 4.5s)
-- Full extraction (11 fields): 1.52s (3.4x faster than Python's 5.15s)
-- Good accuracy balance
+- Sequential: 0.88s (5.4x faster than Python's 4.77s)
+- All 11 fields extracted with good accuracy balance
 
 ### v1.0 - Initial Tesseract Implementation
 
@@ -89,12 +107,13 @@ pub enum RiderPose {
 - **Processing**: Direct neural network extraction
 - **Post-processing**: Name detection heuristics
 
-### Code Organization (v1.2)
+### Code Organization (v1.3)
 
 ```
 src/
 ├── ocr_compact.rs          # Main OCR implementation
 ├── ocr_ocrs.rs            # ocrs integration
+├── ocr_parallel.rs        # Parallel extraction
 ├── ocr_constants.rs       # Extracted constants
 ├── ocr_image_processing.rs # Common preprocessing
 └── ocr_regex.rs           # Pre-compiled patterns
@@ -102,22 +121,24 @@ src/
 
 ## Performance Summary
 
-| Version | Time | vs Python | Features |
-|---------|------|-----------|----------|
-| Python Core | 4.5s | 1.0x | 7 core telemetry fields |
-| Rust Core | 0.9s | 5.0x | 7 core telemetry fields |
-| Python Full | 5.15s | 1.0x | All 11 features |
-| Rust v1.0 | 1.08s | 4.8x | 9 fields (no leaderboard) |
-| Rust v1.1 | 1.52s | 3.4x | All 11 features |
-| Rust v1.2 | 1.52s | 3.4x | All features + clean code |
+| Implementation | Time | vs Python | Features |
+|----------------|------|-----------|----------|
+| Python (PaddleOCR) | 4.77s | 1.0x | All 11 fields, 100% accuracy |
+| Rust v1.0 | ~0.2s | ~24x | 9 fields (no leaderboard/pose) |
+| Rust v1.1 Sequential | 0.88s | 5.4x | All 11 fields |
+| Rust v1.2 Sequential | 0.88s | 5.4x | All fields + clean code |
+| Rust v1.3 Parallel (cold) | 1.14s | 4.2x | All fields + parallelization |
+| Rust v1.3 Parallel (warm) | 0.52s | 9.2x | Best for batch/video |
 
-*Core telemetry: speed, distance, altitude, time, power, cadence, heart rate
+**All versions extract**: speed, distance, altitude, time, power, cadence, heart_rate, gradient, distance_to_finish, leaderboard, rider_pose
 
 ## Current Status
 
 **Production Ready**: ✅ Full feature parity with Python  
 **Performance**: 
-- Core telemetry: 5x faster (0.9s vs 4.5s)
-- Full features: 3.4x faster (1.52s vs 5.15s)  
+- Single images: 5.4x faster with sequential mode
+- Batch/video: 9.2x faster with parallel mode  
 **Code Quality**: Clean, maintainable, idiomatic Rust  
-**Recommendation**: Use Rust implementation for all use cases
+**Recommendation**: 
+- Use sequential mode (default) for CLI tools
+- Use parallel mode (--parallel) for batch processing

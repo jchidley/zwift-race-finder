@@ -2,20 +2,18 @@
 
 ## Executive Summary
 
-Performance testing reveals that the hybrid Rust implementation using Tesseract for numeric fields and ocrs for leaderboard text provides the best balance of speed and accuracy. For core telemetry extraction (7 fields), Rust achieves **5x faster** performance than Python (0.9s vs 4.5s). With full features including leaderboard, the v1.1 Rust implementation achieves **3.4x faster** performance than Python/PaddleOCR (3.53s vs 12.05s) while maintaining 100% accuracy on core telemetry and ~80% accuracy on leaderboard names.
+Performance testing reveals that the Rust implementation provides significant speed advantages over Python/PaddleOCR. The sequential Rust implementation achieves **5.4x faster** performance (0.88s vs 4.77s) for single images, while the parallel implementation achieves **9.2x faster** performance (0.52s vs 4.77s) for batch processing. All implementations extract the same 11 fields: 7 core telemetry, gradient, distance-to-finish, leaderboard, and rider pose.
 
 ## Performance Results
 
-| OCR Engine | Version | Average Time | Features | Accuracy |
-|------------|---------|--------------|----------|----------|
-| Tesseract (Rust) | v1.0 | 0.19s ± 0.01s | 9 fields (no leaderboard/pose) | 100% |
-| **Tesseract (Rust)** | **Core** | **0.9s** | **7 core telemetry fields** | **100%** |
-| Hybrid (Tesseract+ocrs) | v1.1 | 3.53s ± 0.10s | All 11 fields | 100% core, ~80% leaderboard |
-| ocrs (Rust) | - | 0.99s ± 0.03s | Text detection only | N/A |
-| **PaddleOCR (Python)** | **Core** | **4.5s** | **7 core telemetry fields** | **100%** |
-| PaddleOCR (Python) | - | 12.05s ± 0.20s | All 11 fields | 100% all fields |
+| Implementation | Mode | Time | vs Python | Features | Accuracy |
+|----------------|------|------|-----------|----------|----------|
+| **Python (PaddleOCR)** | - | **4.77s** | 1.0x | All 11 fields | 100% all fields |
+| **Rust Sequential** | Default | **0.88s** | 5.4x | All 11 fields | 100% telemetry, 80% leaderboard |
+| **Rust Parallel** | Cold | **1.14s** | 4.2x | All 11 fields | 100% telemetry, 80% leaderboard |
+| **Rust Parallel** | Warm | **0.52s** | 9.2x | All 11 fields | 100% telemetry, 80% leaderboard |
 
-**Note**: Core telemetry includes speed, distance, altitude, time, power, cadence, and heart rate. The 5x performance improvement (0.9s vs 4.5s) is specifically for these core fields.
+**Fields Extracted**: speed, distance, altitude, race_time, power, cadence, heart_rate, gradient, distance_to_finish, leaderboard (multiple entries), rider_pose
 
 ## Key Findings
 
