@@ -1,0 +1,86 @@
+{
+  "speed": {
+    "x": 693,
+    "y": 44,
+    "width": 71,
+    "height": 61,
+    "char_type": "number"
+  },
+  "distance": {
+    "x": 833,
+    "y": 44,
+    "width": 84,
+    "height": 55,
+    "char_type": "decimal"
+  },
+  "altitude": {
+    "x": 975,
+    "y": 45,
+    "width": 75,
+    "height": 50,
+    "char_type": "number"
+  },
+  "race_time": {
+    "x": 1070,
+    "y": 45,
+    "width": 134,
+    "height": 49,
+    "char_type": "time"
+  },
+  "power": {
+    "x": 268,
+    "y": 49,
+    "width": 117,
+    "height": 61,
+    "char_type": "number"
+  },
+  "cadence": {
+    "x": 240,
+    "y": 135,
+    "width": 45,
+    "height": 31,
+    "char_type": "number"
+  },
+  "heart_rate": {
+    "x": 341,
+    "y": 129,
+    "width": 69,
+    "height": 38,
+    "char_type": "number"
+  },
+  "avg_power": {
+    "x": 222,
+    "y": 191,
+    "width": 60,
+    "height": 31,
+    "char_type": "number"
+  },
+  "energy": {
+    "x": 338,
+    "y": 189,
+    "width": 68,
+    "height": 29,
+    "char_type": "number"
+  },
+  "gradient": {
+    "x": 1695,
+    "y": 71,
+    "width": 50,
+    "height": 50,
+    "char_type": "number"
+  },
+  "distance_to_finish": {
+    "x": 1143,
+    "y": 138,
+    "width": 50,
+    "height": 27,
+    "char_type": "decimal"
+  },
+  "powerup": {
+    "x": 444,
+    "y": 211,
+    "width": 225,
+    "height": 48,
+    "char_type": "letters"
+  }
+}

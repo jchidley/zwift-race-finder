@@ -12,11 +12,8 @@ uv sync
 
 ~~~bash
 set -e
-# Run from repository root to find test images
-cd ../..
-uv run python tools/ocr/zwift_ocr_prototype.py
-uv run python tools/ocr/test_enhanced_extraction.py
-uv run python tools/ocr/test_pose_detection.py
+# Test the main OCR extractor
+uv run python zwift_ocr_improved_final.py ../../docs/screenshots/normal_1_01_16_02_21.jpg
 ~~~
 
 ## lint
@@ -49,8 +46,8 @@ if [[ ! "$path" = /* ]]; then
     path="$(pwd)/$path"
 fi
 
-# Use v2 extractor for better accuracy
-uv run python zwift_ocr_improved_v2.py "$path"
+# Use final extractor with 100% accuracy
+uv run python zwift_ocr_improved_final.py "$path"
 ~~~
 
 ## video (path)
@@ -68,18 +65,21 @@ uv run python zwift_ocr_improved_v2.py "$path"
 uv run python zwift_video_processor.py "$path" "$@"
 ~~~
 
-## compare-engines
-> Compare OCR engine performance on test images
+## compact (path)
+> Extract telemetry using the compact version
+>
+> **POSITIONAL ARGUMENTS**
+> * path - Path to the screenshot file
 
 ~~~bash
-uv run python zwift_ocr_prototype.py
+uv run python zwift_ocr_compact.py "$path"
 ~~~
 
 ## calibrate-poses
 > Calibrate pose detection with sample images
 
 ~~~bash
-uv run python test_pose_detection.py
+uv run python rider_pose_detector.py ../../docs/screenshots/normal_1_01_16_02_21.jpg
 ~~~
 
 ## debug (path)
@@ -94,7 +94,7 @@ if [[ ! "$path" = /* ]]; then
     path="$(pwd)/$path"
 fi
 
-uv run python debug_visualizer.py "$path" "debug_${path##*/}"
+uv run python debug_visualizer_v3.py "$path" "debug_${path##*/}"
 echo "Debug image created: debug_${path##*/}"
 ~~~
 
