@@ -8,6 +8,9 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 use image::{DynamicImage, GrayImage, Luma};
 use imageproc::contrast::threshold;
+use crate::ocr_constants::{regions, thresholds, scale_factors, pose, wkg, name_limits, edge_detection};
+use crate::ocr_image_processing::{preprocess_for_ocr, to_png_bytes};
+use crate::ocr_regex;
 
 /// Rider pose types with their drag characteristics
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
@@ -47,7 +50,7 @@ pub struct TelemetryData {
 }
 
 /// Leaderboard entry for a rider
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct LeaderboardEntry {
     pub name: String,
     pub current: bool,
@@ -68,30 +71,48 @@ pub fn extract_telemetry(image_path: &Path) -> Result<TelemetryData> {
 
     // Define regions (1920x1080 resolution)
     let regions = [
-        ("speed", 693, 44, 71, 61),
-        ("distance", 833, 44, 84, 55),
-        ("altitude", 975, 45, 75, 50),
-        ("race_time", 1070, 45, 134, 49),
-        ("power", 268, 49, 117, 61),
-        ("cadence", 240, 135, 45, 31),
-        ("heart_rate", 341, 129, 69, 38),
-        ("gradient", 1695, 71, 50, 50),
-        ("distance_to_finish", 1143, 138, 50, 27),
+        ("speed", regions::SPEED.0, regions::SPEED.1, regions::SPEED.2, regions::SPEED.3),
+        ("distance", regions::DISTANCE.0, regions::DISTANCE.1, regions::DISTANCE.2, regions::DISTANCE.3),
+        ("altitude", regions::ALTITUDE.0, regions::ALTITUDE.1, regions::ALTITUDE.2, regions::ALTITUDE.3),
+        ("race_time", regions::RACE_TIME.0, regions::RACE_TIME.1, regions::RACE_TIME.2, regions::RACE_TIME.3),
+        ("power", regions::POWER.0, regions::POWER.1, regions::POWER.2, regions::POWER.3),
+        ("cadence", regions::CADENCE.0, regions::CADENCE.1, regions::CADENCE.2, regions::CADENCE.3),
+        ("heart_rate", regions::HEART_RATE.0, regions::HEART_RATE.1, regions::HEART_RATE.2, regions::HEART_RATE.3),
+        ("gradient", regions::GRADIENT.0, regions::GRADIENT.1, regions::GRADIENT.2, regions::GRADIENT.3),
+        ("distance_to_finish", regions::DISTANCE_TO_FINISH.0, regions::DISTANCE_TO_FINISH.1, regions::DISTANCE_TO_FINISH.2, regions::DISTANCE_TO_FINISH.3),
     ];
 
+    extract_standard_fields(&mut data, &img, &mut ocr, &regions)?;
+
+    // Extract leaderboard
+    data.leaderboard = extract_leaderboard(&img)?;
+    
+    // Extract rider pose
+    data.rider_pose = extract_rider_pose(&img)?;
+
+    Ok(data)
+}
+
+/// Extract standard telemetry fields from regions
+fn extract_standard_fields(
+    data: &mut TelemetryData,
+    img: &DynamicImage,
+    ocr: &mut LepTess,
+    regions: &[(&str, u32, u32, u32, u32)],
+) -> Result<()> {
     for (field, x, y, width, height) in regions {
-        match field {
+        match *field {
             "gradient" => {
                 // Special handling for gradient
-                data.gradient = extract_gradient(&img, x, y, width, height)?;
+                data.gradient = extract_gradient(img, *x, *y, *width, *height)?;
             }
             _ => {
                 // Standard extraction for other fields
-                let roi = img.crop_imm(x, y, width, height);
+                let roi = img.crop_imm(*x, *y, *width, *height);
                 
-                let value = extract_field(&mut ocr, &roi, field)?;
+                let value = extract_field(ocr, &roi, field)?;
                 
-                match field {
+                match *field {
                     "speed" => data.speed = value.parse().ok(),
                     "distance" => data.distance = value.parse().ok(),
                     "altitude" => data.altitude = value.parse().ok(),
@@ -105,36 +126,16 @@ pub fn extract_telemetry(image_path: &Path) -> Result<TelemetryData> {
             }
         }
     }
-
-    // Extract leaderboard
-    data.leaderboard = extract_leaderboard(&img)?;
-    
-    // Extract rider pose
-    data.rider_pose = extract_rider_pose(&img)?;
-
-    Ok(data)
+    Ok(())
 }
 
 /// Extract text from a region of interest
 fn extract_field(ocr: &mut LepTess, roi: &DynamicImage, field: &str) -> Result<String> {
-    // Preprocess: convert to grayscale, threshold, scale up 3x
-    let gray = roi.to_luma8();
-    
     // Different threshold for distance_to_finish (dimmer text)
-    let threshold_value = if field == "distance_to_finish" { 150 } else { 200 };
-    let binary = threshold(&gray, threshold_value);
+    let threshold_value = if field == "distance_to_finish" { thresholds::DISTANCE_TO_FINISH } else { thresholds::DEFAULT };
     
-    let scaled = image::imageops::resize(
-        &binary,
-        binary.width() * 3,
-        binary.height() * 3,
-        image::imageops::FilterType::CatmullRom,
-    );
-    
-    // Convert to PNG for Tesseract
-    let mut buf = Vec::new();
-    image::DynamicImage::ImageLuma8(scaled)
-        .write_to(&mut std::io::Cursor::new(&mut buf), image::ImageFormat::Png)?;
+    // Preprocess the image
+    let buf = preprocess_for_ocr(roi, threshold_value, scale_factors::DEFAULT)?;
     
     ocr.set_image_from_mem(&buf)?;
     
@@ -147,17 +148,18 @@ fn extract_field(ocr: &mut LepTess, roi: &DynamicImage, field: &str) -> Result<S
     // Clean based on field type
     let clean_text = match field {
         "race_time" => text.trim().to_string(),
-        "distance" | "distance_to_finish" => Regex::new(r"[^0-9.]")?.replace_all(&text, "").to_string(),
-        _ => Regex::new(r"[^0-9]")?.replace_all(&text, "").to_string(),
+        "distance" | "distance_to_finish" => ocr_regex::NON_DIGITS_DECIMAL.replace_all(&text, "").to_string(),
+        _ => ocr_regex::NON_DIGITS.replace_all(&text, "").to_string(),
     };
     
     Ok(clean_text)
 }
 
 /// Parse time from OCR text (MM:SS format)
-fn parse_time(text: &str) -> Option<String> {
+#[doc(hidden)]
+pub fn parse_time(text: &str) -> Option<String> {
     // Look for time format
-    if let Some(caps) = Regex::new(r"(\d{1,2}:\d{2})").ok()?.captures(text) {
+    if let Some(caps) = ocr_regex::TIME_FORMAT.captures(text) {
         return Some(caps[1].to_string());
     }
     
@@ -174,24 +176,8 @@ fn parse_time(text: &str) -> Option<String> {
 fn extract_gradient(img: &DynamicImage, x: u32, y: u32, width: u32, height: u32) -> Result<Option<f64>> {
     let roi = img.crop_imm(x, y, width, height);
     
-    let gray = roi.to_luma8();
-    
-    // Don't invert - gradient is bright text on dark background
-    // Threshold at a lower value to capture the yellow/orange text
-    let binary = threshold(&gray, 150);
-    
-    // Scale 4x for better OCR
-    let scaled = image::imageops::resize(
-        &binary,
-        binary.width() * 4,
-        binary.height() * 4,
-        image::imageops::FilterType::CatmullRom,
-    );
-    
-    // Convert to PNG for Tesseract
-    let mut buf = Vec::new();
-    image::DynamicImage::ImageLuma8(scaled)
-        .write_to(&mut std::io::Cursor::new(&mut buf), image::ImageFormat::Png)?;
+    // Preprocess with gradient-specific settings
+    let buf = preprocess_for_ocr(&roi, thresholds::GRADIENT, scale_factors::GRADIENT)?;
     
     let mut ocr = LepTess::new(None, "eng").context("Failed to initialize Tesseract")?;
     ocr.set_variable(Variable::TesseditCharWhitelist, "0123456789.-%")?;
@@ -199,7 +185,7 @@ fn extract_gradient(img: &DynamicImage, x: u32, y: u32, width: u32, height: u32)
     ocr.set_image_from_mem(&buf)?;
     
     let text = ocr.get_utf8_text()?;
-    let clean_text = Regex::new(r"[^0-9.]")?.replace_all(&text, "").to_string();
+    let clean_text = ocr_regex::NON_DIGITS_DECIMAL.replace_all(&text, "").to_string();
     
     Ok(clean_text.parse().ok())
 }
@@ -207,10 +193,10 @@ fn extract_gradient(img: &DynamicImage, x: u32, y: u32, width: u32, height: u32)
 /// Extract leaderboard data from the right side of the screen
 fn extract_leaderboard(img: &DynamicImage) -> Result<Option<Vec<LeaderboardEntry>>> {
     // Leaderboard region (right side of screen)
-    let x = 1500;
-    let y = 200;
-    let width = 420;
-    let height = 600;
+    let x = regions::LEADERBOARD_X;
+    let y = regions::LEADERBOARD_Y;
+    let width = regions::LEADERBOARD_WIDTH;
+    let height = regions::LEADERBOARD_HEIGHT;
     
     // Use ocrs for better accuracy on stylized UI text
     let text = crate::ocr_ocrs::extract_text_from_region(img, x, y, width, height)?;
@@ -268,12 +254,13 @@ fn extract_leaderboard(img: &DynamicImage) -> Result<Option<Vec<LeaderboardEntry
 }
 
 /// Check if text is likely a rider name
-fn is_likely_name(text: &str) -> bool {
+#[doc(hidden)]
+pub fn is_likely_name(text: &str) -> bool {
     // Clean the text first
     let cleaned = text.trim();
     
     // Filter out obvious non-names
-    if cleaned.len() < 2 || cleaned.len() > 30 {
+    if cleaned.len() < name_limits::MIN_LENGTH || cleaned.len() > name_limits::MAX_LENGTH {
         return false;
     }
     
@@ -295,7 +282,7 @@ fn is_likely_name(text: &str) -> bool {
     
     // Positive indicators for names
     // Has dots between letters (J.Chidley)
-    if Regex::new(r"^[A-Z]\.[A-Za-z]").unwrap().is_match(cleaned) {
+    if ocr_regex::NAME_INITIAL_DOT.is_match(cleaned) {
         return true;
     }
     
@@ -316,33 +303,34 @@ fn is_likely_name(text: &str) -> bool {
     }
     
     // Single letter followed by dot
-    if Regex::new(r"^[A-Za-z]\.$").unwrap().is_match(cleaned) {
+    if ocr_regex::SINGLE_LETTER_DOT.is_match(cleaned) {
         return true;
     }
     
     // At least has some letters and reasonable length
-    cleaned.chars().filter(|c| c.is_alphabetic()).count() >= 2
+    cleaned.chars().filter(|c| c.is_alphabetic()).count() >= name_limits::MIN_LETTERS
 }
 
 /// Parse leaderboard data line
-fn parse_leaderboard_data(entry: &mut LeaderboardEntry, text: &str) {
+#[doc(hidden)]
+pub fn parse_leaderboard_data(entry: &mut LeaderboardEntry, text: &str) {
     // Look for time delta (+00:00 or -00:00)
-    if let Some(caps) = Regex::new(r"([+-]\d{1,2}:\d{2})").unwrap().captures(text) {
+    if let Some(caps) = ocr_regex::TIME_DELTA.captures(text) {
         entry.delta = Some(caps[1].to_string());
     }
     
     // Look for distance (XX.X KM)
-    if let Some(caps) = Regex::new(r"(\d+\.?\d*)\s*[Kk][Mm]").unwrap().captures(text) {
+    if let Some(caps) = ocr_regex::DISTANCE_KM.captures(text) {
         entry.km = caps[1].parse().ok();
     }
     
     // Look for w/kg (X.X w/kg or just X.X in middle of line)
-    if let Some(caps) = Regex::new(r"(\d+\.\d+)\s*w/kg").unwrap().captures(text) {
+    if let Some(caps) = ocr_regex::WATTS_PER_KG.captures(text) {
         entry.wkg = caps[1].parse().ok();
-    } else if let Some(caps) = Regex::new(r"(\d+\.\d+)").unwrap().captures(text) {
+    } else if let Some(caps) = ocr_regex::DECIMAL_NUMBER.captures(text) {
         // Check if this number is in a reasonable w/kg range
         if let Ok(val) = caps[1].parse::<f64>() {
-            if (0.5..=7.0).contains(&val) {
+            if (wkg::MIN..=wkg::MAX).contains(&val) {
                 entry.wkg = Some(val);
             }
         }
@@ -352,23 +340,23 @@ fn parse_leaderboard_data(entry: &mut LeaderboardEntry, text: &str) {
 /// Extract rider pose from avatar region
 fn extract_rider_pose(img: &DynamicImage) -> Result<Option<RiderPose>> {
     // Avatar region (center of screen)
-    let x = 860;
-    let y = 400;
-    let width = 200;
-    let height = 300;
+    let x = regions::AVATAR_X;
+    let y = regions::AVATAR_Y;
+    let width = regions::AVATAR_WIDTH;
+    let height = regions::AVATAR_HEIGHT;
     
     let roi = img.crop_imm(x, y, width, height);
     let gray = roi.to_luma8();
     
     // Apply edge detection using Canny-like approach
     // First apply Gaussian blur to reduce noise
-    let blurred = imageproc::filter::gaussian_blur_f32(&gray, 1.0);
+    let blurred = imageproc::filter::gaussian_blur_f32(&gray, edge_detection::GAUSSIAN_BLUR_SIGMA);
     
     // Apply Sobel edge detection
-    let edges = imageproc::edges::canny(&blurred, 50.0, 150.0);
+    let edges = imageproc::edges::canny(&blurred, edge_detection::CANNY_LOW_THRESHOLD, edge_detection::CANNY_HIGH_THRESHOLD);
     
     // Find contours (simplified approach using connected components)
-    let components = imageproc::region_labelling::connected_components(&edges, imageproc::region_labelling::Connectivity::Eight, Luma([255u8]));
+    let _components = imageproc::region_labelling::connected_components(&edges, imageproc::region_labelling::Connectivity::Eight, Luma([edge_detection::EDGE_PIXEL_VALUE]));
     
     // Calculate features for pose detection
     let features = calculate_pose_features(&edges, &edges);
@@ -383,13 +371,16 @@ fn extract_rider_pose(img: &DynamicImage) -> Result<Option<RiderPose>> {
 struct PoseFeatures {
     aspect_ratio: f32,
     center_of_mass_y: f32,
+    #[allow(dead_code)]
     upper_density: f32,
+    #[allow(dead_code)]
     lower_density: f32,
+    #[allow(dead_code)]
     symmetry_score: f32,
 }
 
 /// Calculate pose features from edge image
-fn calculate_pose_features(components: &GrayImage, edges: &GrayImage) -> PoseFeatures {
+fn calculate_pose_features(_components: &GrayImage, edges: &GrayImage) -> PoseFeatures {
     let height = edges.height() as f32;
     let width = edges.width() as f32;
     
@@ -483,24 +474,24 @@ fn classify_pose(features: &PoseFeatures) -> RiderPose {
     // Thresholds based on Python calibration data
     
     // Check for standing (high aspect ratio, low center of mass)
-    if features.aspect_ratio > 1.7 && features.center_of_mass_y < 0.45 {
+    if features.aspect_ratio > pose::ASPECT_RATIO_STANDING_MIN && features.center_of_mass_y < pose::CENTER_OF_MASS_STANDING_MAX {
         return RiderPose::ClimbingStanding;
     }
     
     // Check for tuck (low aspect ratio, high center of mass)
-    if features.aspect_ratio < 1.3 && features.center_of_mass_y > 0.55 {
+    if features.aspect_ratio < pose::ASPECT_RATIO_TUCK_MAX && features.center_of_mass_y > pose::CENTER_OF_MASS_TUCK_MIN {
         return RiderPose::NormalTuck;
     }
     
     // Check for seated climbing (medium aspect ratio, slightly forward lean)
-    if features.aspect_ratio > 1.4 && features.aspect_ratio < 1.8 && 
-       features.center_of_mass_y > 0.45 && features.center_of_mass_y < 0.6 {
+    if features.aspect_ratio > pose::ASPECT_RATIO_SEATED_MIN && features.aspect_ratio < pose::ASPECT_RATIO_SEATED_MAX && 
+       features.center_of_mass_y > pose::CENTER_OF_MASS_SEATED_MIN && features.center_of_mass_y < pose::CENTER_OF_MASS_SEATED_MAX {
         return RiderPose::ClimbingSeated;
     }
     
     // Check for normal upright (medium-high aspect ratio, centered)
-    if features.aspect_ratio > 1.3 && features.aspect_ratio < 1.7 &&
-       features.center_of_mass_y > 0.45 && features.center_of_mass_y < 0.55 {
+    if features.aspect_ratio > pose::ASPECT_RATIO_NORMAL_MIN && features.aspect_ratio < pose::ASPECT_RATIO_NORMAL_MAX &&
+       features.center_of_mass_y > pose::CENTER_OF_MASS_NORMAL_MIN && features.center_of_mass_y < pose::CENTER_OF_MASS_NORMAL_MAX {
         return RiderPose::NormalNormal;
     }
     

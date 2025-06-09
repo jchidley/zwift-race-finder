@@ -232,24 +232,32 @@ mask debug screenshot.jpg  # Python
 - **Classification**: Rule-based system with confidence thresholds
 - **Drag implications**: Important for performance analysis - tuck position increases drag in Zwift
 
+## Performance Comparison
+
+| Implementation | Time | Accuracy | Notes |
+|----------------|------|----------|-------|
+| Python/PaddleOCR | 12.05s | 100% | Full neural network pipeline |
+| Rust v1.1 Hybrid | 3.53s | Core: 100%, Leaderboard: ~80% | Tesseract + ocrs |
+| Rust v1.0 | 0.19s | 100% | Core fields only, Tesseract |
+| ocrs CLI | ~1s | High | General purpose |
+
 ## Rust Implementation Details (v1.1)
 
-### Leaderboard Extraction Algorithm
+### Leaderboard Extraction Algorithm (Hybrid Approach)
 ```rust
 1. Extract leaderboard region (1500, 200, 420, 600)
-2. Apply adaptive threshold for contrast enhancement
-3. Configure Tesseract for alphanumeric + special chars
-4. Parse OCR output line by line
-5. Identify names using regex patterns:
+2. Use ocrs neural network for text extraction
+3. Process detected text lines by Y-position
+4. Identify names using regex patterns:
    - Initials with dots: "J.Chidley"
    - Multiple dots: "C.J.Y.S"
    - Mixed case: "Laindre"
    - Parentheses: "J.T.Noxen)"
-6. Extract metrics from adjacent lines:
+5. Extract metrics from adjacent lines:
    - Time delta: +/-MM:SS format
    - Power: X.X w/kg
    - Distance: X.X km
-7. Mark current rider (no time delta)
+6. Mark current rider (no time delta)
 ```
 
 ### Rider Pose Detection Algorithm

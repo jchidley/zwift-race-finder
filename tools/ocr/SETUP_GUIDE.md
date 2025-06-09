@@ -49,7 +49,7 @@ sudo apt install -y \
 sudo apt install -y ffmpeg
 ```
 
-#### Rust OCR (Tesseract)
+#### Rust OCR (Tesseract + ocrs)
 ```bash
 # Debian/Ubuntu
 sudo apt install -y \
@@ -62,6 +62,13 @@ sudo apt install -y \
 brew install tesseract leptonica
 
 # Note: OpenCV is NOT required for the compact implementation
+
+# Download ocrs neural network models (required for v1.1+)
+# Models will be automatically downloaded on first use, or manually:
+mkdir -p ~/.cache/ocrs
+cd ~/.cache/ocrs
+wget https://ocrs-models.s3-accelerate.amazonaws.com/text-detection.rten
+wget https://ocrs-models.s3-accelerate.amazonaws.com/text-recognition.rten
 ```
 
 ## Installation Steps
@@ -97,7 +104,7 @@ cd ../..
 # Build release version for maximum performance
 cargo build --features ocr --bin zwift_ocr_compact --release
 
-# Test the build
+# Test the build (includes leaderboard with v1.1+)
 ./target/release/zwift_ocr_compact docs/screenshots/normal_1_01_16_02_21.jpg
 
 # Or build debug version (slower but faster to compile)
@@ -105,6 +112,12 @@ cargo build --features ocr --bin zwift_ocr_compact
 
 # Test the debug build (if needed)
 ./target/debug/zwift_ocr_compact docs/screenshots/normal_1_01_16_02_21.jpg
+
+# Example output with v1.1+ includes leaderboard:
+# Leaderboard:
+#   1. J.Matzke      +2:20 1.9w/kg 5.1km
+#   2. J.Chidley     ---   3.2w/kg 6.4km <-- YOU
+#   3. L.Aindre      -0:13 2.8w/kg 6.6km
 
 # Compare Python vs Rust
 cd tools/ocr/
@@ -121,7 +134,7 @@ uv run python compare_ocr_compact.py
 # Extract telemetry in JSON format (default)
 ./target/release/zwift_ocr_compact docs/screenshots/normal_1_01_16_02_21.jpg
 
-# Human-readable text output
+# Human-readable text output (v1.1+ includes leaderboard)
 ./target/release/zwift_ocr_compact docs/screenshots/normal_1_01_16_02_21.jpg --format text
 
 # Example output:
@@ -134,6 +147,12 @@ uv run python compare_ocr_compact.py
 # HR: 160 bpm
 # Gradient: 3.0%
 # Distance to finish: 28.6 km
+# 
+# Leaderboard:
+#   1. J.Matzke      +2:20 1.9w/kg 5.1km
+#   2. J.Chidley     ---   3.2w/kg 6.4km <-- YOU
+#   3. L.Aindre      -0:13 2.8w/kg 6.6km
+# Rider pose: ClimbingSeated
 ```
 
 #### Python Implementation (Full Features)

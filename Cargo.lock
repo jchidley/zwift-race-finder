@@ -3594,6 +3594,7 @@ dependencies = [
  "imageproc",
  "insta",
  "keyring",
+ "lazy_static",
  "leptess",
  "mockito",
  "ocrs",

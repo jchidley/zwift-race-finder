@@ -50,18 +50,18 @@ Successfully implemented complete feature parity between Rust and Python OCR imp
 
 ## Performance Analysis
 
-### Speed Comparison
+### Speed Comparison (Updated with Final Measurements)
 | Version | Time | Features | Relative Speed |
 |---------|------|----------|----------------|
-| Rust v1.0 | 0.19s | 9 fields | Baseline |
-| Rust v1.1 | 1.08s | 11 fields (all) | 5.7x slower than v1.0 |
-| Python | 5.15s | 11 fields (all) | 4.8x slower than v1.1 |
+| Rust v1.0 | 0.19s | 9 fields | 63x faster than Python |
+| Rust v1.1 | 3.53s | 11 fields (all) | 3.4x faster than Python |
+| Python | 12.05s | 11 fields (all) | Baseline |
 
 ### Performance Breakdown
-- Core telemetry (9 fields): 0.19s
-- Leaderboard extraction: ~0.7s additional
-- Pose detection: ~0.2s additional
-- Total overhead for new features: +0.89s
+- Core telemetry (9 fields): 0.19s (Tesseract only)
+- With ocrs integration: 3.53s total
+- ocrs overhead: ~3.34s for neural network processing
+- Still significantly faster than Python's 12.05s
 
 ## Technical Insights
 
@@ -141,9 +141,9 @@ After discovering Tesseract's limitations with stylized UI text, I replaced the 
 
 2. **Performance Trade-off**:
    - Rust v1.0 (Tesseract only): 0.19s
-   - Rust v1.1 (Tesseract + ocrs): 2.2s
-   - Python/PaddleOCR: 5.15s
-   - Still 2.3x faster than Python with much better accuracy
+   - Rust v1.1 (Tesseract + ocrs): 3.53s (measured with compare_ocr_compact.py)
+   - Python/PaddleOCR: 12.05s
+   - Still 3.4x faster than Python with much better accuracy
 
 3. **Accuracy Improvement**:
    - Names: ~80% accuracy (vs ~10% with Tesseract)
@@ -152,11 +152,16 @@ After discovering Tesseract's limitations with stylized UI text, I replaced the 
 
 ## Conclusion
 
-Successfully achieved feature parity between Rust and Python implementations. By using a hybrid approach (Tesseract for numeric fields, ocrs for leaderboard), the Rust version now provides good accuracy while maintaining a 2.3x speed advantage over Python/PaddleOCR. 
+Successfully achieved feature parity between Rust and Python implementations. By using a hybrid approach (Tesseract for numeric fields, ocrs for leaderboard), the Rust version now provides good accuracy while maintaining a 3.4x speed advantage over Python/PaddleOCR. 
+
+**Final Performance Results**:
+- Python/PaddleOCR: 12.05s (100% accuracy)
+- Rust v1.1 Hybrid: 3.53s (~80% leaderboard accuracy, 100% core telemetry)
+- **Speed improvement: 3.4x faster**
 
 **Recommendation**: 
-- Use Rust v1.1 with ocrs for balanced speed and accuracy (2.2s, ~80% leaderboard accuracy)
-- Use Python/PaddleOCR when perfect leaderboard accuracy is required (5.15s, 100% accuracy)
+- Use Rust v1.1 with ocrs for balanced speed and accuracy (3.53s, ~80% leaderboard accuracy)
+- Use Python/PaddleOCR when perfect leaderboard accuracy is required (12.05s, 100% accuracy)
 - Use Rust v1.0 (Tesseract only) for blazing fast core telemetry without leaderboard (0.19s)
 
 ## Files Modified

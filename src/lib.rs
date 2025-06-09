@@ -68,6 +68,18 @@ pub mod secure_storage;
 #[cfg(test)]
 pub mod test_utils;
 
+/// OCR constants
+#[cfg(feature = "ocr")]
+pub mod ocr_constants;
+
+/// OCR image processing utilities
+#[cfg(feature = "ocr")]
+pub mod ocr_image_processing;
+
+/// OCR regex patterns
+#[cfg(feature = "ocr")]
+pub mod ocr_regex;
+
 /// Compact OCR implementation
 #[cfg(feature = "ocr")]
 pub mod ocr_compact;

@@ -1,8 +1,16 @@
-# Rust OCR Implementation Status
+# Rust OCR Implementation TODO
 
-## ✅ Completed Features (v1.0)
+## ⚠️ This file is outdated!
 
-The Rust implementation (`src/ocr_compact.rs`) successfully extracts:
+**Please see [RUST_IMPLEMENTATION_STATUS.md](RUST_IMPLEMENTATION_STATUS.md) for current implementation status.**
+
+This file documents the original v1.0 implementation and is kept for historical reference.
+
+---
+
+## Original v1.0 Status
+
+The initial Rust implementation (`src/ocr_compact.rs`) successfully extracted basic telemetry:
 - ✅ **speed** (u32) - Current speed in km/h
 - ✅ **distance** (f64) - Distance covered in km
 - ✅ **altitude** (u32) - Current altitude in meters

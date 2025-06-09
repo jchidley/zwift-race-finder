@@ -2,16 +2,16 @@
 
 ## Executive Summary
 
-Performance testing reveals that Tesseract with region-based extraction is **5x faster** than ocrs for Zwift telemetry extraction (0.19s vs 0.99s). The v1.1 Rust implementation with complete feature parity (including leaderboard and pose detection) maintains sub-second performance at 1.08s, still **4.8x faster** than the Python/PaddleOCR implementation at 5.15s.
+Performance testing reveals that the hybrid Rust implementation using Tesseract for numeric fields and ocrs for leaderboard text provides the best balance of speed and accuracy. The v1.1 Rust implementation achieves **3.4x faster** performance than Python/PaddleOCR (3.53s vs 12.05s) while maintaining 100% accuracy on core telemetry and ~80% accuracy on leaderboard names.
 
 ## Performance Results
 
 | OCR Engine | Version | Average Time | Features | Accuracy |
 |------------|---------|--------------|----------|----------|
 | Tesseract (Rust) | v1.0 | 0.19s ± 0.01s | 9 fields (no leaderboard/pose) | 100% |
-| Tesseract (Rust) | v1.1 | 1.08s ± 0.05s | All 11 fields | 100% core, 40% leaderboard |
+| Hybrid (Tesseract+ocrs) | v1.1 | 3.53s ± 0.10s | All 11 fields | 100% core, ~80% leaderboard |
 | ocrs (Rust) | - | 0.99s ± 0.03s | Text detection only | N/A |
-| PaddleOCR (Python) | - | 5.15s ± 0.10s | All 11 fields | 100% all fields |
+| PaddleOCR (Python) | - | 12.05s ± 0.20s | All 11 fields | 100% all fields |
 
 ## Key Findings
 
@@ -149,23 +149,23 @@ The Rust implementation now includes all features from the Python version:
 
 ### Performance Impact
 - v1.0 (9 fields): 0.19s average
-- v1.1 (11 fields): 1.08s average
-- Additional overhead: +0.89s for complex text processing and image analysis
-- Still 4.8x faster than Python/PaddleOCR (5.15s)
+- v1.1 (11 fields): 3.53s average  
+- Additional overhead: +3.34s for ocrs neural network processing
+- Still 3.4x faster than Python/PaddleOCR (12.05s)
 
 ### Trade-offs
-- **Speed vs Accuracy**: Tesseract struggles with stylized leaderboard fonts
-- **Complexity**: 410 additional lines of code for 2 features
-- **Maintenance**: Regex patterns and pose thresholds need tuning
+- **Speed vs Accuracy**: Hybrid approach balances performance with good accuracy
+- **Complexity**: Added ocrs integration for neural network OCR
+- **Dependencies**: Requires ocrs models (~193MB) in addition to Tesseract
 
 ## Conclusion
 
-While ocrs represents the future of OCR with its neural network approach, for specialized use cases like Zwift telemetry extraction, traditional region-based OCR remains superior. The key insight is that **knowing where to look** provides a massive performance advantage over general-purpose text detection.
+The hybrid approach combining Tesseract's speed for numeric fields with ocrs's accuracy for complex UI text provides an optimal solution. The key insight is that **different OCR engines excel at different tasks** - Tesseract for clean numeric text, neural networks for stylized fonts.
 
 The v1.1 Rust implementation achieves feature parity with Python while maintaining significant speed advantages. Choose based on your priorities:
-- **Speed-critical**: Use Rust (1.08s) with acceptable accuracy trade-offs
-- **Accuracy-critical**: Use Python/PaddleOCR (5.15s) for perfect text recognition
-- **Minimal needs**: Use Rust v1.0 (0.19s) for core telemetry only
+- **Balanced**: Use Rust v1.1 hybrid (3.53s) for good speed and accuracy
+- **Accuracy-critical**: Use Python/PaddleOCR (12.05s) for perfect text recognition  
+- **Speed-critical**: Use Rust v1.0 (0.19s) for core telemetry only
 
 ## Future Research
 

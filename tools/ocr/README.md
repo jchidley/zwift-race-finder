@@ -16,11 +16,11 @@ This tool extracts live telemetry data from Zwift screenshots and video recordin
 - **Engine**: PaddleOCR for best accuracy
 
 ### Rust Implementation (`zwift_ocr_compact`)
-- **4.8x Faster** than Python (1.08s vs 5.15s per image)  
+- **3.4x Faster** than Python (3.53s vs 12.05s per image)  
 - **100% Accuracy** on all core telemetry fields
-- **Minimal Dependencies**: Just Tesseract and pure Rust image processing
+- **Hybrid OCR**: Tesseract for numbers, ocrs neural network for leaderboard text
 - **Feature Complete v1.1**: All telemetry fields including leaderboard and rider pose detection
-- **Limitations**: Leaderboard text accuracy lower than PaddleOCR, pose detection needs refinement
+- **Good Leaderboard Accuracy**: ~80% name recognition with ocrs (vs ~10% Tesseract-only)
 - **Build**: `cargo build --features ocr --bin zwift_ocr_compact --release`
 
 ### Extended Python Tools
@@ -114,16 +114,16 @@ time (cd tools/ocr && uv run python zwift_ocr_compact.py ../../docs/screenshots/
 
 | Implementation | Speed | Accuracy | Extracted Fields |
 |----------------|-------|----------|------------------|
-| **Rust (Tesseract)** | **1.08s** | 100%* | Speed, distance, altitude, time, power, cadence, HR, gradient, distance-to-finish, leaderboard**, rider pose |
-| Python (PaddleOCR) | 5.15s | 100% | All fields with higher leaderboard accuracy |
+| **Rust v1.1 (Hybrid)** | **3.53s** | 100%* | Speed, distance, altitude, time, power, cadence, HR, gradient, distance-to-finish, leaderboard**, rider pose |
+| Python (PaddleOCR) | 12.05s | 100% | All fields with perfect leaderboard accuracy |
 
-**Speed Advantage**: Rust is **4.8x faster** than Python while maintaining perfect accuracy on core telemetry.
+**Speed Advantage**: Rust is **3.4x faster** than Python while maintaining perfect accuracy on core telemetry.
 
-*Core telemetry fields have 100% accuracy. **Leaderboard extraction has lower accuracy with Tesseract vs PaddleOCR.
+*Core telemetry fields have 100% accuracy. **Leaderboard extraction ~80% accurate with ocrs (vs 100% PaddleOCR).
 
 **Use Cases**:
-- **Rust**: Faster batch processing, automation, production systems (4.8x speedup)
-- **Python**: Better leaderboard accuracy, development/prototyping, complex visualizations
+- **Rust**: Faster batch processing, automation, production systems (3.4x speedup)
+- **Python**: Perfect leaderboard accuracy required, development/prototyping, complex visualizations
 
 See [OCR_COMPARISON_FINDINGS.md](OCR_COMPARISON_FINDINGS.md) for detailed performance analysis of different OCR approaches.
 
