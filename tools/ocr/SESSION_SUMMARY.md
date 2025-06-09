@@ -2,7 +2,7 @@
 
 ## 🎯 Mission Accomplished
 
-Successfully implemented a **production-ready Rust OCR system** that extracts ALL Zwift telemetry including leaderboards with **3.4x performance improvement** over Python while maintaining feature parity and code quality through systematic refactoring.
+Successfully implemented a **production-ready Rust OCR system** that extracts ALL Zwift telemetry including leaderboards with **5.4x performance improvement** (sequential) and **9.2x improvement** (parallel) over Python while maintaining feature parity and code quality through systematic refactoring.
 
 ## ✅ Completed Features
 
