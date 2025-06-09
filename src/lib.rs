@@ -72,6 +72,3 @@ pub mod test_utils;
 #[cfg(feature = "ocr")]
 pub mod ocr_compact;
 
-/// OCR implementation using ocrs library
-#[cfg(feature = "ocr")]
-pub mod ocr_ocrs;
