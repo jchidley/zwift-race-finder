@@ -53,9 +53,13 @@ Successfully implemented complete feature parity between Rust and Python OCR imp
 ### Speed Comparison (Updated with Final Measurements)
 | Version | Time | Features | Relative Speed |
 |---------|------|----------|----------------|
+| Rust Core | 0.9s | 7 core fields | 5x faster than Python |
+| Python Core | 4.5s | 7 core fields | Baseline (core) |
 | Rust v1.0 | 0.19s | 9 fields | 63x faster than Python |
 | Rust v1.1 | 3.53s | 11 fields (all) | 3.4x faster than Python |
-| Python | 12.05s | 11 fields (all) | Baseline |
+| Python | 12.05s | 11 fields (all) | Baseline (full) |
+
+**Note**: Core fields are speed, distance, altitude, time, power, cadence, and heart rate.
 
 ### Performance Breakdown
 - Core telemetry (9 fields): 0.19s (Tesseract only)

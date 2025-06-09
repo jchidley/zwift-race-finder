@@ -236,10 +236,14 @@ mask debug screenshot.jpg  # Python
 
 | Implementation | Time | Accuracy | Notes |
 |----------------|------|----------|-------|
-| Python/PaddleOCR | 12.05s | 100% | Full neural network pipeline |
+| Python Core | 4.5s | 100% | 7 core telemetry fields |
+| Rust Core | 0.9s | 100% | 7 core fields - **5x faster** |
+| Python Full | 12.05s | 100% | Full neural network pipeline |
 | Rust v1.1 Hybrid | 3.53s | Core: 100%, Leaderboard: ~80% | Tesseract + ocrs |
-| Rust v1.0 | 0.19s | 100% | Core fields only, Tesseract |
+| Rust v1.0 | 0.19s | 100% | 9 fields (no leaderboard), Tesseract |
 | ocrs CLI | ~1s | High | General purpose |
+
+**Note**: Core telemetry includes speed, distance, altitude, time, power, cadence, and heart rate. The 5x performance improvement (0.9s vs 4.5s) highlights the efficiency gain for the most commonly needed fields.
 
 ## Rust Implementation Details (v1.1)
 

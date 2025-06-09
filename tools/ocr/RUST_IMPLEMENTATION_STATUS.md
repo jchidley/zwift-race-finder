@@ -34,8 +34,8 @@ Following mechanical refactoring principles from REFACTORING_RULES.md:
 - ✅ **rider_pose** (RiderPose) - Rider position detection
 
 **Performance**: 
-- 1.52s total extraction time
-- 3.4x faster than Python (5.15s)
+- Core telemetry (7 fields): 0.9s (5x faster than Python's 4.5s)
+- Full extraction (11 fields): 1.52s (3.4x faster than Python's 5.15s)
 - Good accuracy balance
 
 ### v1.0 - Initial Tesseract Implementation
@@ -104,14 +104,20 @@ src/
 
 | Version | Time | vs Python | Features |
 |---------|------|-----------|----------|
-| Python  | 5.15s | 1.0x | All features |
-| Rust v1.0 | 1.08s | 4.8x | No leaderboard |
-| Rust v1.1 | 1.52s | 3.4x | All features |
+| Python Core | 4.5s | 1.0x | 7 core telemetry fields |
+| Rust Core | 0.9s | 5.0x | 7 core telemetry fields |
+| Python Full | 5.15s | 1.0x | All 11 features |
+| Rust v1.0 | 1.08s | 4.8x | 9 fields (no leaderboard) |
+| Rust v1.1 | 1.52s | 3.4x | All 11 features |
 | Rust v1.2 | 1.52s | 3.4x | All features + clean code |
+
+*Core telemetry: speed, distance, altitude, time, power, cadence, heart rate
 
 ## Current Status
 
 **Production Ready**: ✅ Full feature parity with Python  
-**Performance**: 3.4x faster with complete functionality  
+**Performance**: 
+- Core telemetry: 5x faster (0.9s vs 4.5s)
+- Full features: 3.4x faster (1.52s vs 5.15s)  
 **Code Quality**: Clean, maintainable, idiomatic Rust  
 **Recommendation**: Use Rust implementation for all use cases

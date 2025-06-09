@@ -16,7 +16,8 @@ This tool extracts live telemetry data from Zwift screenshots and video recordin
 - **Engine**: PaddleOCR for best accuracy
 
 ### Rust Implementation (`zwift_ocr_compact`)
-- **3.4x Faster** than Python (3.53s vs 12.05s per image)  
+- **5x Faster** for core telemetry (0.9s vs 4.5s for 7 fields)
+- **3.4x Faster** for full features (3.53s vs 12.05s per image)  
 - **100% Accuracy** on all core telemetry fields
 - **Hybrid OCR**: Tesseract for numbers, ocrs neural network for leaderboard text
 - **Feature Complete v1.1**: All telemetry fields including leaderboard and rider pose detection
@@ -114,10 +115,14 @@ time (cd tools/ocr && uv run python zwift_ocr_compact.py ../../docs/screenshots/
 
 | Implementation | Speed | Accuracy | Extracted Fields |
 |----------------|-------|----------|------------------|
-| **Rust v1.1 (Hybrid)** | **3.53s** | 100%* | Speed, distance, altitude, time, power, cadence, HR, gradient, distance-to-finish, leaderboard**, rider pose |
-| Python (PaddleOCR) | 12.05s | 100% | All fields with perfect leaderboard accuracy |
+| **Rust Core** | **0.9s** | 100% | Speed, distance, altitude, time, power, cadence, HR (7 fields) |
+| **Python Core** | **4.5s** | 100% | Same 7 core telemetry fields |
+| **Rust v1.1 (Full)** | **3.53s** | 100%* | All 11 fields including gradient, distance-to-finish, leaderboard**, rider pose |
+| Python (Full) | 12.05s | 100% | All fields with perfect leaderboard accuracy |
 
-**Speed Advantage**: Rust is **3.4x faster** than Python while maintaining perfect accuracy on core telemetry.
+**Speed Advantage**: 
+- Core telemetry: Rust is **5x faster** (0.9s vs 4.5s)
+- Full features: Rust is **3.4x faster** (3.53s vs 12.05s)
 
 *Core telemetry fields have 100% accuracy. **Leaderboard extraction ~80% accurate with ocrs (vs 100% PaddleOCR).
 
