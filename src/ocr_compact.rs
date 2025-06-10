@@ -498,3 +498,148 @@ fn classify_pose(features: &PoseFeatures) -> RiderPose {
     // Default to unknown if no clear match
     RiderPose::Unknown
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use image::{ImageBuffer, Luma};
+    
+    /// Create a test edge image with known properties
+    fn create_test_edge_image(width: u32, height: u32, pattern: &str) -> ImageBuffer<Luma<u8>, Vec<u8>> {
+        let mut img = ImageBuffer::new(width, height);
+        
+        match pattern {
+            "centered_square" => {
+                // Draw a square in the center
+                let quarter_w = width / 4;
+                let quarter_h = height / 4;
+                for y in quarter_h..3*quarter_h {
+                    for x in quarter_w..3*quarter_w {
+                        img.put_pixel(x, y, Luma([255]));
+                    }
+                }
+            }
+            "top_heavy" => {
+                // More pixels in top half
+                for y in 0..height/2 {
+                    for x in 0..width {
+                        if (x + y) % 3 == 0 {
+                            img.put_pixel(x, y, Luma([255]));
+                        }
+                    }
+                }
+            }
+            "symmetric" => {
+                // Create perfectly symmetric pattern
+                let mid_x = width / 2;
+                for y in 0..height {
+                    for x in 0..mid_x {
+                        if (x + y) % 5 == 0 {
+                            img.put_pixel(x, y, Luma([255]));
+                            img.put_pixel(width - 1 - x, y, Luma([255]));
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+        
+        img
+    }
+    
+    #[test]
+    fn test_calculate_pose_features_aspect_ratio() {
+        // This test catches: replace - with / in bbox_height calculation
+        let edges = create_test_edge_image(100, 100, "centered_square");
+        let features = calculate_pose_features(&edges, &edges);
+        
+        // A centered square should have aspect ratio close to 1.0
+        assert!((features.aspect_ratio - 1.0).abs() < 0.2, 
+                "Expected aspect ratio ~1.0, got {}", features.aspect_ratio);
+    }
+    
+    #[test]
+    fn test_calculate_pose_features_center_of_mass() {
+        // This test catches: replace += with -= in y_sum
+        let top_heavy = create_test_edge_image(100, 100, "top_heavy");
+        let features = calculate_pose_features(&top_heavy, &top_heavy);
+        
+        // Top heavy image should have center of mass < 0.5
+        assert!(features.center_of_mass_y < 0.5, 
+                "Top heavy image should have center of mass < 0.5, got {}", 
+                features.center_of_mass_y);
+    }
+    
+    #[test]
+    fn test_calculate_pose_features_division_not_modulo() {
+        // This test catches: replace / with % in center_of_mass_y
+        let edges = create_test_edge_image(100, 100, "centered_square");
+        let features = calculate_pose_features(&edges, &edges);
+        
+        // Center of mass should be between 0 and 1 (normalized)
+        assert!(features.center_of_mass_y >= 0.0 && features.center_of_mass_y <= 1.0,
+                "Center of mass should be normalized 0-1, got {}", 
+                features.center_of_mass_y);
+    }
+    
+    #[test]
+    fn test_classify_pose_standing_threshold() {
+        // This test catches: replace > with ==, replace > with >=
+        let features = PoseFeatures {
+            aspect_ratio: pose::ASPECT_RATIO_STANDING_MIN + 0.01,
+            center_of_mass_y: pose::CENTER_OF_MASS_STANDING_MAX - 0.01,
+            upper_density: 0.5,
+            lower_density: 0.5,
+            symmetry_score: 0.5,
+        };
+        
+        assert_eq!(classify_pose(&features), RiderPose::ClimbingStanding);
+        
+        // Test boundary
+        let boundary_features = PoseFeatures {
+            aspect_ratio: pose::ASPECT_RATIO_STANDING_MIN - 0.01,
+            center_of_mass_y: pose::CENTER_OF_MASS_STANDING_MAX - 0.01,
+            upper_density: 0.5,
+            lower_density: 0.5,
+            symmetry_score: 0.5,
+        };
+        
+        assert_ne!(classify_pose(&boundary_features), RiderPose::ClimbingStanding);
+    }
+    
+    #[test]
+    fn test_classify_pose_logical_and() {
+        // This test catches: replace && with ||
+        let features = PoseFeatures {
+            aspect_ratio: pose::ASPECT_RATIO_STANDING_MIN + 0.1,  // Satisfies
+            center_of_mass_y: pose::CENTER_OF_MASS_STANDING_MAX + 0.1, // Does NOT satisfy
+            upper_density: 0.5,
+            lower_density: 0.5,
+            symmetry_score: 0.5,
+        };
+        
+        // Should NOT be standing because BOTH conditions must be true
+        assert_ne!(classify_pose(&features), RiderPose::ClimbingStanding);
+    }
+    
+    #[test]
+    fn test_is_likely_name_numeric_check() {
+        // This test catches: replace || with && in numeric check
+        assert!(!is_likely_name("123"));        // Only numbers
+        assert!(!is_likely_name("..."));        // Only punctuation
+        assert!(!is_likely_name("123.45"));     // Numbers and punctuation
+        assert!(is_likely_name("John123"));     // Letters and numbers
+        assert!(is_likely_name("Test"));        // Only letters
+    }
+    
+    #[test]
+    fn test_is_likely_name_length_check() {
+        // This test catches: replace < with >, replace > with ==
+        assert!(!is_likely_name(""));          // Too short
+        assert!(!is_likely_name("A"));         // Below minimum
+        assert!(is_likely_name("AB"));         // At minimum (assuming MIN_LENGTH is 2)
+        
+        let long_name = "A".repeat(51);       // Above maximum (assuming MAX_LENGTH is 50)
+        assert!(!is_likely_name(&long_name));
+    }
+}

@@ -147,6 +147,17 @@ The tool now provides better guidance when users search for events:
 - `route_mappings.sql`: Maps event names to route IDs
 - `zwiftpower_results.json`: Extracted race history (git-ignored)
 
+## Testing Requirements - READ THIS FIRST
+
+### ⚠️ MANDATORY: The OCR 0% Lesson
+**What happened**: On 2025-01-10, OCR module had property tests, snapshot tests, integration tests, and fuzz tests. Mutation testing revealed **0% effectiveness** - all tests were smoke tests.
+
+**Before writing ANY tests**, read:
+1. **[MUTATION_TESTING_REQUIRED.md](MUTATION_TESTING_REQUIRED.md)** - Why and when
+2. **[TEST_EFFECTIVENESS_CHECKLIST.md](TEST_EFFECTIVENESS_CHECKLIST.md)** - How to write effective tests
+
+**Key Rule**: Write 2-3 tests, then run mutation testing on that function. Fix tests until mutations are caught.
+
 ## Regression Testing Strategy
 
 The project uses Jack's actual race history to calibrate duration estimates:
