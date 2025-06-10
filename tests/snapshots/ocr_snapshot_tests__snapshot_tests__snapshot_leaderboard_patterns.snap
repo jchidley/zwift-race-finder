@@ -1,0 +1,29 @@
+---
+source: tests/ocr_snapshot_tests.rs
+expression: test_entries
+---
+- name: J.Rider
+  current: false
+  delta: "+01:23"
+  km: 42.5
+  wkg: 3.8
+- name: Current
+  current: true
+  delta: ~
+  km: 41.2
+  wkg: 3.5
+- name: MinData
+  current: false
+  delta: "-00:05"
+  km: ~
+  wkg: ~
+- name: Edge
+  current: false
+  delta: "+99:99"
+  km: 0
+  wkg: 0
+- name: José García
+  current: false
+  delta: "-12:34"
+  km: 55.5
+  wkg: 4.5

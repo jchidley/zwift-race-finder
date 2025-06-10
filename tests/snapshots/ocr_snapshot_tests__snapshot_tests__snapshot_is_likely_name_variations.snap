@@ -1,0 +1,67 @@
+---
+source: tests/ocr_snapshot_tests.rs
+expression: results
+---
+- - J.Chidley
+  - typical format
+  - false
+- - John Doe
+  - full name
+  - false
+- - A.
+  - single initial
+  - true
+- - C.J.Y.S
+  - multiple initials
+  - false
+- - Name (ABC)
+  - with suffix
+  - false
+- - "123"
+  - just numbers
+  - false
+- - 12.3 km
+  - distance data
+  - false
+- - 3.2 w/kg
+  - power data
+  - false
+- - "+00:12"
+  - time delta
+  - false
+- - ""
+  - empty string
+  - false
+- - a
+  - single char
+  - false
+- - A
+  - single uppercase
+  - false
+- - Player1
+  - with number
+  - false
+- - "!!!"
+  - just symbols
+  - false
+- - (!
+  - parenthesis symbol
+  - true
+- - José
+  - unicode name
+  - false
+- - "O'Brien"
+  - with apostrophe
+  - false
+- - Anne-Marie
+  - hyphenated
+  - false
+- - "  AB  "
+  - with spaces
+  - true
+- - AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+  - 30 chars
+  - false
+- - AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+  - 31 chars
+  - false

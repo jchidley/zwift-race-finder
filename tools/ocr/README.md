@@ -141,6 +141,8 @@ See [OCR_COMPARISON_FINDINGS.md](OCR_COMPARISON_FINDINGS.md) for detailed perfor
 
 For architecture, region mapping, and implementation details, see [TECHNICAL_REFERENCE.md](TECHNICAL_REFERENCE.md).
 
+For comprehensive testing information, benchmarks, and quality metrics, see [TESTING_GUIDE.md](TESTING_GUIDE.md).
+
 ## Task Runner Commands
 
 Using mask (recommended):

@@ -1,0 +1,40 @@
+---
+source: tests/ocr_snapshot_tests.rs
+expression: edge_cases
+---
+- - empty
+  - speed: ~
+    distance: ~
+    altitude: ~
+    race_time: ~
+    power: ~
+    cadence: ~
+    heart_rate: ~
+    gradient: ~
+    distance_to_finish: ~
+    leaderboard: ~
+    rider_pose: ~
+- - partial
+  - speed: 0
+    distance: 0
+    altitude: ~
+    race_time: "00:00"
+    power: 0
+    cadence: ~
+    heart_rate: ~
+    gradient: 0
+    distance_to_finish: 0
+    leaderboard: []
+    rider_pose: unknown
+- - maximum
+  - speed: 99
+    distance: 999.9
+    altitude: 9999
+    race_time: "99:99"
+    power: 2000
+    cadence: 200
+    heart_rate: 220
+    gradient: 25
+    distance_to_finish: 100
+    leaderboard: ~
+    rider_pose: normal_tuck

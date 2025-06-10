@@ -62,6 +62,11 @@ serde_yaml = "0.9.34"
 name = "performance"
 harness = false
 
+[[bench]]
+name = "ocr_benchmarks"
+harness = false
+required-features = ["ocr"]
+
 [[bin]]
 name = "zwift_ocr_compact"
 required-features = ["ocr"]

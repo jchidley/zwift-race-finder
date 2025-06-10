@@ -58,8 +58,11 @@ pub mod pose {
 
 /// W/kg range for validation
 pub mod wkg {
-    pub const MIN: f64 = 0.5;
-    pub const MAX: f64 = 7.0;
+    // Human physiological limits for cycling
+    // 0.0 is valid (stopped/coasting)
+    // Recreational: 0.0-3.0, Amateur: 3.0-4.0, Pro: 4.0-7.6
+    pub const MIN: f64 = 0.5;  // Below this, likely not racing
+    pub const MAX: f64 = 7.0;  // Above this, likely cheating on Zwift
 }
 
 /// Name detection limits
