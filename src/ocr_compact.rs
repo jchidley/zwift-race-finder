@@ -642,4 +642,142 @@ mod tests {
         let long_name = "A".repeat(51);       // Above maximum (assuming MAX_LENGTH is 50)
         assert!(!is_likely_name(&long_name));
     }
+    
+    #[test]
+    fn test_parse_time_valid_formats() {
+        // This test catches: digit extraction logic mutations
+        assert_eq!(parse_time("15:42"), Some("15:42".to_string()));
+        assert_eq!(parse_time("5:42"), Some("5:42".to_string()));
+        assert_eq!(parse_time("text 12:34 text"), Some("12:34".to_string()));
+        
+        // Test digit reconstruction (catches index mutations)
+        assert_eq!(parse_time("1234"), Some("12:34".to_string()));
+        assert_eq!(parse_time("523"), Some("5:23".to_string()));
+        
+        // Invalid formats
+        assert_eq!(parse_time("12"), None);
+        assert_eq!(parse_time("12345"), None);
+        assert_eq!(parse_time(""), None);
+    }
+    
+    #[test]
+    fn test_parse_leaderboard_data_time_delta() {
+        // This test catches: regex capture group mutations
+        let mut entry = LeaderboardEntry {
+            name: "Test".to_string(),
+            current: false,
+            delta: None,
+            km: None,
+            wkg: None,
+        };
+        
+        parse_leaderboard_data(&mut entry, "+01:23");
+        assert_eq!(entry.delta, Some("+01:23".to_string()));
+        
+        entry.delta = None;
+        parse_leaderboard_data(&mut entry, "-00:45");
+        assert_eq!(entry.delta, Some("-00:45".to_string()));
+        
+        // No delta in text
+        entry.delta = None;
+        parse_leaderboard_data(&mut entry, "3.5 w/kg");
+        assert_eq!(entry.delta, None);
+    }
+    
+    #[test]
+    fn test_parse_leaderboard_data_distance() {
+        // This test catches: parse().ok() mutations
+        let mut entry = LeaderboardEntry {
+            name: "Test".to_string(),
+            current: false,
+            delta: None,
+            km: None,
+            wkg: None,
+        };
+        
+        parse_leaderboard_data(&mut entry, "12.5 km");
+        assert_eq!(entry.km, Some(12.5));
+        
+        entry.km = None;
+        parse_leaderboard_data(&mut entry, "5.0 KM");
+        assert_eq!(entry.km, Some(5.0));
+        
+        // Invalid distance
+        entry.km = None;
+        parse_leaderboard_data(&mut entry, "abc km");
+        assert_eq!(entry.km, None);
+    }
+    
+    #[test]
+    fn test_parse_leaderboard_data_wkg() {
+        // This test catches: range check mutations (MIN..=MAX)
+        let mut entry = LeaderboardEntry {
+            name: "Test".to_string(),
+            current: false,
+            delta: None,
+            km: None,
+            wkg: None,
+        };
+        
+        // Valid w/kg
+        parse_leaderboard_data(&mut entry, "3.5 w/kg");
+        assert_eq!(entry.wkg, Some(3.5));
+        
+        // Edge case: at MIN boundary
+        entry.wkg = None;
+        parse_leaderboard_data(&mut entry, "0.5");  // wkg::MIN
+        assert_eq!(entry.wkg, Some(0.5));
+        
+        // Edge case: at MAX boundary  
+        entry.wkg = None;
+        parse_leaderboard_data(&mut entry, "7.0");  // wkg::MAX
+        assert_eq!(entry.wkg, Some(7.0));
+        
+        // Out of range (catches > to >= mutations)
+        entry.wkg = None;
+        parse_leaderboard_data(&mut entry, "0.4");  // Below MIN
+        assert_eq!(entry.wkg, None);
+        
+        entry.wkg = None;
+        parse_leaderboard_data(&mut entry, "7.1");  // Above MAX
+        assert_eq!(entry.wkg, None);
+    }
+    
+    #[test]
+    fn test_parse_time_digit_slicing() {
+        // This test specifically catches slice index mutations
+        // 4 digits: [..2] and [2..]
+        assert_eq!(parse_time("1234"), Some("12:34".to_string()));
+        assert_eq!(parse_time("0056"), Some("00:56".to_string()));
+        
+        // 3 digits: [..1] and [1..]
+        assert_eq!(parse_time("123"), Some("1:23".to_string()));
+        assert_eq!(parse_time("959"), Some("9:59".to_string()));
+        
+        // Edge cases that would fail with wrong indices
+        assert_eq!(parse_time("0000"), Some("00:00".to_string()));
+        assert_eq!(parse_time("000"), Some("0:00".to_string()));
+    }
+    
+    #[test]
+    fn test_is_likely_name_multiple_dots() {
+        // This test catches: replace >= with < in multiple dots check
+        // Exactly 2 dots should be valid
+        assert!(is_likely_name("C.J.S"));          // Exactly 2 dots with letters
+        assert!(is_likely_name("A.B.C"));          // Exactly 2 dots
+        assert!(is_likely_name("J.P.Morgan"));     // 2 dots with more text
+        
+        // 1 dot should not trigger this rule (but may pass other rules)
+        let single_dot = is_likely_name("J.Smith");
+        // Should still pass due to initial dot rule
+        assert!(single_dot);
+        
+        // Only dots and no letters should fail
+        assert!(!is_likely_name("..."));           // 2 dots but no letters
+        assert!(!is_likely_name(".."));            // 1 dot, no letters
+        
+        // More than 2 dots
+        assert!(is_likely_name("C.J.Y.S."));       // 3 dots with letters
+        assert!(is_likely_name("A.B.C.D.E."));     // Many dots with letters
+    }
 }
