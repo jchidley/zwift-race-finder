@@ -6,6 +6,12 @@
 //! - Discover route information from external sources
 //! - Manage configuration and secure credential storage
 
+/// A/B testing framework for comparing implementations
+pub mod ab_testing;
+
+/// Compatibility tracking for behavioral preservation
+pub mod compatibility;
+
 /// Common constants used throughout the application
 pub mod constants;
 
@@ -61,3 +67,27 @@ pub mod secure_storage;
 /// Test utilities (only available in test builds)
 #[cfg(test)]
 pub mod test_utils;
+
+/// OCR constants
+#[cfg(feature = "ocr")]
+pub mod ocr_constants;
+
+/// OCR image processing utilities
+#[cfg(feature = "ocr")]
+pub mod ocr_image_processing;
+
+/// OCR regex patterns
+#[cfg(feature = "ocr")]
+pub mod ocr_regex;
+
+/// Compact OCR implementation
+#[cfg(feature = "ocr")]
+pub mod ocr_compact;
+
+#[cfg(feature = "ocr")]
+pub mod ocr_ocrs;
+
+/// Parallel OCR implementation for high performance
+#[cfg(feature = "ocr")]
+pub mod ocr_parallel;
+

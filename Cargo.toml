@@ -30,9 +30,24 @@ clap = { version = "4", features = ["derive"] }
 colored = "2.0"
 anyhow = "1.0"
 regex = "1.0"
+lazy_static = "1.4"
 dirs = "5.0"
 rusqlite = { version = "0.32", features = ["bundled", "chrono"] }
 keyring = { version = "3.0", optional = true }
+
+# OCR dependencies
+leptess = { version = "0.14", optional = true }
+image = { version = "0.24", optional = true }
+imageproc = { version = "0.23", optional = true }
+ocrs = { version = "0.10", optional = true }
+rten = { version = "0.18", optional = true }
+rten-imageproc = { version = "0.18", optional = true }
+rten-tensor = { version = "0.18", optional = true }
+
+# Parallel processing dependencies
+rayon = { version = "1.7", optional = true }
+once_cell = { version = "1.19", optional = true }
+crossbeam = { version = "0.8", optional = true }
 
 [dev-dependencies]
 tempfile = "3.0"
@@ -47,6 +62,19 @@ serde_yaml = "0.9.34"
 name = "performance"
 harness = false
 
+[[bench]]
+name = "ocr_benchmarks"
+harness = false
+required-features = ["ocr"]
+
+[[bin]]
+name = "zwift_ocr_compact"
+required-features = ["ocr"]
+
+[[bin]]
+name = "zwift_ocr_benchmark"
+required-features = ["ocr"]
+
 [profile.mutants]
 inherits = "test"
 debug = "none"
@@ -55,3 +83,4 @@ opt-level = 1
 [features]
 default = []
 keyring-storage = ["keyring"]
+ocr = ["leptess", "image", "imageproc", "ocrs", "rten", "rten-imageproc", "rten-tensor", "rayon", "once_cell", "crossbeam"]

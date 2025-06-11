@@ -1,0 +1,30 @@
+---
+source: tests/ocr_snapshot_tests.rs
+description: Complete telemetry data structure
+---
+speed: 30
+distance: 12.5
+altitude: 150
+race_time: "15:30"
+power: 250
+cadence: 85
+heart_rate: 165
+gradient: 5.5
+distance_to_finish: 3.2
+leaderboard:
+  - name: Leader
+    current: false
+    delta: "-01:23"
+    km: 13.5
+    wkg: 4.2
+  - name: You
+    current: true
+    delta: ~
+    km: 12.5
+    wkg: 3.2
+  - name: Behind
+    current: false
+    delta: "+00:45"
+    km: 11.8
+    wkg: 2.9
+rider_pose: climbing_seated

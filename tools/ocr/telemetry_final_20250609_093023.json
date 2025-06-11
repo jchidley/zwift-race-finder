@@ -1,0 +1,62 @@
+{
+  "speed": 34,
+  "distance": 6.4,
+  "altitude": 28,
+  "race_time": "11:07",
+  "power": 268,
+  "cadence": 72,
+  "heart_rate": 160,
+  "gradient": 3.0,
+  "distance_to_finish": 28.6,
+  "powerup_name": null,
+  "leaderboard": [
+    {
+      "position": 1,
+      "name": "J.Matzke",
+      "time_delta": "+2:20",
+      "watts_per_kg": 1.9,
+      "distance_km": 5.1,
+      "is_current_rider": false
+    },
+    {
+      "position": 2,
+      "name": "J.Chidley",
+      "time_delta": null,
+      "watts_per_kg": 3.2,
+      "distance_km": 6.4,
+      "is_current_rider": true
+    },
+    {
+      "position": 3,
+      "name": "J.T.Noxen)",
+      "time_delta": "+0:00",
+      "watts_per_kg": 3.4,
+      "distance_km": 6.4,
+      "is_current_rider": false
+    },
+    {
+      "position": 4,
+      "name": "Y.Kikuchi",
+      "time_delta": "+0:00",
+      "watts_per_kg": 3.4,
+      "distance_km": 6.3,
+      "is_current_rider": false
+    },
+    {
+      "position": 5,
+      "name": "C.J.Y.S",
+      "time_delta": "+0:00",
+      "watts_per_kg": 2.8,
+      "distance_km": 6.3,
+      "is_current_rider": false
+    },
+    {
+      "position": 6,
+      "name": "S.Jung",
+      "time_delta": "+0:00",
+      "watts_per_kg": 3.8,
+      "distance_km": 6.3,
+      "is_current_rider": false
+    }
+  ]
+}

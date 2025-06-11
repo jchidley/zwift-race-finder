@@ -84,4 +84,4 @@ flamegraph.svg
 zwiftmap-reference/
 zwift-data-reference/
 zwift-client-reference/
-cargo-mutants/
+cargo-mutants/__pycache__/

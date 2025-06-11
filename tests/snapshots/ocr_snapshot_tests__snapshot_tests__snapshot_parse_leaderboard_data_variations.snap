@@ -1,0 +1,94 @@
+---
+source: tests/ocr_snapshot_tests.rs
+expression: results
+---
+- - "full data - +01:23 3.2 w/kg 12.5 KM"
+  - name: Test
+    current: false
+    delta: "+01:23"
+    km: 12.5
+    wkg: 3.2
+- - "just negative delta - -00:45"
+  - name: Test
+    current: false
+    delta: "-00:45"
+    km: ~
+    wkg: ~
+- - just distance - 12.5 km
+  - name: Test
+    current: false
+    delta: ~
+    km: 12.5
+    wkg: ~
+- - just power - 3.2 w/kg
+  - name: Test
+    current: false
+    delta: ~
+    km: ~
+    wkg: 3.2
+- - decimal in text - text 4.5 text
+  - name: Test
+    current: false
+    delta: ~
+    km: ~
+    wkg: 4.5
+- - zero power - 0.0 w/kg
+  - name: Test
+    current: false
+    delta: ~
+    km: ~
+    wkg: 0
+- - below range power - 0.4 w/kg
+  - name: Test
+    current: false
+    delta: ~
+    km: ~
+    wkg: 0.4
+- - above range power - 7.1 w/kg
+  - name: Test
+    current: false
+    delta: ~
+    km: ~
+    wkg: 7.1
+- - large distance - 184.8 km
+  - name: Test
+    current: false
+    delta: ~
+    km: 184.8
+    wkg: ~
+- - "empty string - "
+  - name: Test
+    current: false
+    delta: ~
+    km: ~
+    wkg: ~
+- - "single digit minute - +1:23"
+  - name: Test
+    current: false
+    delta: "+1:23"
+    km: ~
+    wkg: ~
+- - no space km - 12.5KM
+  - name: Test
+    current: false
+    delta: ~
+    km: 12.5
+    wkg: ~
+- - no space wkg - 3.2w/kg
+  - name: Test
+    current: false
+    delta: ~
+    km: ~
+    wkg: 3.2
+- - no numbers - invalid data
+  - name: Test
+    current: false
+    delta: ~
+    km: ~
+    wkg: ~
+- - just number - 123
+  - name: Test
+    current: false
+    delta: ~
+    km: ~
+    wkg: ~

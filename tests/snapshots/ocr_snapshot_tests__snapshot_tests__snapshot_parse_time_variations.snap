@@ -1,0 +1,40 @@
+---
+source: tests/ocr_snapshot_tests.rs
+expression: results
+---
+- - "12:34"
+  - standard format
+  - "12:34"
+- - "1:23"
+  - single digit hour
+  - "1:23"
+- - "Time: 45:67"
+  - with prefix
+  - "45:67"
+- - "1234"
+  - just digits
+  - "12:34"
+- - "123"
+  - three digits
+  - "1:23"
+- - "12 : 34"
+  - spaces inside
+  - "12:34"
+- - "  12:34  "
+  - spaces outside
+  - "12:34"
+- - invalid
+  - non-time string
+  - ~
+- - ""
+  - empty string
+  - ~
+- - "12:34:56"
+  - with seconds
+  - "12:34"
+- - "+12:34"
+  - with plus sign
+  - "12:34"
+- - "-12:34"
+  - with minus sign
+  - "12:34"

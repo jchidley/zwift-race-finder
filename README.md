@@ -198,6 +198,113 @@ cargo test
 cargo build --release
 ```
 
+### Testing
+
+The project includes comprehensive test coverage to ensure reliability and support safe refactoring:
+
+#### Running Tests
+
+```bash
+# Run all tests
+cargo test
+
+# Run tests with output for debugging
+cargo test -- --nocapture
+
+# Run specific test modules
+cargo test integration    # Integration tests
+cargo test regression    # Regression tests against real data
+cargo test properties    # Property-based tests
+
+# Run tests in release mode (faster)
+cargo test --release
+
+# Run with specific number of threads
+cargo test -- --test-threads=1
+```
+
+#### Test Categories
+
+**Unit Tests** (in `src/` files)
+- Fast, focused tests for individual functions
+- Run automatically with `cargo test`
+
+**Integration Tests** (`tests/integration_tests.rs`)
+- CLI command execution and parsing
+- End-to-end workflows
+- Database operations
+- Output format verification
+
+**Property-Based Tests** (`tests/property_tests.rs`)
+- Mathematical invariants (monotonicity, boundaries)
+- Randomized input generation
+- Edge case discovery
+```bash
+# Run with more test cases
+PROPTEST_CASES=1000 cargo test properties
+```
+
+**Snapshot Tests** (`tests/snapshot_tests.rs`)
+- Behavioral verification for known routes
+- Duration calculations across categories
+- Ensures consistent output
+```bash
+# Update snapshots after intentional changes
+cargo insta review
+```
+
+**Regression Tests** (`src/regression_test.rs`)
+- Compare predictions against 151+ actual race results
+- Target: <20% mean absolute error (currently 16.1%)
+- Validates accuracy improvements
+
+**API Tests** (`tests/api_tests.rs`)
+- Mock-based API response handling
+- Error scenarios and edge cases
+- Racing Score event parsing
+
+#### Testing During Development
+
+```bash
+# Run tests before committing
+cargo test
+cargo clippy -- -D warnings
+cargo fmt -- --check
+
+# Run mutation testing to find weak tests
+cargo install cargo-mutants
+cargo mutants --file src/estimation.rs --timeout 120
+
+# Generate test coverage report
+cargo install cargo-tarpaulin
+cargo tarpaulin --out Html
+# Open tarpaulin-report.html in browser
+```
+
+#### Golden Tests for Behavioral Preservation
+
+The project uses golden tests to ensure refactoring doesn't change behavior:
+
+```bash
+# Generate behavioral baseline (run on main branch)
+cargo test generate_golden_baseline -- --ignored
+
+# Verify behavior matches baseline (run after changes)
+cargo test golden_tests
+```
+
+#### Continuous Integration
+
+Tests run automatically on:
+- Every push to GitHub
+- Pull request creation/update
+- Pre-commit hooks (if configured)
+
+To set up pre-commit hooks:
+```bash
+./setup_git_hooks.sh
+```
+
 ### Adding New Routes
 
 1. Find the route on ZwiftHacks.com for the official route_id
