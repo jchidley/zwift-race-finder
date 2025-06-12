@@ -1,53 +1,49 @@
 # HANDOFF.md - Zwift Race Finder
 
-## Project Status - 2025-01-08
+## Project Status - 2025-01-12
 
-### Current Branch: feature/uom-migration-v2
+### Current Branch: main
 
-The UOM (Units of Measurement) migration framework is now complete. After the initial migration attempt failed (finding 0 races instead of 10), we built a comprehensive behavioral preservation framework inspired by the uutils project.
+OCR strategy redesigned from cloud-based validation to community-driven configuration approach.
 
 ### Recent Work Completed
 
-1. **Test Framework Optimization**
-   - Reduced golden tests from 9,414 to 1,694 (82% reduction)
-   - Validated test data is statistically representative (<3% difference)
-   - Created test data validation tools
+1. **OCR Strategy Overhaul**
+   - Researched vision LLM APIs (Groq, HuggingFace, Together AI)
+   - Pivoted to community-maintained config files
+   - Focus shifted from perfect name OCR to rider order tracking
+   - Created comprehensive calibration documentation
 
-2. **Comprehensive Documentation**
-   - Full progress report since commit 0169788
-   - Technical summary and architecture
-   - Visual timeline of work
-   - Quick start guide for migration
+2. **Documentation Created**
+   - `wip-claude/20250112_100000_ocr_comprehensive_strategy.md` - Complete strategy
+   - `tools/ocr/CALIBRATION_GUIDE.md` - Step-by-step calibration guide
+   - Updated OCR README with `record-monitor2.ps1` acquisition method
 
-3. **Key Infrastructure Ready**
-   - Golden behavioral tests (1,694)
-   - Property-based invariant tests
-   - A/B testing framework
-   - Compatibility tracking system
+3. **Key Insights**
+   - UI regions stable per Zwift version/resolution
+   - Community configs eliminate per-user calibration
+   - Fuzzy matching sufficient for rider tracking
 
 ### Current State
 
-**Framework: ✅ Complete**  
-**Migration: ❌ Not Started**
+**Status**: OCR strategy documented, ready for implementation
+**Target**: Create first community config, implement config loader
+**Latest**: Community-driven approach with free API calibration tools
 
-No UOM code has been written yet. The entire effort has been building the framework to ensure safe migration.
+### Active Todo List
 
-### Next Immediate Steps
+[ ] Create initial 1920x1080 config from recordings
+[ ] Create calibration script with Groq support
+[✓] Create calibration instructions for contributors
+[✓] Update OCR strategy with calibration guide
 
-1. **Run Mutation Testing**
-   ```bash
-   cargo install cargo-mutants
-   cargo mutants
-   ```
+### Next Step
 
-2. **Start First Migration**
-   - Begin with `calculate_pack_speed()` in `duration_estimation.rs`
-   - Use A/B testing to verify identical behavior
-   - Check all golden tests still pass
-
-3. **Read Documentation**
-   - Quick start: `docs/development/20250108_143800_uom_migration_quick_start.md`
-   - Full details: `docs/development/20250108_143500_uom_migration_v2_progress.md`
+**Implement OCR Configuration System**:
+1. Create `ocr-configs/` directory structure
+2. Build calibration script (`calibrate_with_vision.py`)
+3. Generate first config from your 1920x1080 recordings
+4. Test with existing Rust OCR implementation
 
 ### Key Principle
 

@@ -179,6 +179,45 @@ tools/utils/apply_route_mappings.sh
 tools/utils/check_secrets.sh
 ```
 
+## Essential Commands Reference
+
+### Running Races
+```bash
+# Find races for your Racing Score
+zwift-race-finder --zwift-score 195 --duration 120 --tolerance 30
+
+# Record a race result for improving predictions
+zwift-race-finder --record-result "route_id,minutes,event_name"
+```
+
+### Testing and Validation
+```bash
+# Run regression tests against 151 real races
+cargo test regression
+
+# Run specific test module
+cargo test ocr
+
+# Run mutation testing on a module
+cargo mutants --file src/module.rs --timeout 30
+```
+
+### Personal Configuration
+```bash
+# Update rider stats for personalized predictions
+./tools/utils/update_rider_stats.sh 86.0        # Weight only
+./tools/utils/update_rider_stats.sh 86.0 250    # Weight and FTP
+```
+
+### Data Import
+```bash
+# Import from ZwiftPower (see docs/guides/DATA_IMPORT.md for details)
+./tools/import/zwiftpower/import_zwiftpower_dev.sh
+
+# Apply route mappings after import
+./tools/utils/apply_route_mappings.sh
+```
+
 ## Development
 
 ### Building from Source

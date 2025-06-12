@@ -5,6 +5,36 @@ Older insights archived to PROJECT_WISDOM_ARCHIVE_20250602.md
 
 ## Active Insights
 
+### 2025-01-12: UI Stability Enables Community Configs
+Insight: Zwift UI element positions remain constant for a given version and screen resolution combination
+Impact: Calibration only needs to be done once per configuration, not per user - enabling community-driven config sharing
+Key Learning: Leverage stable patterns to create shared resources that benefit entire community
+
+### 2025-01-12: Rider Order Over Name Accuracy
+Insight: For race analysis, tracking rider positions matters more than perfect name OCR
+Impact: Can use fuzzy matching and position tracking instead of expensive validation APIs
+Key Learning: Focus on what users actually need (race dynamics) rather than technical perfection
+
+### 2025-01-12: Free Tier Vision APIs for Calibration
+Insight: Groq and other providers offer free tier vision APIs suitable for occasional calibration tasks
+Impact: Contributors can create high-quality configs without cost using vision LLMs
+Key Learning: Modern AI tools can automate tedious manual tasks when used strategically
+
+### 2025-01-11: Documentation as Parallel Processing
+Insight: Writing comprehensive documents enables humans to read/think while AI implements, creating efficient parallel workflow
+Impact: Reduces synchronous communication bottleneck and maximizes both human and AI productivity
+Key Learning: Documentation serves triple purpose - captures knowledge, enables asynchronous collaboration, and creates parallel work streams
+
+### 2025-01-11: LLM Technical Debt Accumulation
+Insight: LLMs generate working but poorly organized code at unprecedented rates compared to human developers
+Impact: Without regular maintenance sessions, functionality drifts and code quality degrades rapidly
+Key Learning: Regular "yak shaving" sessions with mutation testing are essential to prevent accumulation
+
+### 2025-01-11: Hierarchical Documentation Strategy
+Insight: Project CLAUDE.md should focus on domain-specific knowledge and concrete case studies while referencing parent docs for general standards
+Impact: Creates clear hierarchy (Global → Tools → Project-specific) that eliminates duplication and improves context efficiency
+Key Learning: This separation allows project discoveries to flow back to parent docs as universal insights
+
 ### 2025-06-02: Lead-in Distance Critical for Accuracy
 Insight: Lead-in distance varies by event type (race vs free ride vs meetup) and can be significant (0.2-5.7 km)
 Impact: Ignoring lead-in was causing systematic underestimation of race duration

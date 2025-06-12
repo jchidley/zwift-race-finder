@@ -93,3 +93,7 @@ __pycache__/
 *.pyd
 .Python
 *.so
+
+# Claude settings (ignore all except settings.local.json)
+.claude/
+!.claude/settings.local.json

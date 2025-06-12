@@ -50,6 +50,60 @@ cargo build --features ocr --bin zwift_ocr_compact
 cargo install mask
 ```
 
+## Video Acquisition
+
+### Windows PowerShell Recording (record-monitor2.ps1)
+
+For capturing Zwift gameplay on Windows, use the optimized PowerShell script:
+
+```powershell
+# Basic recording (4 hours at 8fps video + 1fps PNG extraction)
+.\record-monitor2.ps1
+
+# Custom duration and frame rates
+.\record-monitor2.ps1 -duration 7200 -fps 10 -pngFps 2
+
+# PNG frames only (no video file)
+.\record-monitor2.ps1 -pngOnly
+
+# With smart frame filtering to reduce duplicate frames
+.\record-monitor2.ps1 -smartFilter
+
+# Custom resolution (e.g., for lower file sizes)
+.\record-monitor2.ps1 -resolution "1280x720"
+
+# Named recording session
+.\record-monitor2.ps1 -name "alpe_du_zwift_race"
+```
+
+**Features**:
+- Records from secondary monitor (where Zwift typically runs)
+- Simultaneous video (MP4) and PNG frame extraction
+- Smart filtering option removes duplicate/similar frames
+- Configurable frame rates for video and PNG extraction
+- Auto-creates timestamped output folders
+- Optimized FFmpeg settings for game capture
+
+**Parameters**:
+- `-fps`: Video recording frame rate (default: 8)
+- `-pngFps`: PNG extraction frame rate (default: 1)
+- `-duration`: Recording duration in seconds (default: 14400 = 4 hours)
+- `-outputDir`: Output directory (default: `%USERPROFILE%\Videos\Recordings`)
+- `-name`: Optional prefix for output files
+- `-pngOnly`: Skip video, extract PNG frames only
+- `-smartFilter`: Use mpdecimate filter to remove similar frames
+- `-resolution`: Override capture resolution
+
+**Output Structure**:
+```
+Videos/Recordings/
+├── 2025-01-12_14-30-00.mp4          # Video file
+└── 2025-01-12_14-30-00/             # PNG frames folder
+    ├── frame_000001.png
+    ├── frame_000002.png
+    └── ...
+```
+
 ## Usage
 
 ### Rust Implementation (Recommended for Speed)
