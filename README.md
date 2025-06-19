@@ -230,7 +230,7 @@ cargo run --bin import_zwift_offline_routes -- \
     --input-dir data/zwift_offline_export
 ```
 
-See [docs/ZWIFT_OFFLINE_INTEGRATION.md](docs/ZWIFT_OFFLINE_INTEGRATION.md) for details on the zwift-offline integration.
+See [docs/guides/ZWIFT_OFFLINE_INTEGRATION.md](docs/guides/ZWIFT_OFFLINE_INTEGRATION.md) for details on the zwift-offline integration.
 
 ### Recording Zwift Sessions
 
@@ -472,7 +472,7 @@ Routes can be added through multiple methods:
    ```
 3. Update mappings in `sql/mappings/route_mappings.sql` if needed
 
-For technical details on route data extraction, see [docs/ROUTE_DATA_EXTRACTION.md](docs/ROUTE_DATA_EXTRACTION.md).
+For technical details on route data extraction, see [docs/guides/ROUTE_DATA_EXTRACTION.md](docs/guides/ROUTE_DATA_EXTRACTION.md).
 
 ### AI-Assisted Development Insights
 

@@ -67,7 +67,7 @@ Run regression tests in `tests/regression_tests.rs` before claiming any improvem
 - When changing behavior: Cite specific regression test evidence
 - When discussing times: Always clarify if including lead-in distance
 - When logging work: Append to ZWIFT_API_LOG_RECENT.md
-- When referencing domain concepts: Ensure accuracy per docs/ZWIFT_DOMAIN.md
+- When referencing domain concepts: Ensure accuracy per docs/reference/ZWIFT_DOMAIN.md
 
 ## Zwift-Specific Anti-Patterns
 

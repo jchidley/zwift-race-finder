@@ -22,9 +22,9 @@ Contributing code? Debugging issues? Find:
 
 ## 📚 Reference - Core Knowledge
 Essential technical documentation:
-- [Algorithms](ALGORITHMS.md) - How predictions work
-- [Architecture](ARCHITECTURE.md) - System design
-- [Zwift Domain](ZWIFT_DOMAIN.md) - Key concepts
+- [Algorithms](reference/ALGORITHMS.md) - How predictions work
+- [Architecture](reference/ARCHITECTURE.md) - System design
+- [Zwift Domain](reference/ZWIFT_DOMAIN.md) - Key concepts
 
 ## 🔬 Research - Deep Dives
 **[→ Browse Research](/docs/research/)**
@@ -65,7 +65,7 @@ Learn how we achieved 23.6% prediction accuracy:
 ### Getting Started
 1. **Users**: Start with [Racing Guides](/docs/for-racers/)
 2. **Developers**: Check [Current Development Plan](/docs/for-developers/CURRENT_DEVELOPMENT_PLAN.md)
-3. **Contributors**: Read [Architecture](/docs/ARCHITECTURE.md) first
+3. **Contributors**: Read [Architecture](reference/ARCHITECTURE.md) first
 
 ## Documentation Philosophy
 
