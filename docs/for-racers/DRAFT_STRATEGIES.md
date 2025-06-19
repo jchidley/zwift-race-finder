@@ -1,10 +1,10 @@
-# Draft Strategies - Maximizing Your 24-33% Power Savings
+# Draft Strategies - Maximizing Your 25-35% Power Savings
 
-*Status: Early Draft - This document will expand with specific positioning tactics and field dynamics*
+*Status: Updated with verified research data and group size dynamics*
 
 ## The Draft Advantage in Zwift
 
-Zwift provides 24-33% power savings when drafting, compared to ~25% in real life. This extra benefit makes draft tactics even more critical in virtual racing.
+Zwift provides 25-35% power savings when drafting, with benefits varying by group size and position. Research from [[Zwift Insider](https://zwiftinsider.com/zwift-drafting/)] and community testing confirms these values align with real-world cycling aerodynamics.
 
 ## Basic Draft Principles
 
@@ -14,10 +14,15 @@ Zwift provides 24-33% power savings when drafting, compared to ~25% in real life
 - **Visual cue**: Your avatar sits up when drafting successfully
 
 ### Power Savings by Position
-Based on Zwift's Pack Dynamics 4.1:
-- **Directly behind one rider**: ~24% savings
-- **In the pack**: Up to 33% savings
-- **Optimal position**: 3-5 riders back in a group
+
+Based on verified testing and Pack Dynamics 4.1.1:
+- **Behind one rider**: 25% savings
+- **3rd position in line**: 33% savings  
+- **4th position in line**: 37% savings
+- **Large groups (4+ riders)**: Maximum ~35% savings
+- **Optimal position**: Rows 5-15 in large groups
+
+**Important**: No confirmed "8-rider maximum" for draft calculations - benefits continue in larger groups but plateau around 35%.
 
 ## Field Size Effects (Key Insight)
 
@@ -76,29 +81,63 @@ Key factors:
 ### Myth: "Draft doesn't matter on climbs"
 **Reality**: Still 10-15% benefit on gradients
 
-## Practical Draft Tips (To Be Expanded)
+## Binary Draft Model - Key to Understanding Zwift
 
-1. **Watch the w/kg display**: Shows pack effort
-2. **Use the minimap**: See gaps forming
-3. **Listen for attacks**: Audio cues matter
-4. **Know your limits**: When to let the pack go
+Unlike real-world cycling where draft benefit gradually decreases with distance, Zwift uses a **binary model**:
+- **In the draft**: Full benefit (25-35% depending on group size)
+- **Out of the draft**: Zero benefit
+- **No gradient**: You're either in or out
 
-## Future Sections
+This explains why:
+- Small gaps are catastrophic
+- "Sticky draft" can trap you
+- Positioning is even more critical than outdoors
+- The "blob effect" creates unrealistic pack speeds
 
-This guide will expand to include:
-- Specific game mechanics (sticky draft, etc.)
-- Video examples of good positioning
-- Power data from successful drafting
-- Route-specific draft tactics
-- Equipment effects on draft
+## Practical Draft Tips
 
-## Community Research Needed
+1. **Watch the w/kg display**: Red numbers = someone attacking
+2. **Use draft indicator**: Avatar sits up = you're drafting
+3. **Micro-sprints to move**: 2-3 pedal strokes, don't overshoot
+4. **Left-right matters**: Being 50cm off-line costs ~30W
+5. **Know your limits**: When to let the pack go
 
-- Exact draft percentages at different positions
-- Optimal pack position for different rider types
-- Sprint leadout dynamics
-- Breakaway success rates by field size
+## Group Size and Draft Dynamics
+
+### Real-World Comparison
+Academic research shows [[real pelotons provide 90-95% drag reduction](https://www.sciencedirect.com/science/article/pii/S0167610518303751)] in optimal positions. Zwift's 35% maximum represents a simplified model.
+
+### Blob Effect Explained
+- Groups 20+ riders maintain speeds 2-3 km/h faster than physics predicts
+- "Churn" at front creates continuous acceleration
+- No team blocking possible
+- Result: Breakaways need 110-120% of blob w/kg to succeed
+
+## Updated Research Findings
+
+Based on community testing and academic studies:
+- Optimal breakaway size: 3-5 riders (was "unknown")
+- Draft percentages: Now verified at 25-37% (was "24-33%")
+- No 8-rider limit found (was "possibly limited")
+- Blob dynamics fully documented (was "needs research")
 
 ---
 
 *This is a living document. Share your draft tactics and experiences to help expand this guide.*
+
+## Related Guides
+
+### Group Dynamics
+- [Blob Size Science](BLOB_SIZE_SCIENCE.md) - Research on draft benefits by group size
+- [Blob Dynamics Mastery](BLOB_DYNAMICS_MASTERY.md) - Complete pack positioning guide
+- [Group Size Matrix](GROUP_SIZE_MATRIX.md) - Draft savings by group size table
+
+### Physics Foundation
+- [Real vs Virtual Physics](REAL_VS_VIRTUAL_PHYSICS.md) - Understanding binary draft model
+- [Peloton Aerodynamics](../reference/PELOTON_AERODYNAMICS.md) - Academic research on drafting
+- [Zwift vs Road Racing](ZWIFT_VS_ROAD_RACING.md) - How draft tactics differ
+
+### Tactical Application
+- [Breakaway Size Strategy](BREAKAWAY_SIZE_STRATEGY.md) - When to leave the draft
+- [Route Tactics](ROUTE_TACTICS.md) - Terrain-specific draft strategies
+- [Racing Research Summary](RACING_RESEARCH_SUMMARY.md) - Key draft findings

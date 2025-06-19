@@ -263,7 +263,9 @@
       "WebFetch(domain:zwiftinsider.com)",
       "WebFetch(domain:gitlab.com)",
       "Bash(./tools/import/strava/strava_fetch_activities.sh:*)",
-      "Bash(./tools/import/strava/strava_import_to_db.sh:*)"
+      "Bash(./tools/import/strava/strava_import_to_db.sh:*)",
+      "Bash(git merge:*)",
+      "Bash(gh pr:*)"
     ],
     "deny": []
   },

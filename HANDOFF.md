@@ -1,31 +1,33 @@
 # Project: Zwift Race Finder
-Updated: 2025-06-19 21:55:00
+Updated: 2025-06-19 23:00:00
 
 ## Current State
-Status: Documentation reorganization complete, accuracy research done
+Status: Comprehensive racing tactics documentation created based on academic research
 Target: 20.4% mean absolute error on race time predictions
-Latest: Discovered draft modeling already implicit in empirical category speeds
+Latest: Created 11 racing guides documenting real-world vs Zwift physics and tactics
 
 ## Essential Context
 - 378 routes in database from third-party sources (ZwiftHacks, WhatsOnZwift)
 - Category speeds (30.9 km/h for Cat D) derived from 151 real races, include draft benefits
 - Dual-speed model exists in code but unused - simple empirical model achieves 20.4% MAE
 - CdA formula (A = 0.0276·h^0.725·m^0.425) is community reverse-engineered, not official
-- Racing guides created emphasizing power as only controllable variable during races
+- Documentation now cleanly organized: for-racers/, for-developers/, reference/, project-history/
+- Racing tactics documented: Binary draft model, attack mid-climb not base, 3-5 rider breakaways optimal
 
 ## Next Step
-Execute documentation migration plan to reorganize docs/ structure
+Consider testing racing tactics with vpower/gymnasticon for controlled power profiles
 
 ## Active Todo List
-[✓] Analyze documentation for different audiences (users, developers, maintainers)
-[✓] Design organization that serves both racing optimization AND ongoing development
-[✓] Create navigation strategy to help people find what they need
-[✓] Identify documents that need consolidation vs those that should remain separate
-[✓] Create detailed migration plan showing which files go where
-[✓] Write navigation READMEs once migration plan is approved
-[✓] Create user-focused racing guides once structure is approved
+All documentation-related todos completed:
+- [✓] Analyze documentation for different audiences
+- [✓] Design organization serving both racing optimization AND development
+- [✓] Create navigation strategy
+- [✓] Identify consolidation candidates
+- [✓] Create and execute migration plan
+- [✓] Write navigation READMEs
+- [✓] Create user-focused racing guides
 
-Previous todos (for reference):
+Future development todos:
 - [ ] Test gymnasticon bot for race duration algorithm validation
 - [ ] Implement UDP packet monitoring for real-time OCR validation
 - [ ] Polish OCR calibration tools for community contributions

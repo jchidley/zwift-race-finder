@@ -2,6 +2,9 @@
 
 Welcome racers! This section helps you go faster in Zwift races using the race finder tool and understanding Zwift's game mechanics.
 
+### 📋 [Racing Research Summary](RACING_RESEARCH_SUMMARY.md) *(Start Here!)*
+Quick reference to all key findings - draft percentages, attack timing, group sizes, and essential tactics in one place.
+
 ## Core Principle: Power is Your Only Variable
 
 Once a race starts, you can only control one thing: **your power output**. Everything else is fixed:
@@ -22,17 +25,18 @@ Managing your watts effectively:
 - Understanding watts/kg vs raw watts
 - Pacing strategies for your fitness level
 
-### [Draft Strategies](DRAFT_STRATEGIES.md) *(Early Draft)*
-Maximizing the 24-33% power savings:
-- Positioning in the pack
-- When draft matters most
-- Field size effects
+### [Draft Strategies](DRAFT_STRATEGIES.md) *(Updated with Research)*
+Maximizing the 25-35% power savings:
+- Verified draft percentages by position
+- Binary draft model explained
+- Group size effects on speed
 
-### [Route Tactics](ROUTE_TACTICS.md) *(Basic Ideas)*
+### [Route Tactics](ROUTE_TACTICS.md) *(Updated with Attack Timing)*
 Route-specific power distribution:
-- Climbing vs flat strategies
-- Where to make your moves
-- Route knowledge advantages
+- Critical attack timing (different from road!)
+- Route-specific blob dynamics
+- Climbing mid-climb, not at base
+- Pre-crest acceleration for descents
 
 ### [Zwift as a Game](ZWIFT_AS_GAME.md) *(Philosophy Draft)*
 Understanding and exploiting game mechanics:
@@ -45,6 +49,52 @@ Optimizing for your category:
 - Category-specific tactics
 - Working with your strengths
 - Common category mistakes
+
+## 🆕 Advanced Racing Guides
+
+### [Blob Dynamics Mastery](BLOB_DYNAMICS_MASTERY.md) *(New - Comprehensive)*
+Master Zwift's unique pack racing dynamics:
+- Academic research vs Zwift reality
+- Optimal positioning strategies
+- Breakaway success factors
+- Bridging tactics
+
+### [Blob Size Science](BLOB_SIZE_SCIENCE.md) *(New - Research-Based)*
+Understanding group size effects:
+- Real-world aerodynamics research
+- Zwift's implementation
+- Optimal breakaway sizes
+- The "blob effect" explained
+
+### [Breakaway Size Strategy](BREAKAWAY_SIZE_STRATEGY.md) *(New - Practical)*
+When and how to attack:
+- Solo vs group breakaways
+- Power requirements by group size
+- Success rates and timing
+- PowerUp coordination
+
+### [Group Size Matrix](GROUP_SIZE_MATRIX.md) *(New - Quick Reference)*
+Quick lookup for tactical decisions:
+- Group size comparison table
+- Terrain-specific recommendations
+- Power requirements
+- Decision flowchart
+
+## 🔄 Real World vs Zwift Comparisons
+
+### [Real vs Virtual Physics](REAL_VS_VIRTUAL_PHYSICS.md) *(New - Comprehensive)*
+Understanding the physics differences:
+- What transfers from road racing
+- What requires complete rethinking
+- Why Zwift is "crit racing at 3x speed"
+- Mental adaptations required
+
+### [Zwift vs Road Racing](ZWIFT_VS_ROAD_RACING.md) *(New - Tactical Focus)*
+Critical tactical differences:
+- Attack timing completely different
+- Binary vs gradual draft
+- PowerUps as tactical layer
+- Common road racer mistakes in Zwift
 
 ## 🎯 Using the Race Finder Tool
 

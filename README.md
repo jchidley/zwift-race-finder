@@ -90,7 +90,7 @@ Technical documentation for contributing:
 - Active development plans
 
 ### 📚 Additional Resources
-- **[Reference Docs](docs/reference/)** - Core algorithms, database schema, domain concepts
+- **[Reference Docs](docs/reference/)** - Core algorithms, database schema, domain concepts, [peloton aerodynamics](docs/reference/PELOTON_AERODYNAMICS.md)
 - **[Research](docs/research/)** - Zwift physics equations, performance analysis
 - **[Guides](docs/guides/)** - Setup, data import, operations
 - **[Project History](docs/project-history/)** - How we improved accuracy from 92.8% to 20.4%
@@ -526,6 +526,21 @@ We aim to respect Zwift's ToS by:
 **Note**: Screen capture for analysis (like OBS streaming) appears to be accepted by the community, but users should verify this themselves.
 
 Violations have reportedly resulted in 6-month racing bans. Always review current ToS before use.
+
+## Future Enhancements
+
+### Planned Improvements
+- **Dual-speed model implementation**: Use the existing `calculate_duration_with_dual_speed` function to model pack vs solo dynamics
+- **Power simulation integration**: Integrate with tools like [vpower](https://github.com/oldnapalm/vpower) or gymnasticon for algorithm validation using controlled power profiles
+- **Route profile analysis**: Add detailed gradient profiles beyond simple elevation gain for more accurate predictions
+- **Real-time telemetry**: Implement UDP packet monitoring for live race data validation
+- **Community OCR configs**: Polish calibration tools to enable community contributions for different resolutions/versions
+
+### Research Areas
+- Machine learning models trained on larger race datasets
+- Integration with Zwift's unofficial telemetry API when available
+- Power-to-speed curves for different bike/wheel combinations
+- Weather/draft dynamics in group rides vs races
 
 ## Credits
 
