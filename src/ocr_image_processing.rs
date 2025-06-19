@@ -2,7 +2,7 @@
 //! Extracted common functionality following mechanical refactoring rules
 
 use anyhow::Result;
-use image::{DynamicImage, GrayImage};
+use image::DynamicImage;
 use imageproc::contrast::threshold;
 
 /// Preprocess an image region for OCR

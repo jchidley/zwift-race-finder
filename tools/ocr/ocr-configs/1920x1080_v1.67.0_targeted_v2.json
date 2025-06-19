@@ -1,0 +1,142 @@
+{
+  "version": "3.0.0",
+  "resolution": "1920x1080",
+  "created": "2025-06-12T16:48:02.758758",
+  "calibration_image": "frame_000100.png",
+  "regions": {
+    "speed": {
+      "x": 659,
+      "y": 53,
+      "width": 64,
+      "height": 41,
+      "detected_text": "34",
+      "confidence": 0.9998953342437744
+    },
+    "distance": {
+      "x": 820,
+      "y": 55,
+      "width": 79,
+      "height": 38,
+      "detected_text": "0.3",
+      "confidence": 0.9997482299804688
+    },
+    "altitude": {
+      "x": 1018,
+      "y": 55,
+      "width": 33,
+      "height": 38,
+      "detected_text": "1",
+      "confidence": 0.9966980218887329
+    },
+    "race_time": {
+      "x": 1127,
+      "y": 57,
+      "width": 111,
+      "height": 35,
+      "detected_text": "0:59",
+      "confidence": 0.9768967628479004
+    },
+    "power": {
+      "x": 141,
+      "y": 59,
+      "width": 125,
+      "height": 48,
+      "detected_text": "195",
+      "confidence": 0.9998953938484192
+    },
+    "cadence": {
+      "x": 106,
+      "y": 140,
+      "width": 44,
+      "height": 26,
+      "detected_text": "55",
+      "confidence": 0.9997833371162415
+    },
+    "heart_rate": {
+      "x": 271,
+      "y": 140,
+      "width": 24,
+      "height": 27,
+      "detected_text": "9",
+      "confidence": 0.9986504912376404
+    },
+    "gradient": {
+      "x": 1682,
+      "y": 338,
+      "width": 146,
+      "height": 13,
+      "detected_text": "ofu Tornado Ra",
+      "confidence": 0.9942963719367981
+    },
+    "distance_to_finish": {
+      "x": 1166,
+      "y": 146,
+      "width": 92,
+      "height": 18,
+      "detected_text": "i 32.-km",
+      "confidence": 0.6968249082565308
+    },
+    "leaderboard": {
+      "x": 1478,
+      "y": 288,
+      "width": 422,
+      "height": 778,
+      "note": "Uses CLAHE enhancement"
+    },
+    "rider_pose_avatar": {
+      "x": 768,
+      "y": 378,
+      "width": 384,
+      "height": 324,
+      "note": "Uses edge detection"
+    }
+  },
+  "preprocessing": {
+    "speed": {
+      "threshold": 200,
+      "scale": 3,
+      "invert": false
+    },
+    "distance": {
+      "threshold": 200,
+      "scale": 3,
+      "invert": false
+    },
+    "altitude": {
+      "threshold": 200,
+      "scale": 3,
+      "invert": false
+    },
+    "race_time": {
+      "threshold": 200,
+      "scale": 3,
+      "invert": false
+    },
+    "power": {
+      "threshold": 200,
+      "scale": 3,
+      "invert": false
+    },
+    "cadence": {
+      "threshold": 200,
+      "scale": 3,
+      "invert": false
+    },
+    "heart_rate": {
+      "threshold": 200,
+      "scale": 3,
+      "invert": false
+    },
+    "gradient": {
+      "threshold": 100,
+      "scale": 4,
+      "invert": true
+    },
+    "distance_to_finish": {
+      "threshold": 150,
+      "scale": 3,
+      "invert": false
+    }
+  },
+  "method": "targeted_search_with_field_preprocessing"
+}

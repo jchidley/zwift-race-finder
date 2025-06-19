@@ -1,0 +1,101 @@
+{
+  "version": "1.0.0",
+  "resolution": "1920x1080",
+  "zwift_version": "1.67.0",
+  "created": "2025-06-12T17:30:00.000000",
+  "regions": {
+    "speed": {
+      "x": 640,
+      "y": 30,
+      "width": 190,
+      "height": 85,
+      "note": "34KMHA - actual speed in km/h"
+    },
+    "distance": {
+      "x": 794,
+      "y": 32,
+      "width": 158,
+      "height": 81,
+      "note": "0.3M - distance in km"
+    },
+    "altitude": {
+      "x": 1003,
+      "y": 39,
+      "width": 92,
+      "height": 69,
+      "note": "1M - altitude in meters"
+    },
+    "race_time": {
+      "x": 1105,
+      "y": 39,
+      "width": 182,
+      "height": 73,
+      "note": "0:59 - elapsed time"
+    },
+    "power": {
+      "x": 118,
+      "y": 34,
+      "width": 202,
+      "height": 95,
+      "note": "195w - current power"
+    },
+    "gradient": {
+      "x": 1350,
+      "y": 75,
+      "width": 80,
+      "height": 50,
+      "note": "1% - gradient in top-right mini map area"
+    },
+    "route_segment_name": {
+      "x": 1120,
+      "y": 220,
+      "width": 200,
+      "height": 40,
+      "note": "Tick Tock - segment/route name"
+    },
+    "lap_counter": {
+      "x": 1300,
+      "y": 220,
+      "width": 80,
+      "height": 40,
+      "note": "1/3 - current lap of total"
+    },
+    "lap_distance_remaining": {
+      "x": 1380,
+      "y": 220,
+      "width": 100,
+      "height": 40,
+      "note": "18.8km - distance left in current lap"
+    },
+    "lead_in_status": {
+      "x": 510,
+      "y": 115,
+      "width": 350,
+      "height": 30,
+      "note": "LEAD-IN text and progress bar"
+    },
+    "distance_to_finish": {
+      "x": 1121,
+      "y": 126,
+      "width": 154,
+      "height": 56,
+      "note": "52.5km - distance to finish"
+    },
+    "leaderboard": {
+      "x": 1478,
+      "y": 288,
+      "width": 422,
+      "height": 778,
+      "note": "leaderboard_area"
+    },
+    "rider_pose_avatar": {
+      "x": 768,
+      "y": 378,
+      "width": 384,
+      "height": 324,
+      "note": "avatar_area"
+    }
+  },
+  "notes": "Focus on UI elements not available from sensors/downloads: Speed=34, Power=195, Distance=0.3, Altitude=1M, Distance to finish=52.5km, Gradient=1%, Lap info, Lead-in status",
+  "calibration_image": "frame_000100.png"
+}

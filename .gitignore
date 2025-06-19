@@ -85,6 +85,8 @@ flamegraph.svg
 zwiftmap-reference/
 zwift-data-reference/
 zwift-client-reference/
+zwift-offline/
+gymnasticon/
 
 # Python cache
 __pycache__/

@@ -1,71 +1,78 @@
 # Zwift Race Finder Documentation
 
-This directory contains all project documentation organized by topic.
+Welcome! This documentation serves multiple audiences. Choose your path:
 
-## Structure
+## 🚴 For Racers - Optimize Your Performance
+**[→ Go to Racing Guides](/docs/for-racers/)**
 
-### `/development`
-Development process documentation and logs:
-- **Refactoring Documentation**:
-  - `REFACTORING_RULES.md` - General refactoring guidelines
-  - `REFACTORING_EXPLAINED.md` - Why strict refactoring matters
-  - `REFACTORING_EXECUTION_PLAN.md` - Execution plan for refactoring
-  - `RUST_REFACTORING_RULES.md` - Rust-specific refactoring rules
-  - `RUST_REFACTORING_BEST_PRACTICES.md` - Best practices for Rust
-  - `RUST_REFACTORING_TOOLS.md` - Tools for Rust refactoring
-- **Testing Documentation**:
-  - `TEST_SUITE_SUMMARY.md` - Overview of test suite
-  - `TEST_ORGANIZATION.md` - How tests are organized
-  - `TEST_REORGANIZATION_SUMMARY.md` - Recent test reorganization
-  - `TEST_FIXES_20250603_211433.md` - Test fixes documentation
-  - `MODERN_TESTING_STRATEGY.md` - Current testing approach
-  - `MUTATION_TESTING_SUMMARY.md` - Mutation testing results
-  - `DUPLICATE_TESTS_REPORT.md` - Duplicate test analysis
-  - `mutation_analysis.md` - Critical mutations analysis
-  - `mutation_mapping.md` - Mutation mapping documentation
-- **Development Plans**:
-  - `MIGRATION_TO_UOM_PLAN.md` - Plan to adopt Units of Measurement crate
-  - `ACCURACY_TIMELINE.md` - Historical progression of prediction accuracy
-  - `AI_DEVELOPMENT.md` - AI-assisted development insights
-  - `FEEDBACK.md` - User feedback and feature requests
-  - `FILES_REVIEW_LIST.md` - Code review tracking
-  - `PHYSICAL_STATS.md` - Rider physical stats analysis
-  - `plan.md` - Development planning
-  - `SIMULATION_TOOLS.md` - Race simulation tools
-- **API Documentation**:
-  - `ZWIFT_API_LOG*.md` - API integration logs and discoveries
+New to the tool? Want to race faster? Start here for:
+- Power optimization strategies
+- Draft tactics and pack dynamics
+- Route-specific strategies
+- Understanding Zwift as a game
 
-### `/research`
-Technical research and analysis:
-- `ROUTE_MAPPING_RESEARCH.md` - Route identification research
-- `ROUTE_TRACKING_IDEAS.md` - Route tracking implementation ideas
-- `ZWIFTHACKS_TECHNIQUES.md` - Analysis of ZwiftHacks techniques
-- `ZWIFT_INTEGRATIONS_RESEARCH.md` - External integration options
+## 🛠️ For Developers - Extend and Contribute
+**[→ Go to Developer Docs](/docs/for-developers/)**
 
-### `/guides`
-Setup and operational guides:
-- `BITWARDEN_SETUP.md` - Bitwarden credential management
-- `CONFIG_MANAGEMENT.md` - Configuration file management
-- `DEPLOYMENT.md` - Deployment instructions
-- `SECURE_TOKEN_MIGRATION.md` - Token security migration
-- `SECURITY_AUDIT.md` - Security review findings
-- `ZWIFTPOWER_EXPORT_STEPS.md` - ZwiftPower data export guide
+Contributing code? Debugging issues? Find:
+- Architecture and design decisions
+- Testing strategies
+- API research
+- Active development plans
 
-### `/archive`
-Historical documents and handoffs:
-- `HANDOFF_2025-05-25.md` - Development handoff notes
-- `HANDOFF_2025-05-27.md` - Development handoff notes
-- `PROJECT_WISDOM_ARCHIVE_20250602.md` - Archived project insights
-- `GITHUB_PUBLISH_LOG.md` - GitHub publishing history
+## 📚 Reference - Core Knowledge
+Essential technical documentation:
+- [Algorithms](ALGORITHMS.md) - How predictions work
+- [Architecture](ARCHITECTURE.md) - System design
+- [Zwift Domain](ZWIFT_DOMAIN.md) - Key concepts
 
-### `/screenshots`
-Visual documentation and UI examples
+## 🔬 Research - Deep Dives
+**[→ Browse Research](/docs/research/)**
 
-## Main Project Documentation
+Investigations into:
+- Zwift physics equations
+- Route analysis techniques
+- Performance optimization
 
-The following key documents remain in the project root:
-- `README.md` - Project overview and usage
-- `REQUIREMENTS.md` - Feature requirements tracking
-- `CLAUDE.md` - AI assistant instructions
-- `HANDOFF.md` - Current project state
-- `todo.md` - Active development tasks
+## 📋 Guides - Operations
+**[→ View Guides](/docs/guides/)**
+
+Setup and operational procedures:
+- Installation and deployment
+- Data import workflows
+- Security considerations
+
+## 📜 Project History
+**[→ Explore History](/docs/project-history/)**
+
+Learn how we achieved 23.6% prediction accuracy:
+- Development timeline
+- Key decisions and pivots
+- Testing evolution
+
+## Quick Links
+
+### Current Status
+- **Prediction Accuracy**: 23.6% (exceeds 30% target)
+- **Test Coverage**: Comprehensive with mutation testing
+- **Active Development**: UOM migration, racing guides
+
+### Key Insights
+- `PROJECT_WISDOM.md` - Accumulated learnings
+- `COMPREHENSIVE_TESTING_GUIDE.md` - Testing philosophy
+- `TEST_SUITE_SUMMARY.md` - Current test status
+
+### Getting Started
+1. **Users**: Start with [Racing Guides](/docs/for-racers/)
+2. **Developers**: Check [Current Development Plan](/docs/for-developers/CURRENT_DEVELOPMENT_PLAN.md)
+3. **Contributors**: Read [Architecture](/docs/ARCHITECTURE.md) first
+
+## Documentation Philosophy
+
+This project maintains extensive documentation because:
+- It's an ongoing project with active development
+- Multiple audiences need different information
+- Historical context helps future decisions
+- Transparency aids AI-assisted development
+
+Questions? Check the guides or dive into the research!

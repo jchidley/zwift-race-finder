@@ -1,132 +1,47 @@
-# HANDOFF.md - Zwift Race Finder
+# Project: Zwift Race Finder
+Updated: 2025-06-19 21:55:00
 
-## Project Status - 2025-01-12
+## Current State
+Status: Documentation reorganization complete, accuracy research done
+Target: 20.4% mean absolute error on race time predictions
+Latest: Discovered draft modeling already implicit in empirical category speeds
 
-### Current Branch: main
+## Essential Context
+- 378 routes in database from third-party sources (ZwiftHacks, WhatsOnZwift)
+- Category speeds (30.9 km/h for Cat D) derived from 151 real races, include draft benefits
+- Dual-speed model exists in code but unused - simple empirical model achieves 20.4% MAE
+- CdA formula (A = 0.0276·h^0.725·m^0.425) is community reverse-engineered, not official
+- Racing guides created emphasizing power as only controllable variable during races
 
-OCR strategy redesigned from cloud-based validation to community-driven configuration approach.
+## Next Step
+Execute documentation migration plan to reorganize docs/ structure
 
-### Recent Work Completed
+## Active Todo List
+[✓] Analyze documentation for different audiences (users, developers, maintainers)
+[✓] Design organization that serves both racing optimization AND ongoing development
+[✓] Create navigation strategy to help people find what they need
+[✓] Identify documents that need consolidation vs those that should remain separate
+[✓] Create detailed migration plan showing which files go where
+[✓] Write navigation READMEs once migration plan is approved
+[✓] Create user-focused racing guides once structure is approved
 
-1. **OCR Strategy Overhaul**
-   - Researched vision LLM APIs (Groq, HuggingFace, Together AI)
-   - Pivoted to community-maintained config files
-   - Focus shifted from perfect name OCR to rider order tracking
-   - Created comprehensive calibration documentation
+Previous todos (for reference):
+- [ ] Test gymnasticon bot for race duration algorithm validation
+- [ ] Implement UDP packet monitoring for real-time OCR validation
+- [ ] Polish OCR calibration tools for community contributions
+- [ ] Review and clean up pending git changes
 
-2. **Documentation Created**
-   - `wip-claude/20250112_100000_ocr_comprehensive_strategy.md` - Complete strategy
-   - `tools/ocr/CALIBRATION_GUIDE.md` - Step-by-step calibration guide
-   - Updated OCR README with `record-monitor2.ps1` acquisition method
+## If Blocked
+No current blockers - zwift-offline integration working, 378 routes provide good coverage
 
-3. **Key Insights**
-   - UI regions stable per Zwift version/resolution
-   - Community configs eliminate per-user calibration
-   - Fuzzy matching sufficient for rider tracking
+## Failed Approaches
+- WAD file extraction: wad_unpack.exe no longer available from referenced repos
+- Merging events.txt/start_lines.txt: Files lack distance/elevation data
+- Alternative tools (zwf): Only work with decompressed WAD files
 
-### Current State
-
-**Status**: OCR strategy documented, ready for implementation
-**Target**: Create first community config, implement config loader
-**Latest**: Community-driven approach with free API calibration tools
-
-### Active Todo List
-
-[ ] Create initial 1920x1080 config from recordings
-[ ] Create calibration script with Groq support
-[✓] Create calibration instructions for contributors
-[✓] Update OCR strategy with calibration guide
-
-### Next Step
-
-**Implement OCR Configuration System**:
-1. Create `ocr-configs/` directory structure
-2. Build calibration script (`calibrate_with_vision.py`)
-3. Generate first config from your 1920x1080 recordings
-4. Test with existing Rust OCR implementation
-
-### Key Principle
-
-> "Any difference with current behavior is a bug"
-
-The golden tests define the specification. All must pass after migration.
-
-### Recent Commits
-
-- `01aad09` - docs: add comprehensive UOM migration V2 documentation
-- `162a261` - fix: add public database methods for test data validation
-- `268bd21` - feat: add test data validation against production database
-- `09da41c` - refactor: improve golden test strategy and reduce test count by 82%
-
-### Test Commands
-
-```bash
-# Run all tests
-cargo test
-
-# Run golden tests specifically  
-cargo test golden
-
-# Validate test data quality
-./tools/utils/validate_test_data.sh
-
-# Run property tests
-cargo test property
-
-# Generate new golden baseline (if needed)
-cargo test generate_golden_baseline_improved -- --ignored
-```
-
-### Files to Review
-
-**Framework Code:**
-- `src/ab_testing.rs` - A/B comparison framework
-- `src/compatibility.rs` - Behavioral tracking
-- `tests/golden/generate_baseline_improved.rs` - Optimized test generator
-- `tests/golden/validate_test_data.rs` - Test validation
-- `tests/properties/behavioral_invariants.rs` - Property tests
-
-**Documentation:**
-- `docs/development/20250108_143800_uom_migration_quick_start.md` - Start here!
-- `docs/development/UOM_MIGRATION_PLAN_V2_REVISED.md` - Full plan
-- `docs/development/BEHAVIORAL_PRESERVATION_TESTING.md` - Philosophy
-
-### Key Metrics
-
-- Test reduction: 82% (9,414 → 1,694)
-- Statistical accuracy: <3% difference from production
-- Framework components: 5 major systems
-- Documentation: 10+ comprehensive guides
-
-### Contact
-
-For questions about the migration approach, see the comprehensive documentation in `docs/development/`.
-
----
-
-## Previous Session Summary (2025-01-06)
-
-Successfully fixed regression tests, cleaned database, and created comprehensive mutation testing documentation.
-
-### What Was Done Previously
-
-1. **Fixed Regression Tests** - Optimized queries, tests complete in ~1.2 seconds
-2. **Cleaned Database** - Removed 7,460 duplicate test entries
-3. **Organized Documentation** - Moved files to appropriate subdirectories
-4. **Created Mutation Testing Guide** - Comprehensive guide with industry research
-
-### Commands for Testing
-
-```bash
-# Run optimized regression tests
-cargo test test_race_predictions_accuracy --lib
-
-# Run full regression suite (slower)
-cargo test test_all_race_predictions_accuracy --lib -- --ignored
-
-# Check mutation testing on specific module
-cargo mutants --file src/duration_estimation.rs
-
-# View organized documentation
-ls docs/development/
-```
+## Related Documents
+- docs/ROUTE_DATA_EXTRACTION.md - Technical findings on route data
+- docs/ZWIFT_OFFLINE_INTEGRATION.md - How to use the integration
+- REQUIREMENTS.md - Project requirements
+- TODO.md - Active tasks  
+- CLAUDE.md - Project instructions

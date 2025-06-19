@@ -1,0 +1,1674 @@
+{
+  "count": 278,
+  "source": "zwift-offline",
+  "start_lines": [
+    {
+      "hash": "-1451362408",
+      "name": "Bologna - Bologna Time Trial",
+      "road": 0,
+      "time": 38183
+    },
+    {
+      "hash": "947394567",
+      "name": "Crit City - Downtown Dolphin",
+      "road": 0,
+      "time": 628605
+    },
+    {
+      "hash": "-1419308404",
+      "name": "Crit City - The Bell Lap",
+      "road": 0,
+      "time": 614865
+    },
+    {
+      "hash": "2143464829",
+      "name": "France - Bon Voyage",
+      "road": 120,
+      "time": 399330
+    },
+    {
+      "hash": "-375055007",
+      "name": "France - Casse-Pattes",
+      "road": 26,
+      "time": 487157
+    },
+    {
+      "hash": "-145031253",
+      "name": "France - Climb Portal - Mont Saint-Michel",
+      "road": 26,
+      "time": 344976
+    },
+    {
+      "hash": "1600198346",
+      "name": "France - Croissant",
+      "road": 120,
+      "time": 399330
+    },
+    {
+      "hash": "986252325",
+      "name": "France - Douce France",
+      "road": 0,
+      "time": 40071
+    },
+    {
+      "hash": "2136907048",
+      "name": "France - France Classic Fondo",
+      "road": 26,
+      "time": 482571
+    },
+    {
+      "hash": "1538375239",
+      "name": "France - Gentil 8",
+      "road": 130,
+      "time": 386903
+    },
+    {
+      "hash": "1793712753",
+      "name": "France - Hell of the North",
+      "road": 26,
+      "time": 505531
+    },
+    {
+      "hash": "-320001439",
+      "name": "France - Knights of the Roundabout",
+      "road": 120,
+      "time": 399330
+    },
+    {
+      "hash": "1433431343",
+      "name": "France - La Reine",
+      "road": 26,
+      "time": 501055
+    },
+    {
+      "hash": "573843083",
+      "name": "France - Macaron",
+      "road": 26,
+      "time": 305075
+    },
+    {
+      "hash": "-1442814000",
+      "name": "France - Petit Boucle",
+      "road": 26,
+      "time": 487161
+    },
+    {
+      "hash": "-135610376",
+      "name": "France - Petite Douleur",
+      "road": 0,
+      "time": 971137
+    },
+    {
+      "hash": "1776635757",
+      "name": "France - R.G.V.",
+      "road": 26,
+      "time": 487155
+    },
+    {
+      "hash": "1409345545",
+      "name": "France - Rapide Run",
+      "road": 26,
+      "time": 303010
+    },
+    {
+      "hash": "872351836",
+      "name": "France - Roule Ma Poule",
+      "road": 0,
+      "time": 971137
+    },
+    {
+      "hash": "136140280",
+      "name": "France - Sacre Bleu",
+      "road": 130,
+      "time": 386903
+    },
+    {
+      "hash": "319138658",
+      "name": "France - Three Musketeers",
+      "road": 130,
+      "time": 386903
+    },
+    {
+      "hash": "-1881526724",
+      "name": "France - Tire-Bouchon",
+      "road": 0,
+      "time": 971137
+    },
+    {
+      "hash": "358794394",
+      "name": "France - Ven-10",
+      "road": 26,
+      "time": 531247
+    },
+    {
+      "hash": "1975694067",
+      "name": "France - Ven-10 Run",
+      "road": 26,
+      "time": 531249
+    },
+    {
+      "hash": "-1721499149",
+      "name": "France - Ven-Top",
+      "road": 26,
+      "time": 519342
+    },
+    {
+      "hash": "-607816610",
+      "name": "Gravel Mountain - Gravel Mountain",
+      "road": 0,
+      "time": 652593
+    },
+    {
+      "hash": "-1338434275",
+      "name": "Gravel Mountain - Gravel Mountain Reverse",
+      "road": 0,
+      "time": 548908
+    },
+    {
+      "hash": "-1180363988",
+      "name": "Innsbruck - 2018 Worlds Short Lap",
+      "road": 7,
+      "time": 157534
+    },
+    {
+      "hash": "-285732192",
+      "name": "Innsbruck - Achterbahn",
+      "road": 7,
+      "time": 157534
+    },
+    {
+      "hash": "-645620046",
+      "name": "Innsbruck - Innsbruck KOM After Party",
+      "road": 7,
+      "time": 157534
+    },
+    {
+      "hash": "-1193274130",
+      "name": "Innsbruck - InnsbruckConti",
+      "road": 7,
+      "time": 115697
+    },
+    {
+      "hash": "-1702939696",
+      "name": "Innsbruck - Innsbruckring",
+      "road": 7,
+      "time": 157534
+    },
+    {
+      "hash": "156457316",
+      "name": "Innsbruck - Lutscher",
+      "road": 7,
+      "time": 573670
+    },
+    {
+      "hash": "-493725582",
+      "name": "Innsbruck - Lutscher CCW",
+      "road": 7,
+      "time": 573708
+    },
+    {
+      "hash": "-1600800906",
+      "name": "London - Classique",
+      "road": 0,
+      "time": 532792
+    },
+    {
+      "hash": "-694994027",
+      "name": "London - Classique Reverse",
+      "road": 0,
+      "time": 533987
+    },
+    {
+      "hash": "87055383",
+      "name": "London - Greater London 8",
+      "road": 7,
+      "time": 809061
+    },
+    {
+      "hash": "928793662",
+      "name": "London - Greater London Flat",
+      "road": 0,
+      "time": 532858
+    },
+    {
+      "hash": "-1018563692",
+      "name": "London - Greater London Loop",
+      "road": 7,
+      "time": 809061
+    },
+    {
+      "hash": "474781994",
+      "name": "London - Greater London Loop Reverse",
+      "road": 7,
+      "time": 866150
+    },
+    {
+      "hash": "1880443431",
+      "name": "London - Greatest London Flat",
+      "road": 0,
+      "time": 532700
+    },
+    {
+      "hash": "-441312475",
+      "name": "London - Greatest London Loop",
+      "road": 7,
+      "time": 809061
+    },
+    {
+      "hash": "-318564470",
+      "name": "London - Greatest London Loop Reverse",
+      "road": 7,
+      "time": 866015
+    },
+    {
+      "hash": "-725292771",
+      "name": "London - Keith Hill After Party",
+      "road": 7,
+      "time": 809085
+    },
+    {
+      "hash": "1230300449",
+      "name": "London - Leith Hill After Party",
+      "road": 7,
+      "time": 809183
+    },
+    {
+      "hash": "-282320817",
+      "name": "London - London 8",
+      "road": 7,
+      "time": 809061
+    },
+    {
+      "hash": "-2129086892",
+      "name": "London - London 8 Reverse",
+      "road": 7,
+      "time": 866015
+    },
+    {
+      "hash": "-1032302231",
+      "name": "London - London Flat",
+      "road": 7,
+      "time": 883587
+    },
+    {
+      "hash": "913172163",
+      "name": "London - London Loop",
+      "road": 7,
+      "time": 809061
+    },
+    {
+      "hash": "1788889233",
+      "name": "London - London Loop Reverse",
+      "road": 7,
+      "time": 866015
+    },
+    {
+      "hash": "-1044062965",
+      "name": "London - London Uprising",
+      "road": 7,
+      "time": 876327
+    },
+    {
+      "hash": "-587176267",
+      "name": "London - Surrey Hills",
+      "road": 7,
+      "time": 146301
+    },
+    {
+      "hash": "163688809",
+      "name": "London - The London Pretzel",
+      "road": 7,
+      "time": 809061
+    },
+    {
+      "hash": "-2090505677",
+      "name": "London - The PRL Full",
+      "road": 7,
+      "time": 809480
+    },
+    {
+      "hash": "764532081",
+      "name": "London - The PRL Half",
+      "road": 7,
+      "time": 809487
+    },
+    {
+      "hash": "-84918359",
+      "name": "London - Triple Loops",
+      "road": 7,
+      "time": 809061
+    },
+    {
+      "hash": "938096831",
+      "name": "London - ZG25 Climb Champs",
+      "road": 7,
+      "time": 877147
+    },
+    {
+      "hash": "1760877317",
+      "name": "Makuri Islands - Bridges and Boardwalks",
+      "road": 134,
+      "time": 172700
+    },
+    {
+      "hash": "-588439793",
+      "name": "Makuri Islands - Castle Crit",
+      "road": 1,
+      "time": 875771
+    },
+    {
+      "hash": "1033940053",
+      "name": "Makuri Islands - Castle Crit Run",
+      "road": 1,
+      "time": 875771
+    },
+    {
+      "hash": "-552779580",
+      "name": "Makuri Islands - Castle to Castle",
+      "road": 6,
+      "time": 696976
+    },
+    {
+      "hash": "-603048413",
+      "name": "Makuri Islands - Chain Chomper",
+      "road": 0,
+      "time": 497412
+    },
+    {
+      "hash": "-1428486734",
+      "name": "Makuri Islands - Chasing the Sun",
+      "road": 4,
+      "time": 875631
+    },
+    {
+      "hash": "576953930",
+      "name": "Makuri Islands - Country to Coastal",
+      "road": 0,
+      "time": 909209
+    },
+    {
+      "hash": "525689100",
+      "name": "Makuri Islands - Countryside Tour",
+      "road": 0,
+      "time": 880598
+    },
+    {
+      "hash": "910684583",
+      "name": "Makuri Islands - Electric Loop",
+      "road": 4,
+      "time": 875631
+    },
+    {
+      "hash": "-1314347541",
+      "name": "Makuri Islands - Farmland Loop",
+      "road": 0,
+      "time": 880601
+    },
+    {
+      "hash": "468624015",
+      "name": "Makuri Islands - Fine and Sandy",
+      "road": 129,
+      "time": 253764
+    },
+    {
+      "hash": "-1012355859",
+      "name": "Makuri Islands - Flatland Loop",
+      "road": 0,
+      "time": 880596
+    },
+    {
+      "hash": "2140131142",
+      "name": "Makuri Islands - Island Hopper",
+      "road": 129,
+      "time": 113581
+    },
+    {
+      "hash": "211138252",
+      "name": "Makuri Islands - Island Outskirts",
+      "road": 129,
+      "time": 113581
+    },
+    {
+      "hash": "1562187590",
+      "name": "Makuri Islands - Kappa Quest",
+      "road": 41,
+      "time": 481770
+    },
+    {
+      "hash": "1454553567",
+      "name": "Makuri Islands - Kappa Quest Reverse",
+      "road": 41,
+      "time": 481924
+    },
+    {
+      "hash": "890800649",
+      "name": "Makuri Islands - Makuri 40",
+      "road": 0,
+      "time": 909209
+    },
+    {
+      "hash": "186601870",
+      "name": "Makuri Islands - Makuri Madness",
+      "road": 4,
+      "time": 862791
+    },
+    {
+      "hash": "-1367316000",
+      "name": "Makuri Islands - Makuri Pretzel",
+      "road": 4,
+      "time": 731960
+    },
+    {
+      "hash": "1366943680",
+      "name": "Makuri Islands - Mech Isle Loop",
+      "road": 129,
+      "time": 250890
+    },
+    {
+      "hash": "525587103",
+      "name": "Makuri Islands - Mech Isle Loop Run",
+      "road": 129,
+      "time": 250890
+    },
+    {
+      "hash": "1453570384",
+      "name": "Makuri Islands - Neokyo All-Nighter",
+      "road": 4,
+      "time": 36383
+    },
+    {
+      "hash": "1127056801",
+      "name": "Makuri Islands - Neokyo Crit Course",
+      "road": 4,
+      "time": 775312
+    },
+    {
+      "hash": "1367364772",
+      "name": "Makuri Islands - Neon After Party",
+      "road": 4,
+      "time": 731960
+    },
+    {
+      "hash": "-887604976",
+      "name": "Makuri Islands - Neon Flats",
+      "road": 4,
+      "time": 33833
+    },
+    {
+      "hash": "246712730",
+      "name": "Makuri Islands - Railways and Rooftops",
+      "road": 19,
+      "time": 771259
+    },
+    {
+      "hash": "-729536506",
+      "name": "Makuri Islands - Rooftop Rendezvous",
+      "road": 70,
+      "time": 134959
+    },
+    {
+      "hash": "-691331742",
+      "name": "Makuri Islands - Sea to Tree",
+      "road": 0,
+      "time": 247026
+    },
+    {
+      "hash": "-964802073",
+      "name": "Makuri Islands - Shisa Shakedown",
+      "road": 134,
+      "time": 697300
+    },
+    {
+      "hash": "-992013557",
+      "name": "Makuri Islands - Sleepless City",
+      "road": 4,
+      "time": 76517
+    },
+    {
+      "hash": "-771160870",
+      "name": "Makuri Islands - Spirit Forest",
+      "road": 41,
+      "time": 481939
+    },
+    {
+      "hash": "-938089035",
+      "name": "Makuri Islands - Sprinter's Playground",
+      "road": 4,
+      "time": 36400
+    },
+    {
+      "hash": "-927780947",
+      "name": "Makuri Islands - Suki's Playground",
+      "road": 0,
+      "time": 880601
+    },
+    {
+      "hash": "-1398808254",
+      "name": "Makuri Islands - Temples and Towers",
+      "road": 6,
+      "time": 541899
+    },
+    {
+      "hash": "-915188049",
+      "name": "Makuri Islands - Three Village Loop",
+      "road": 0,
+      "time": 497407
+    },
+    {
+      "hash": "-36023909",
+      "name": "Makuri Islands - Turf N Surf",
+      "road": 4,
+      "time": 872173
+    },
+    {
+      "hash": "1457923570",
+      "name": "Makuri Islands - Twilight Harbor",
+      "road": 4,
+      "time": 936443
+    },
+    {
+      "hash": "-1641108600",
+      "name": "Makuri Islands - Two Village Loop",
+      "road": 0,
+      "time": 880596
+    },
+    {
+      "hash": "1941800093",
+      "name": "Makuri Islands - Valley to Mountaintop",
+      "road": 0,
+      "time": 299965
+    },
+    {
+      "hash": "-380438255",
+      "name": "Makuri Islands - Wandering Flats",
+      "road": 0,
+      "time": 297800
+    },
+    {
+      "hash": "-1858871695",
+      "name": "New York - 2022 Cycling Esports World Championships Route",
+      "road": 4,
+      "time": 190280
+    },
+    {
+      "hash": "1509089537",
+      "name": "New York - Astoria Line 8",
+      "road": 4,
+      "time": 204758
+    },
+    {
+      "hash": "1790569309",
+      "name": "New York - Couch To Sky K",
+      "road": 3,
+      "time": 619659
+    },
+    {
+      "hash": "1327665278",
+      "name": "New York - Everything Bagel",
+      "road": 4,
+      "time": 173716
+    },
+    {
+      "hash": "711818913",
+      "name": "New York - Flat Irons",
+      "road": 3,
+      "time": 912856
+    },
+    {
+      "hash": "480315274",
+      "name": "New York - Gotham Grind",
+      "road": 4,
+      "time": 173716
+    },
+    {
+      "hash": "352245150",
+      "name": "New York - Gotham Grind Reverse",
+      "road": 4,
+      "time": 202652
+    },
+    {
+      "hash": "-1349154056",
+      "name": "New York - Grand Central Circuit",
+      "road": 4,
+      "time": 914800
+    },
+    {
+      "hash": "-607715522",
+      "name": "New York - Grand Central Circuit Reverse",
+      "road": 4,
+      "time": 914800
+    },
+    {
+      "hash": "-629007892",
+      "name": "New York - Hudson Roll",
+      "road": 3,
+      "time": 726397
+    },
+    {
+      "hash": "-1340600634",
+      "name": "New York - Knickerbocker",
+      "road": 4,
+      "time": 187426
+    },
+    {
+      "hash": "2001106885",
+      "name": "New York - Knickerbocker Reverse",
+      "road": 4,
+      "time": 173759
+    },
+    {
+      "hash": "-625345126",
+      "name": "New York - LaGuardia After Party",
+      "road": 4,
+      "time": 173716
+    },
+    {
+      "hash": "-1872187942",
+      "name": "New York - LaGuardia Loop",
+      "road": 4,
+      "time": 914759
+    },
+    {
+      "hash": "-520963945",
+      "name": "New York - LaGuardia Loop Reverse",
+      "road": 4,
+      "time": 914832
+    },
+    {
+      "hash": "5103974",
+      "name": "New York - Lady Liberty",
+      "road": 4,
+      "time": 143799
+    },
+    {
+      "hash": "-421989162",
+      "name": "New York - Mighty Metropolitan",
+      "road": 4,
+      "time": 204302
+    },
+    {
+      "hash": "-1922084092",
+      "name": "New York - NYC KOM After Party",
+      "road": 4,
+      "time": 200810
+    },
+    {
+      "hash": "1919980508",
+      "name": "New York - Park Perimeter Loop",
+      "road": 4,
+      "time": 203930
+    },
+    {
+      "hash": "-2092357466",
+      "name": "New York - Park Perimeter Reverse",
+      "road": 4,
+      "time": 159715
+    },
+    {
+      "hash": "1378559127",
+      "name": "New York - Park To Peak",
+      "road": 3,
+      "time": 619659
+    },
+    {
+      "hash": "-1216301327",
+      "name": "New York - Rising Empire",
+      "road": 4,
+      "time": 201322
+    },
+    {
+      "hash": "-1704397990",
+      "name": "New York - Shuman Trail Loop",
+      "road": 3,
+      "time": 565004
+    },
+    {
+      "hash": "274775181",
+      "name": "New York - Shuman Trail Reverse",
+      "road": 3,
+      "time": 695622
+    },
+    {
+      "hash": "-697027596",
+      "name": "New York - The 6 Train",
+      "road": 4,
+      "time": 173716
+    },
+    {
+      "hash": "274639515",
+      "name": "New York - The 6 Train Reverse",
+      "road": 4,
+      "time": 200309
+    },
+    {
+      "hash": "1732356505",
+      "name": "New York - The Highline",
+      "road": 24,
+      "time": 554285
+    },
+    {
+      "hash": "1763213625",
+      "name": "New York - The Highline Reverse",
+      "road": 24,
+      "time": 541266
+    },
+    {
+      "hash": "-930393161",
+      "name": "Paris - Champs-Ã‰lysÃ©es",
+      "road": 0,
+      "time": 485823
+    },
+    {
+      "hash": "-1476431023",
+      "name": "Paris - Champs-Ã‰lysÃ©es Run",
+      "road": 0,
+      "time": 485875
+    },
+    {
+      "hash": "1236439870",
+      "name": "Paris - Lutece Express",
+      "road": 0,
+      "time": 485921
+    },
+    {
+      "hash": "86621553",
+      "name": "Paris - Lutece Express Run",
+      "road": 0,
+      "time": 485875
+    },
+    {
+      "hash": "-2098947784",
+      "name": "Richmond - 2015 Worlds Course",
+      "road": 0,
+      "time": 996995
+    },
+    {
+      "hash": "1545087483",
+      "name": "Richmond - Cobbled Climbs",
+      "road": 0,
+      "time": 996982
+    },
+    {
+      "hash": "-100615025",
+      "name": "Richmond - Cobbled Climbs Reverse",
+      "road": 0,
+      "time": 977968
+    },
+    {
+      "hash": "-1128431664",
+      "name": "Richmond - Cobbled Climbs Run",
+      "road": 0,
+      "time": 997004
+    },
+    {
+      "hash": "54700404",
+      "name": "Richmond - Libby Hill After Party",
+      "road": 0,
+      "time": 997004
+    },
+    {
+      "hash": "1039983620",
+      "name": "Richmond - Richmond 2015 Worlds Reverse",
+      "road": 0,
+      "time": 977981
+    },
+    {
+      "hash": "-382173326",
+      "name": "Richmond - Richmond Loop Around",
+      "road": 0,
+      "time": 977359
+    },
+    {
+      "hash": "948831673",
+      "name": "Richmond - Richmond Rollercoaster",
+      "road": 0,
+      "time": 208064
+    },
+    {
+      "hash": "1638640398",
+      "name": "Richmond - The Fan Flats",
+      "road": 0,
+      "time": 209459
+    },
+    {
+      "hash": "377566656",
+      "name": "Scotland - BRAEk-fast Crits and Grits",
+      "road": 3,
+      "time": 365630
+    },
+    {
+      "hash": "-187217705",
+      "name": "Scotland - City and the Sgurr",
+      "road": 3,
+      "time": 365803
+    },
+    {
+      "hash": "-529627940",
+      "name": "Scotland - Glasgow Crit Circuit",
+      "road": 9,
+      "time": 1001799
+    },
+    {
+      "hash": "-943302084",
+      "name": "Scotland - Glasgow Crit Circuit Run",
+      "road": 9,
+      "time": 1001900
+    },
+    {
+      "hash": "1258415487",
+      "name": "Scotland - Glasgow Reverse",
+      "road": 9,
+      "time": 992662
+    },
+    {
+      "hash": "742057576",
+      "name": "Scotland - Loch Loop",
+      "road": 2,
+      "time": 905000
+    },
+    {
+      "hash": "1384155764",
+      "name": "Scotland - Loch Loop Run",
+      "road": 2,
+      "time": 905000
+    },
+    {
+      "hash": "-1468627256",
+      "name": "Scotland - Outer Scotland",
+      "road": 9,
+      "time": 1001900
+    },
+    {
+      "hash": "46799750",
+      "name": "Scotland - Rolling Highlands",
+      "road": 2,
+      "time": 251800
+    },
+    {
+      "hash": "172610229",
+      "name": "Scotland - Scotland Smash",
+      "road": 9,
+      "time": 1001990
+    },
+    {
+      "hash": "-632261715",
+      "name": "Scotland - The Muckle Yin",
+      "road": 9,
+      "time": 1001900
+    },
+    {
+      "hash": "-54639337",
+      "name": "Watopia - 11.1 Ocean Blvd",
+      "road": 0,
+      "time": 405170
+    },
+    {
+      "hash": "-475871543",
+      "name": "Watopia - 5K Loop",
+      "road": 47,
+      "time": 339578
+    },
+    {
+      "hash": "1115260805",
+      "name": "Watopia - Accelerate to Elevate",
+      "road": 81,
+      "time": 30600
+    },
+    {
+      "hash": "-1820739709",
+      "name": "Watopia - Beach Island Loop",
+      "road": 0,
+      "time": 987941
+    },
+    {
+      "hash": "1917017591",
+      "name": "Watopia - Big Flat 8",
+      "road": 81,
+      "time": 30600
+    },
+    {
+      "hash": "-373554961",
+      "name": "Watopia - Big Foot Hills",
+      "road": 81,
+      "time": 30600
+    },
+    {
+      "hash": "-1347856247",
+      "name": "Watopia - Big Loop",
+      "road": 0,
+      "time": 14036
+    },
+    {
+      "hash": "-187122806",
+      "name": "Watopia - Big Loop Reverse",
+      "road": 0,
+      "time": 986848
+    },
+    {
+      "hash": "2139708890",
+      "name": "Watopia - Bigger Loop",
+      "road": 0,
+      "time": 12824
+    },
+    {
+      "hash": "-1699508175",
+      "name": "Watopia - Canopies and Coastlines",
+      "road": 81,
+      "time": 558009
+    },
+    {
+      "hash": "1373909093",
+      "name": "Watopia - Chili Pepper",
+      "road": 47,
+      "time": 340651
+    },
+    {
+      "hash": "-600015192",
+      "name": "Watopia - Chili Pepper Reverse",
+      "road": 47,
+      "time": 474571
+    },
+    {
+      "hash": "-1613077956",
+      "name": "Watopia - Climb Portal - Volcano",
+      "road": 23,
+      "time": 488947
+    },
+    {
+      "hash": "-1271607938",
+      "name": "Watopia - Climber's Gambit",
+      "road": 0,
+      "time": 987285
+    },
+    {
+      "hash": "-1725581316",
+      "name": "Watopia - Coast Crusher",
+      "road": 149,
+      "time": 129132
+    },
+    {
+      "hash": "-95470152",
+      "name": "Watopia - Coast to Coast",
+      "road": 149,
+      "time": 587993
+    },
+    {
+      "hash": "-1526666341",
+      "name": "Watopia - Coastal Crown Loop",
+      "road": 133,
+      "time": 248735
+    },
+    {
+      "hash": "-1406146301",
+      "name": "Watopia - Danger Noodle",
+      "road": 0,
+      "time": 987894
+    },
+    {
+      "hash": "454871454",
+      "name": "Watopia - Deca Dash",
+      "road": 192,
+      "time": 731769
+    },
+    {
+      "hash": "1675611962",
+      "name": "Watopia - Downtown Eruption",
+      "road": 0,
+      "time": 12280
+    },
+    {
+      "hash": "5745690",
+      "name": "Watopia - Downtown Titans",
+      "road": 1,
+      "time": 90007
+    },
+    {
+      "hash": "-1619903700",
+      "name": "Watopia - Dust In The Wind",
+      "road": 81,
+      "time": 929458
+    },
+    {
+      "hash": "-1548491836",
+      "name": "Watopia - Eastern Eight",
+      "road": 81,
+      "time": 30575
+    },
+    {
+      "hash": "183635628",
+      "name": "Watopia - Elevation Evaluation",
+      "road": 149,
+      "time": 587992
+    },
+    {
+      "hash": "1695691428",
+      "name": "Watopia - Epic Run",
+      "road": 6,
+      "time": 449655
+    },
+    {
+      "hash": "-912947484",
+      "name": "Watopia - Figure 8",
+      "road": 0,
+      "time": 11809
+    },
+    {
+      "hash": "553661379",
+      "name": "Watopia - Figure 8 Reverse",
+      "road": 0,
+      "time": 987941
+    },
+    {
+      "hash": "-899269028",
+      "name": "Watopia - Flat Route",
+      "road": 0,
+      "time": 8974
+    },
+    {
+      "hash": "-483398031",
+      "name": "Watopia - Flat Route Reverse",
+      "road": 0,
+      "time": 987495
+    },
+    {
+      "hash": "-1416786329",
+      "name": "Watopia - Four Horsemen",
+      "road": 0,
+      "time": 26128
+    },
+    {
+      "hash": "1631692097",
+      "name": "Watopia - Glyph Heights",
+      "road": 133,
+      "time": 248735
+    },
+    {
+      "hash": "1635842477",
+      "name": "Watopia - Going Coastal",
+      "road": 81,
+      "time": 32347
+    },
+    {
+      "hash": "1993374659",
+      "name": "Watopia - Handful Of Gravel",
+      "road": 35,
+      "time": 320749
+    },
+    {
+      "hash": "-1586440278",
+      "name": "Watopia - Handful of Gravel Run",
+      "road": 35,
+      "time": 320749
+    },
+    {
+      "hash": "-333494250",
+      "name": "Watopia - Hilltop Hustle",
+      "road": 149,
+      "time": 587992
+    },
+    {
+      "hash": "-1557483915",
+      "name": "Watopia - Hilly Route",
+      "road": 0,
+      "time": 9758
+    },
+    {
+      "hash": "107363867",
+      "name": "Watopia - Hilly Route Reverse",
+      "road": 0,
+      "time": 986103
+    },
+    {
+      "hash": "1696938496",
+      "name": "Watopia - Hilly Route Reverse Run",
+      "road": 0,
+      "time": 987894
+    },
+    {
+      "hash": "-721879714",
+      "name": "Watopia - Italian Villas Circuit",
+      "road": 0,
+      "time": 609298
+    },
+    {
+      "hash": "-1961717928",
+      "name": "Watopia - Itza Climb Finish",
+      "road": 1,
+      "time": 89922
+    },
+    {
+      "hash": "-163302992",
+      "name": "Watopia - Itza Party",
+      "road": 0,
+      "time": 12149
+    },
+    {
+      "hash": "136957568",
+      "name": "Watopia - Jon's Route",
+      "road": 47,
+      "time": 340580
+    },
+    {
+      "hash": "743730361",
+      "name": "Watopia - Jungle Circuit",
+      "road": 35,
+      "time": 546849
+    },
+    {
+      "hash": "-1455910170",
+      "name": "Watopia - Jungle Circuit Reverse",
+      "road": 35,
+      "time": 546732
+    },
+    {
+      "hash": "-285836430",
+      "name": "Watopia - Jurassic Coast",
+      "road": 81,
+      "time": 935502
+    },
+    {
+      "hash": "-430109420",
+      "name": "Watopia - Legends and Lava",
+      "road": 81,
+      "time": 938107
+    },
+    {
+      "hash": "243949867",
+      "name": "Watopia - Loop de Loop",
+      "road": 0,
+      "time": 987894
+    },
+    {
+      "hash": "1092181131",
+      "name": "Watopia - Loopin Lava",
+      "road": 192,
+      "time": 897647
+    },
+    {
+      "hash": "-1282378735",
+      "name": "Watopia - May Field",
+      "road": 99,
+      "time": 185302
+    },
+    {
+      "hash": "-210938669",
+      "name": "Watopia - Mayan 8",
+      "road": 149,
+      "time": 270797
+    },
+    {
+      "hash": "1082034232",
+      "name": "Watopia - Mayan Bridge Loop",
+      "road": 35,
+      "time": 546826
+    },
+    {
+      "hash": "-14339870",
+      "name": "Watopia - Mayan Mash",
+      "road": 149,
+      "time": 270797
+    },
+    {
+      "hash": "226950646",
+      "name": "Watopia - Mayan San Remo",
+      "road": 36,
+      "time": 706851
+    },
+    {
+      "hash": "-1075893284",
+      "name": "Watopia - Mountain 8",
+      "road": 0,
+      "time": 11809
+    },
+    {
+      "hash": "-1341957011",
+      "name": "Watopia - Mountain Mash",
+      "road": 36,
+      "time": 807569
+    },
+    {
+      "hash": "-1328149290",
+      "name": "Watopia - Mountain Route",
+      "road": 0,
+      "time": 9758
+    },
+    {
+      "hash": "2139465450",
+      "name": "Watopia - Muir And The Mountain",
+      "road": 81,
+      "time": 561218
+    },
+    {
+      "hash": "806114032",
+      "name": "Watopia - Navig8",
+      "road": 81,
+      "time": 30600
+    },
+    {
+      "hash": "1386460176",
+      "name": "Watopia - Ocean Lava Cliffside Loop",
+      "road": 0,
+      "time": 987941
+    },
+    {
+      "hash": "-762100323",
+      "name": "Watopia - Oh Hill No",
+      "road": 150,
+      "time": 70000
+    },
+    {
+      "hash": "-1546309583",
+      "name": "Watopia - Out And Back Again",
+      "road": 81,
+      "time": 30600
+    },
+    {
+      "hash": "-736277954",
+      "name": "Watopia - Peak Performance",
+      "road": 1,
+      "time": 90000
+    },
+    {
+      "hash": "-1264962564",
+      "name": "Watopia - Power to the Portal",
+      "road": 1,
+      "time": 90000
+    },
+    {
+      "hash": "2064290391",
+      "name": "Watopia - Power to the Tower",
+      "road": 1,
+      "time": 88676
+    },
+    {
+      "hash": "-1325015219",
+      "name": "Watopia - Quatch Quest",
+      "road": 81,
+      "time": 931779
+    },
+    {
+      "hash": "-192453507",
+      "name": "Watopia - Radio Rendezvous",
+      "road": 149,
+      "time": 270797
+    },
+    {
+      "hash": "762747962",
+      "name": "Watopia - Repack Rush",
+      "road": 135,
+      "time": 975720
+    },
+    {
+      "hash": "-1327354915",
+      "name": "Watopia - Road To Ruins Reverse",
+      "road": 0,
+      "time": 987503
+    },
+    {
+      "hash": "-593398481",
+      "name": "Watopia - Road to Ruins",
+      "road": 0,
+      "time": 13677
+    },
+    {
+      "hash": "-1631058747",
+      "name": "Watopia - Road to Sky",
+      "road": 36,
+      "time": 762184
+    },
+    {
+      "hash": "772562418",
+      "name": "Watopia - Run Path Reverse",
+      "road": 47,
+      "time": 478718
+    },
+    {
+      "hash": "604330868",
+      "name": "Watopia - Sand And Sequoias",
+      "road": 81,
+      "time": 30600
+    },
+    {
+      "hash": "-840629157",
+      "name": "Watopia - Seaside Sprint",
+      "road": 0,
+      "time": 592082
+    },
+    {
+      "hash": "-1465337769",
+      "name": "Watopia - Serpentine 8",
+      "road": 35,
+      "time": 546741
+    },
+    {
+      "hash": "-1966465318",
+      "name": "Watopia - Shorelines and Summits",
+      "road": 35,
+      "time": 313259
+    },
+    {
+      "hash": "-970694872",
+      "name": "Watopia - Snowman",
+      "road": 0,
+      "time": 987894
+    },
+    {
+      "hash": "-1033799550",
+      "name": "Watopia - Spiral into the Volcano",
+      "road": 0,
+      "time": 987894
+    },
+    {
+      "hash": "1988847319",
+      "name": "Watopia - Splash and Dash",
+      "road": 1,
+      "time": 90000
+    },
+    {
+      "hash": "240388043",
+      "name": "Watopia - Sugar Cookie",
+      "road": 35,
+      "time": 546788
+    },
+    {
+      "hash": "-62240442",
+      "name": "Watopia - Surfin' Safari",
+      "road": 36,
+      "time": 804142
+    },
+    {
+      "hash": "2062126722",
+      "name": "Watopia - Tair Dringfa Fechan",
+      "road": 1,
+      "time": 90002
+    },
+    {
+      "hash": "-1964332641",
+      "name": "Watopia - Temple Trek",
+      "road": 35,
+      "time": 316087
+    },
+    {
+      "hash": "2128890027",
+      "name": "Watopia - Tempus Fugit",
+      "road": 81,
+      "time": 33368
+    },
+    {
+      "hash": "263936293",
+      "name": "Watopia - That's Amore",
+      "road": 47,
+      "time": 343573
+    },
+    {
+      "hash": "1586193601",
+      "name": "Watopia - That's Amore Reverse",
+      "road": 47,
+      "time": 466978
+    },
+    {
+      "hash": "1656629976",
+      "name": "Watopia - The Big Ring",
+      "road": 81,
+      "time": 30600
+    },
+    {
+      "hash": "-1596957345",
+      "name": "Watopia - The Classic",
+      "road": 192,
+      "time": 897647
+    },
+    {
+      "hash": "-1226272784",
+      "name": "Watopia - The Classic Run",
+      "road": 192,
+      "time": 897647
+    },
+    {
+      "hash": "-2087525117",
+      "name": "Watopia - The Magnificent 8",
+      "road": 0,
+      "time": 987237
+    },
+    {
+      "hash": "-446475279",
+      "name": "Watopia - The Mega Pretzel",
+      "road": 21,
+      "time": 925779
+    },
+    {
+      "hash": "-1799991412",
+      "name": "Watopia - The Pretzel",
+      "road": 0,
+      "time": 11265
+    },
+    {
+      "hash": "1475638265",
+      "name": "Watopia - The Uber Pretzel",
+      "road": 0,
+      "time": 14181
+    },
+    {
+      "hash": "-1667361048",
+      "name": "Watopia - Three Little Sisters",
+      "road": 0,
+      "time": 36318
+    },
+    {
+      "hash": "-152194466",
+      "name": "Watopia - Three Sisters",
+      "road": 0,
+      "time": 8974
+    },
+    {
+      "hash": "-31795178",
+      "name": "Watopia - Three Sisters Reverse",
+      "road": 0,
+      "time": 987522
+    },
+    {
+      "hash": "-928742216",
+      "name": "Watopia - Tick Tock",
+      "road": 81,
+      "time": 30584
+    },
+    {
+      "hash": "270817258",
+      "name": "Watopia - Tides and Temples",
+      "road": 149,
+      "time": 587992
+    },
+    {
+      "hash": "-1195742902",
+      "name": "Watopia - Titan's Run",
+      "road": 81,
+      "time": 913144
+    },
+    {
+      "hash": "1766405776",
+      "name": "Watopia - Tour of Fire and Ice",
+      "road": 23,
+      "time": 791178
+    },
+    {
+      "hash": "-841773096",
+      "name": "Watopia - Triple Flat Loops",
+      "road": 81,
+      "time": 30575
+    },
+    {
+      "hash": "-1650302507",
+      "name": "Watopia - Triple Twist",
+      "road": 192,
+      "time": 731769
+    },
+    {
+      "hash": "-982929680",
+      "name": "Watopia - Two Bridges Loop",
+      "road": 0,
+      "time": 987930
+    },
+    {
+      "hash": "686828068",
+      "name": "Watopia - Volcano Circuit",
+      "road": 23,
+      "time": 791098
+    },
+    {
+      "hash": "-428725966",
+      "name": "Watopia - Volcano Circuit CCW",
+      "road": 23,
+      "time": 791297
+    },
+    {
+      "hash": "849508252",
+      "name": "Watopia - Volcano Climb",
+      "road": 0,
+      "time": 10691
+    },
+    {
+      "hash": "387309391",
+      "name": "Watopia - Volcano Climb After Party",
+      "road": 0,
+      "time": 9758
+    },
+    {
+      "hash": "-300032622",
+      "name": "Watopia - Volcano Flat",
+      "road": 0,
+      "time": 11809
+    },
+    {
+      "hash": "1397026382",
+      "name": "Watopia - Volcano Flat Reverse",
+      "road": 0,
+      "time": 985726
+    },
+    {
+      "hash": "-2076558014",
+      "name": "Watopia - WBR Climbing Series",
+      "road": 0,
+      "time": 9758
+    },
+    {
+      "hash": "-916555306",
+      "name": "Watopia - Waisted 8",
+      "road": 0,
+      "time": 987894
+    },
+    {
+      "hash": "1064303857",
+      "name": "Watopia - Watopia's Waistband",
+      "road": 81,
+      "time": 30600
+    },
+    {
+      "hash": "982239385",
+      "name": "Watopia - Whole Lotta Lava",
+      "road": 23,
+      "time": 791288
+    },
+    {
+      "hash": "1724903700",
+      "name": "Watopia - ZG25 Queen",
+      "road": 0,
+      "time": 987894
+    },
+    {
+      "hash": "-673805084",
+      "name": "Watopia - Zwift Bambino Fondo",
+      "road": 0,
+      "time": 11809
+    },
+    {
+      "hash": "-926340645",
+      "name": "Watopia - Zwift Bambino Fondo 2022",
+      "road": 0,
+      "time": 987894
+    },
+    {
+      "hash": "762151244",
+      "name": "Watopia - Zwift Games 2024 Epic",
+      "road": 0,
+      "time": 189078
+    },
+    {
+      "hash": "242381847",
+      "name": "Watopia - Zwift Gran Fondo",
+      "road": 0,
+      "time": 8974
+    },
+    {
+      "hash": "1327147942",
+      "name": "Watopia - Zwift Gran Fondo 2022",
+      "road": 0,
+      "time": 987894
+    },
+    {
+      "hash": "-546187135",
+      "name": "Watopia - Zwift Medio Fondo",
+      "road": 0,
+      "time": 12061
+    },
+    {
+      "hash": "-1394893085",
+      "name": "Watopia - Zwift Medio Fondo 2022",
+      "road": 0,
+      "time": 987894
+    },
+    {
+      "hash": "2007026433",
+      "name": "Yorkshire - 2019 Worlds Harrogate Circuit",
+      "road": 0,
+      "time": 5069
+    },
+    {
+      "hash": "1233527301",
+      "name": "Yorkshire - Duchy Estate",
+      "road": 0,
+      "time": 718670
+    },
+    {
+      "hash": "620436060",
+      "name": "Yorkshire - Harrogate Circuit Reverse",
+      "road": 0,
+      "time": 1000542
+    },
+    {
+      "hash": "-1287700625",
+      "name": "Yorkshire - Queen's Highway",
+      "road": 0,
+      "time": 718733
+    },
+    {
+      "hash": "87631443",
+      "name": "Yorkshire - Queen's Highway After Party",
+      "road": 0,
+      "time": 707031
+    },
+    {
+      "hash": "-416671431",
+      "name": "Yorkshire - Queen's Highway Run",
+      "road": 0,
+      "time": 718416
+    },
+    {
+      "hash": "-1389586229",
+      "name": "Yorkshire - Royal Pump Room 8",
+      "road": 0,
+      "time": 1000562
+    },
+    {
+      "hash": "1086718516",
+      "name": "Yorkshire - Tour Of Tewit Well",
+      "road": 0,
+      "time": 1000376
+    },
+    {
+      "hash": "1788218813",
+      "name": "Yorkshire - Yorkshire Double Loop",
+      "road": 0,
+      "time": 999601
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "available_endpoints": [
+    "/api/export/routes",
+    "/api/export/start_lines",
+    "/api/export/events",
+    "/api/export/summary"
+  ],
+  "data_files": {
+    "climbs.txt": {
+      "exists": true,
+      "modified": 1749910342.464059,
+      "size": 3802
+    },
+    "events.txt": {
+      "exists": true,
+      "modified": 1749910342.464059,
+      "size": 7432
+    },
+    "game_dictionary.txt": {
+      "exists": true,
+      "modified": 1749910342.468059,
+      "size": 44850
+    },
+    "start_lines.txt": {
+      "exists": true,
+      "modified": 1749910342.468059,
+      "size": 27905
+    }
+  }
+}

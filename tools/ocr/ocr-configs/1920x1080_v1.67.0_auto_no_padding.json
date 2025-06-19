@@ -1,0 +1,66 @@
+{
+  "version": "1.0.0",
+  "resolution": "1920x1080",
+  "zwift_version": "1.67.0",
+  "created": "2025-06-12T16:55:25.532339",
+  "regions": {
+    "distance": {
+      "x": 809,
+      "y": 47,
+      "width": 128,
+      "height": 51,
+      "note": "0.3M"
+    },
+    "altitude": {
+      "x": 1018,
+      "y": 54,
+      "width": 62,
+      "height": 39,
+      "note": "1M"
+    },
+    "race_time": {
+      "x": 1120,
+      "y": 54,
+      "width": 152,
+      "height": 43,
+      "note": "0:59"
+    },
+    "speed": {
+      "x": 104,
+      "y": 137,
+      "width": 46,
+      "height": 30,
+      "note": "55"
+    },
+    "cadence": {
+      "x": 104,
+      "y": 171,
+      "width": 46,
+      "height": 16,
+      "note": "RPM"
+    },
+    "power": {
+      "x": 80,
+      "y": 195,
+      "width": 70,
+      "height": 27,
+      "note": "218"
+    },
+    "leaderboard": {
+      "x": 1478,
+      "y": 288,
+      "width": 422,
+      "height": 778,
+      "note": "leaderboard_area"
+    },
+    "rider_pose_avatar": {
+      "x": 768,
+      "y": 378,
+      "width": 384,
+      "height": 324,
+      "note": "avatar_area"
+    }
+  },
+  "notes": "Auto-detected using PaddleOCR full-image scan",
+  "calibration_image": "frame_000100.png"
+}

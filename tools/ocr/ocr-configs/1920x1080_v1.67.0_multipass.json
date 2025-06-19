@@ -1,0 +1,125 @@
+{
+  "version": "2.0.0",
+  "resolution": "1920x1080",
+  "created": "2025-06-12T16:42:05.570625",
+  "calibration_image": "frame_000100.png",
+  "regions": {
+    "power": {
+      "x": 128,
+      "y": 45,
+      "width": 186,
+      "height": 77,
+      "detected_text": "195w",
+      "confidence": 0.9993579983711243
+    },
+    "speed": {
+      "x": 639,
+      "y": 92,
+      "width": 87,
+      "height": 47,
+      "detected_text": "50",
+      "confidence": 0.9987717866897583
+    },
+    "distance_to_finish": {
+      "x": 1136,
+      "y": 135,
+      "width": 134,
+      "height": 41,
+      "detected_text": "j* 52.5km",
+      "confidence": 0.9682953953742981
+    },
+    "heart_rate": {
+      "x": 238,
+      "y": 159,
+      "width": 70,
+      "height": 41,
+      "detected_text": "BPM",
+      "confidence": 0.9967188239097595
+    },
+    "cadence": {
+      "x": 92,
+      "y": 159,
+      "width": 70,
+      "height": 41,
+      "detected_text": "RPM",
+      "confidence": 0.9978358149528503
+    },
+    "distance": {
+      "x": 1728,
+      "y": 450,
+      "width": 48,
+      "height": 33,
+      "detected_text": "3.0",
+      "confidence": 0.9972352385520935
+    },
+    "altitude": {
+      "x": 646,
+      "y": 41,
+      "width": 152,
+      "height": 69,
+      "detected_text": "34M",
+      "confidence": 0.8787276148796082
+    },
+    "leaderboard": {
+      "x": 1478,
+      "y": 288,
+      "width": 422,
+      "height": 778,
+      "note": "hardcoded - use CLAHE enhancement"
+    },
+    "rider_pose_avatar": {
+      "x": 768,
+      "y": 378,
+      "width": 384,
+      "height": 324,
+      "note": "hardcoded - edge detection"
+    }
+  },
+  "preprocessing": {
+    "power": {
+      "name": "dim_text",
+      "threshold": 150,
+      "scale": 3,
+      "invert": false
+    },
+    "speed": {
+      "name": "clahe_only",
+      "threshold": null,
+      "scale": 2,
+      "invert": false,
+      "clahe": true
+    },
+    "distance_to_finish": {
+      "name": "bright_text",
+      "threshold": 200,
+      "scale": 3,
+      "invert": false
+    },
+    "heart_rate": {
+      "name": "clahe_only",
+      "threshold": null,
+      "scale": 2,
+      "invert": false,
+      "clahe": true
+    },
+    "cadence": {
+      "name": "clahe_only",
+      "threshold": null,
+      "scale": 2,
+      "invert": false,
+      "clahe": true
+    },
+    "distance": {
+      "name": "bright_text",
+      "threshold": 200,
+      "scale": 3,
+      "invert": false
+    },
+    "altitude": {
+      "name": "low_contrast",
+      "threshold": 120,
+      "scale": 3,
+      "invert": false
+    }
+  }
+}

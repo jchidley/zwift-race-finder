@@ -17,8 +17,9 @@ Zwift Race Finder predicts how long races will take based on your Zwift Racing S
 - Fetches upcoming races from Zwift's public API
 - Estimates completion time based on your Racing Score (0-999)
 - Filters races by target duration (e.g., "show me 30-minute races")
-- Achieves 16.1% prediction accuracy using real race data
+- Achieves 20.4% prediction accuracy using real race data
 - Supports both Traditional (A/B/C/D) and Racing Score events
+- OCR capabilities for extracting real-time data from Zwift UI (experimental)
 
 **Important**: Users are responsible for ensuring their use complies with Zwift's Terms of Service. Please review Zwift's ToS before using or modifying these tools.
 
@@ -67,6 +68,33 @@ colored_output = true
 
 See `config.example.toml` for all options.
 
+## Documentation
+
+### 🚴 For Racers - Optimize Your Performance
+**[→ Racing Optimization Guides](docs/for-racers/)**
+
+Learn how to race faster with guides on:
+- **Power Optimization** - Managing the only variable you control
+- **Draft Strategies** - Maximizing 24-33% power savings
+- **Route Tactics** - Route-specific power distribution
+- **Zwift as a Game** - Understanding and exploiting game mechanics
+- **Category Racing** - Optimizing for your division
+
+### 🛠️ For Developers
+**[→ Developer Documentation](docs/for-developers/)**
+
+Technical documentation for contributing:
+- Architecture and design decisions
+- Testing strategies and guidelines
+- API research and integration patterns
+- Active development plans
+
+### 📚 Additional Resources
+- **[Reference Docs](docs/reference/)** - Core algorithms, database schema, domain concepts
+- **[Research](docs/research/)** - Zwift physics equations, performance analysis
+- **[Guides](docs/guides/)** - Setup, data import, operations
+- **[Project History](docs/project-history/)** - How we improved accuracy from 92.8% to 20.4%
+
 ## Project Structure
 
 ```
@@ -78,10 +106,12 @@ zwift-race-finder/
 │   ├── database.rs        # SQLite operations
 │   ├── secure_storage.rs  # OAuth token storage
 │   ├── regression_test.rs # Accuracy testing
+│   ├── zwift_offline_client.rs # Integration with zwift-offline
 │   └── bin/               # Utility programs
 │       ├── analyze_descriptions.rs
 │       ├── debug_tags.rs
-│       └── generate_filter_url.rs
+│       ├── generate_filter_url.rs
+│       └── import_zwift_offline_routes.rs
 │
 ├── tools/                  # Development and maintenance tools
 │   ├── import/            # Data import scripts
@@ -89,7 +119,9 @@ zwift-race-finder/
 │   │   ├── strava/        # Strava activity import
 │   │   └── routes/        # Route data import
 │   ├── debug/             # Debug and analysis tools
-│   └── utils/             # Utility scripts
+│   ├── ocr/               # OCR calibration and testing tools
+│   ├── utils/             # Utility scripts
+│   └── record-monitor2.ps1 # Windows PowerShell script for recording Zwift sessions
 │
 ├── sql/                   # Database scripts
 │   ├── migrations/        # Schema updates
@@ -102,7 +134,10 @@ zwift-race-finder/
 │   ├── research/          # Technical research
 │   └── screenshots/       # Visual documentation
 │
-└── sessions/              # AI development session logs
+├── sessions/              # AI development session logs
+├── scripts/               # Project-level scripts
+│   └── import_from_zwift_offline.sh  # Import route data
+└── zwift-offline/         # AGPL-licensed zwift-offline fork (gitignored)
 ```
 
 ## How It Works
@@ -111,7 +146,7 @@ zwift-race-finder/
 
 The tool estimates race duration using:
 
-1. **Route Data**: Distance, elevation gain, and surface type from a database of 264 Zwift routes
+1. **Route Data**: Distance, elevation gain, and surface type from a database of 378 Zwift routes
 2. **Racing Score**: Determines your speed category:
    - Cat D (0-199): ~30.9 km/h average
    - Cat C (200-299): ~33 km/h
@@ -122,7 +157,7 @@ The tool estimates race duration using:
 
 ### Accuracy
 
-Current accuracy: **16.1% mean absolute error** (target was <20%)
+Current accuracy: **20.4% mean absolute error** (target was <20%, close but not quite achieved)
 
 This was achieved by:
 - Importing 151 actual race results from Strava
@@ -178,6 +213,77 @@ tools/utils/apply_route_mappings.sh
 # Check for exposed secrets
 tools/utils/check_secrets.sh
 ```
+
+### Route Data Sources
+
+The project maintains a comprehensive database of 378 Zwift routes from multiple sources:
+
+```bash
+# Import routes from third-party sources (ZwiftHacks, etc.)
+./scripts/import_routes.sh
+
+# Import from zwift-offline API (55 event-only routes)
+./scripts/import_from_zwift_offline.sh --skip-ssl-verify
+
+# Import into database
+cargo run --bin import_zwift_offline_routes -- \
+    --input-dir data/zwift_offline_export
+```
+
+See [docs/ZWIFT_OFFLINE_INTEGRATION.md](docs/ZWIFT_OFFLINE_INTEGRATION.md) for details on the zwift-offline integration.
+
+### Recording Zwift Sessions
+
+For capturing Zwift gameplay footage for analysis, OCR testing, or creating training datasets, use the included PowerShell recording script (Windows only):
+
+#### Setup
+
+```powershell
+# Copy the script to a location in your PATH
+# Example: C:\tools\ (adjust to your preference)
+copy tools\record-monitor2.ps1 C:\tools\
+
+# Or add the tools directory to your PATH environment variable
+$env:Path += ";$PWD\tools"
+```
+
+#### Usage
+
+```powershell
+# Record 1-hour session with default settings (8fps video, 1fps PNG extraction)
+record-monitor2.ps1 -duration 3600 -name "zwift_race"
+
+# Record 30-minute race with higher framerate
+record-monitor2.ps1 -fps 15 -duration 1800 -name "crit_city_race"
+
+# Extract only PNG frames (no video) with smart filtering
+record-monitor2.ps1 -pngOnly -smartFilter -duration 7200
+
+# Custom resolution (useful for testing different screen sizes)
+record-monitor2.ps1 -resolution "1920x1080" -duration 3600
+```
+
+**Features:**
+- Records secondary monitor (where Zwift typically runs)
+- Simultaneous video recording and PNG frame extraction
+- Smart filtering to capture only frames with significant changes
+- Configurable framerates for different use cases
+- Output organized by timestamp for easy reference
+
+**Output Location:** `%USERPROFILE%\Videos\Recordings\` (default)
+
+**Requirements:**
+- Windows with PowerShell
+- FFmpeg installed and in PATH
+- Secondary monitor running Zwift
+
+**Use Cases:**
+- Creating OCR training/testing datasets
+- Analyzing race tactics and positioning
+- Recording personal best efforts
+- Debugging UI element detection
+
+**OCR Integration:** The project includes experimental OCR capabilities for extracting real-time data from Zwift's UI (speed, power, distance, gradient, etc.). The recording script helps capture consistent footage for calibrating and testing OCR accuracy. See `tools/ocr/` for calibration tools and documentation.
 
 ## Essential Commands Reference
 
@@ -346,6 +452,18 @@ To set up pre-commit hooks:
 
 ### Adding New Routes
 
+Routes can be added through multiple methods:
+
+#### Method 1: Import from Data Sources
+```bash
+# Import from third-party sources
+./scripts/import_routes.sh
+
+# Import from zwift-offline (if running)
+./scripts/import_from_zwift_offline.sh --skip-ssl-verify
+```
+
+#### Method 2: Manual Addition
 1. Find the route on ZwiftHacks.com for the official route_id
 2. Add to database:
    ```sql
@@ -353,6 +471,8 @@ To set up pre-commit hooks:
    VALUES (route_id, distance, elevation, 'Route Name', 'World', 'road');
    ```
 3. Update mappings in `sql/mappings/route_mappings.sql` if needed
+
+For technical details on route data extraction, see [docs/ROUTE_DATA_EXTRACTION.md](docs/ROUTE_DATA_EXTRACTION.md).
 
 ### AI-Assisted Development Insights
 
@@ -411,8 +531,11 @@ Violations have reportedly resulted in 6-month racing bans. Always review curren
 
 Built by Jack Chidley using Claude Code (Anthropic's AI assistant).
 
-- Route data from [zwift-data](https://github.com/andipaetzold/zwift-data) npm package
-- Additional route info from [WhatsOnZwift](https://whatsonzwift.com)
+- Route data from multiple sources:
+  - [zwift-data](https://github.com/andipaetzold/zwift-data) npm package
+  - [WhatsOnZwift](https://whatsonzwift.com) route database
+  - [ZwiftHacks](https://zwifthacks.com) comprehensive route info
+  - [zwift-offline](https://github.com/zoffline/zwift-offline) API integration (55 event routes)
 - Icons and visual assets from Zwift
 
 ## License

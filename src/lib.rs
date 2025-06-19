@@ -72,6 +72,10 @@ pub mod test_utils;
 #[cfg(feature = "ocr")]
 pub mod ocr_constants;
 
+/// OCR configuration loading
+#[cfg(feature = "ocr")]
+pub mod ocr_config;
+
 /// OCR image processing utilities
 #[cfg(feature = "ocr")]
 pub mod ocr_image_processing;
@@ -90,4 +94,7 @@ pub mod ocr_ocrs;
 /// Parallel OCR implementation for high performance
 #[cfg(feature = "ocr")]
 pub mod ocr_parallel;
+
+/// Client for importing route data from zwift-offline
+pub mod zwift_offline_client;
 

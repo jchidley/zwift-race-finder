@@ -3,14 +3,14 @@
 
 use anyhow::{Context, Result};
 use leptess::{LepTess, Variable};
-use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use image::{DynamicImage, GrayImage, Luma};
-use imageproc::contrast::threshold;
 use crate::ocr_constants::{regions, thresholds, scale_factors, pose, wkg, name_limits, edge_detection};
-use crate::ocr_image_processing::{preprocess_for_ocr, to_png_bytes};
+use crate::ocr_config::OcrConfigManager;
+use crate::ocr_image_processing::preprocess_for_ocr;
 use crate::ocr_regex;
+use std::sync::OnceLock;
 
 /// Rider pose types with their drag characteristics
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
@@ -59,6 +59,44 @@ pub struct LeaderboardEntry {
     pub wkg: Option<f64>,
 }
 
+/// Global configuration manager (initialized on first use)
+static CONFIG_MANAGER: OnceLock<std::sync::Mutex<OcrConfigManager>> = OnceLock::new();
+
+/// Initialize or get the config manager
+pub fn get_config_manager() -> &'static std::sync::Mutex<OcrConfigManager> {
+    CONFIG_MANAGER.get_or_init(|| {
+        // Look for config directory relative to the executable or in standard locations
+        let config_dir = if let Ok(exe_path) = std::env::current_exe() {
+            // Try relative to executable first
+            if let Some(parent) = exe_path.parent() {
+                let ocr_configs = parent.join("ocr-configs");
+                if ocr_configs.exists() {
+                    ocr_configs
+                } else {
+                    // Try one level up (if running from target/debug or target/release)
+                    if let Some(grandparent) = parent.parent() {
+                        let ocr_configs = grandparent.join("ocr-configs");
+                        if ocr_configs.exists() {
+                            ocr_configs
+                        } else {
+                            // Default to current directory
+                            std::path::PathBuf::from("ocr-configs")
+                        }
+                    } else {
+                        std::path::PathBuf::from("ocr-configs")
+                    }
+                }
+            } else {
+                std::path::PathBuf::from("ocr-configs")
+            }
+        } else {
+            std::path::PathBuf::from("ocr-configs")
+        };
+        
+        std::sync::Mutex::new(OcrConfigManager::new(config_dir))
+    })
+}
+
 /// Extract telemetry from a Zwift screenshot
 pub fn extract_telemetry(image_path: &Path) -> Result<TelemetryData> {
     let img = image::open(image_path).context("Failed to open image")?;
@@ -69,26 +107,65 @@ pub fn extract_telemetry(image_path: &Path) -> Result<TelemetryData> {
 
     let mut data = TelemetryData::default();
 
-    // Define regions (1920x1080 resolution)
-    let regions = [
-        ("speed", regions::SPEED.0, regions::SPEED.1, regions::SPEED.2, regions::SPEED.3),
-        ("distance", regions::DISTANCE.0, regions::DISTANCE.1, regions::DISTANCE.2, regions::DISTANCE.3),
-        ("altitude", regions::ALTITUDE.0, regions::ALTITUDE.1, regions::ALTITUDE.2, regions::ALTITUDE.3),
-        ("race_time", regions::RACE_TIME.0, regions::RACE_TIME.1, regions::RACE_TIME.2, regions::RACE_TIME.3),
-        ("power", regions::POWER.0, regions::POWER.1, regions::POWER.2, regions::POWER.3),
-        ("cadence", regions::CADENCE.0, regions::CADENCE.1, regions::CADENCE.2, regions::CADENCE.3),
-        ("heart_rate", regions::HEART_RATE.0, regions::HEART_RATE.1, regions::HEART_RATE.2, regions::HEART_RATE.3),
-        ("gradient", regions::GRADIENT.0, regions::GRADIENT.1, regions::GRADIENT.2, regions::GRADIENT.3),
-        ("distance_to_finish", regions::DISTANCE_TO_FINISH.0, regions::DISTANCE_TO_FINISH.1, regions::DISTANCE_TO_FINISH.2, regions::DISTANCE_TO_FINISH.3),
-    ];
+    // Try to load configuration for image resolution
+    let (width, height) = (img.width(), img.height());
+    let config_manager = get_config_manager();
+    let mut manager = config_manager.lock().unwrap();
+    
+    // Attempt to load config, fall back to hardcoded if not available
+    let use_config = if !manager.has_config() {
+        match manager.load_for_resolution(width, height) {
+            Ok(_) => {
+                eprintln!("Loaded OCR config for {}x{}", width, height);
+                true
+            }
+            Err(e) => {
+                eprintln!("Warning: No OCR config for {}x{}, using hardcoded regions: {}", width, height, e);
+                false
+            }
+        }
+    } else {
+        true
+    };
 
-    extract_standard_fields(&mut data, &img, &mut ocr, &regions)?;
+    if use_config && manager.has_config() {
+        // Use configuration-based regions
+        if let Some(regions_map) = manager.get_all_regions() {
+            let regions: Vec<(&str, u32, u32, u32, u32)> = vec![
+                "speed", "distance", "altitude", "race_time", "power", 
+                "cadence", "heart_rate", "gradient", "distance_to_finish"
+            ].into_iter()
+            .filter_map(|name| {
+                regions_map.get(name).map(|r| {
+                    (name, r.x, r.y, r.width, r.height)
+                })
+            })
+            .collect();
+            
+            extract_standard_fields(&mut data, &img, &mut ocr, &regions)?;
+        }
+    } else {
+        // Fall back to hardcoded regions
+        let regions = [
+            ("speed", regions::SPEED.0, regions::SPEED.1, regions::SPEED.2, regions::SPEED.3),
+            ("distance", regions::DISTANCE.0, regions::DISTANCE.1, regions::DISTANCE.2, regions::DISTANCE.3),
+            ("altitude", regions::ALTITUDE.0, regions::ALTITUDE.1, regions::ALTITUDE.2, regions::ALTITUDE.3),
+            ("race_time", regions::RACE_TIME.0, regions::RACE_TIME.1, regions::RACE_TIME.2, regions::RACE_TIME.3),
+            ("power", regions::POWER.0, regions::POWER.1, regions::POWER.2, regions::POWER.3),
+            ("cadence", regions::CADENCE.0, regions::CADENCE.1, regions::CADENCE.2, regions::CADENCE.3),
+            ("heart_rate", regions::HEART_RATE.0, regions::HEART_RATE.1, regions::HEART_RATE.2, regions::HEART_RATE.3),
+            ("gradient", regions::GRADIENT.0, regions::GRADIENT.1, regions::GRADIENT.2, regions::GRADIENT.3),
+            ("distance_to_finish", regions::DISTANCE_TO_FINISH.0, regions::DISTANCE_TO_FINISH.1, regions::DISTANCE_TO_FINISH.2, regions::DISTANCE_TO_FINISH.3),
+        ];
+        
+        extract_standard_fields(&mut data, &img, &mut ocr, &regions)?;
+    }
 
     // Extract leaderboard
-    data.leaderboard = extract_leaderboard(&img)?;
+    data.leaderboard = extract_leaderboard(&img, &manager)?;
     
     // Extract rider pose
-    data.rider_pose = extract_rider_pose(&img)?;
+    data.rider_pose = extract_rider_pose(&img, &manager)?;
 
     Ok(data)
 }
@@ -191,12 +268,13 @@ fn extract_gradient(img: &DynamicImage, x: u32, y: u32, width: u32, height: u32)
 }
 
 /// Extract leaderboard data from the right side of the screen
-fn extract_leaderboard(img: &DynamicImage) -> Result<Option<Vec<LeaderboardEntry>>> {
-    // Leaderboard region (right side of screen)
-    let x = regions::LEADERBOARD_X;
-    let y = regions::LEADERBOARD_Y;
-    let width = regions::LEADERBOARD_WIDTH;
-    let height = regions::LEADERBOARD_HEIGHT;
+fn extract_leaderboard(img: &DynamicImage, manager: &std::sync::MutexGuard<OcrConfigManager>) -> Result<Option<Vec<LeaderboardEntry>>> {
+    // Get leaderboard region from config or use hardcoded
+    let (x, y, width, height) = if let Some(region) = manager.get_region("leaderboard") {
+        (region.x, region.y, region.width, region.height)
+    } else {
+        (regions::LEADERBOARD_X, regions::LEADERBOARD_Y, regions::LEADERBOARD_WIDTH, regions::LEADERBOARD_HEIGHT)
+    };
     
     // Use ocrs for better accuracy on stylized UI text
     let text = crate::ocr_ocrs::extract_text_from_region(img, x, y, width, height)?;
@@ -338,12 +416,13 @@ pub fn parse_leaderboard_data(entry: &mut LeaderboardEntry, text: &str) {
 }
 
 /// Extract rider pose from avatar region
-pub fn extract_rider_pose(img: &DynamicImage) -> Result<Option<RiderPose>> {
-    // Avatar region (center of screen)
-    let x = regions::AVATAR_X;
-    let y = regions::AVATAR_Y;
-    let width = regions::AVATAR_WIDTH;
-    let height = regions::AVATAR_HEIGHT;
+pub fn extract_rider_pose(img: &DynamicImage, manager: &std::sync::MutexGuard<OcrConfigManager>) -> Result<Option<RiderPose>> {
+    // Get avatar region from config or use hardcoded
+    let (x, y, width, height) = if let Some(region) = manager.get_region("rider_pose_avatar") {
+        (region.x, region.y, region.width, region.height)
+    } else {
+        (regions::AVATAR_X, regions::AVATAR_Y, regions::AVATAR_WIDTH, regions::AVATAR_HEIGHT)
+    };
     
     let roi = img.crop_imm(x, y, width, height);
     let gray = roi.to_luma8();

@@ -1,219 +1,285 @@
-# OCR Calibration Guide
+# OCR Calibration Guide for Zwift Race Finder
 
-This guide explains how to create OCR region configuration files for different screen resolutions and Zwift versions.
-
-## Quick Start
-
-If you just want to use OCR with an existing configuration:
-1. Check `ocr-configs/` for your resolution
-2. If missing, request it via GitHub issue
-3. Or follow this guide to create one
+This guide explains how to calibrate the OCR system for different screen resolutions and Zwift versions.
 
 ## Why Calibration is Needed
 
-- Zwift UI element positions are fixed for each resolution/version combination
-- Once calibrated, the config works for everyone with the same setup
-- Community contributions benefit all users
+Zwift's UI elements appear at different positions depending on:
+- Screen resolution (1920x1080, 2560x1440, 3840x2160, etc.)
+- Zwift app version (UI updates may shift elements)
+- UI scaling settings
 
-## Prerequisites
+Once calibrated for a specific resolution and version, the configuration can be shared with the community.
 
-### For Contributors
-- Sample PNG frames from your Zwift setup
-- Python environment with basic packages
-- One of:
-  - Groq API key (free tier) - Recommended
-  - 16GB+ RAM for local Ollama
-  - Patience for manual calibration
+## Key Discovery: Field-Specific Preprocessing
 
-### Getting a Groq API Key (Recommended)
-1. Visit https://console.groq.com
-2. Sign up for free account
-3. Generate API key
-4. Set environment variable: `export GROQ_API_KEY="your-key-here"`
+The OCR system uses **targeted region extraction** with **field-specific preprocessing**:
 
-## Calibration Methods
+### Standard Fields (bright white text)
+- **Threshold**: 200-230
+- **Scale**: 3x
+- **Examples**: Speed, Distance, Power, Race Time
 
-### Method 1: Automatic with Groq (Easiest)
+### Special Cases
+- **Gradient**: Located in mini-map area (top-right), stylized font requires image inversion + lower threshold (100) + 4x scale
+- **Distance to Finish**: Dimmer text needs lower threshold (150)
+- **Altitude**: Works best with higher threshold (230)
+- **Route Name**: Variable width, may need wider region
+- **Lap Counter**: Small text, ensure adequate padding
+
+### Complex Regions
+- **Leaderboard**: Uses CLAHE enhancement instead of binary threshold
+- **Rider Pose**: Uses edge detection on avatar region
+
+## Manual Calibration Process
+
+### Step 1: Capture a Reference Screenshot
+
+1. Start Zwift and join any ride/race
+2. Take a screenshot when all UI elements are visible:
+   - Power, cadence, heart rate (left panel)
+   - Speed, distance, altitude, time (top bar)
+   - Gradient (top right, above leaderboard position indicator)
+   - Distance to finish (below top bar)
+   - Leaderboard (right side)
+3. Note the exact values shown for verification
+
+### Step 2: Use Debug Tool for Fine-Tuning
+
+The `debug_ocr` tool helps find optimal settings for each field:
 
 ```bash
-# Install dependencies
+cd /path/to/zwift-race-finder
+cargo run --release --features ocr --bin debug_ocr -- /path/to/screenshot.png
+```
+
+This shows different preprocessing options for each region and helps identify:
+- Optimal threshold values
+- Required scale factors
+- Best segmentation modes
+
+### Step 3: Create Configuration
+
+Create a JSON configuration file with your regions:
+
+```json
+{
+  "version": "1.0.0",
+  "resolution": "1920x1080",
+  "zwift_version": "1.67.0",
+  "created": "2025-01-12T10:00:00Z",
+  "regions": {
+    "speed": {
+      "x": 640,
+      "y": 30,
+      "width": 190,
+      "height": 85,
+      "note": "34KMHA - includes units"
+    },
+    "power": {
+      "x": 118,
+      "y": 34,
+      "width": 202,
+      "height": 95,
+      "note": "195w - current power"
+    },
+    "gradient": {
+      "x": 1680,
+      "y": 120,
+      "width": 120,
+      "height": 60,
+      "note": "1% - in mini-map area (top-right corner)"
+    },
+    // ... more regions
+  },
+  "notes": "Add padding (10-20px) to ensure complete text capture"
+}
+```
+
+## Automated Calibration Tools
+
+### Method 1: AI Vision Analysis (Groq)
+
+1. Sign up at https://console.groq.com
+2. Get your API key
+3. Use the calibration script:
+
+```bash
 cd tools/ocr
-pip install groq pillow click
-
-# Run calibration on a sample frame
-python calibrate_with_vision.py /path/to/your/recording/frame_000100.png
-
-# This creates ocr_regions_draft.json
-# Review and test it:
-python visual_region_mapper.py /path/to/frame.png --config ocr_regions_draft.json
+export GROQ_API_KEY="your-api-key"
+uv run python calibrate_with_vision.py /path/to/screenshot.png --provider groq
 ```
 
-### Method 2: Local with Ollama
+### Method 2: PaddleOCR Detection
+
+Use PaddleOCR to find all text regions:
 
 ```bash
-# Install Ollama
-# Mac/Linux: curl -fsSL https://ollama.com/install.sh | sh
-# Windows: Download from https://ollama.com
-
-# Pull vision model (needs ~12GB disk space)
-ollama pull llama3.2-vision:11b
-
-# Run calibration
-python calibrate_with_vision.py /path/to/frame.png --provider ollama
+cd tools/ocr
+uv run python calibrate_with_paddleocr.py /path/to/screenshot.png
 ```
 
-### Method 3: Manual Calibration
+### Method 3: Multi-Pass Detection
+
+Tries multiple preprocessing configurations to find optimal settings:
 
 ```bash
-# Use the visual mapping tool
-python tools/ocr/visual_region_mapper.py /path/to/frame.png
+cd tools/ocr
+uv run python calibrate_multipass.py /path/to/screenshot.png --validate
+```
 
-# Instructions will appear on screen:
-# - Click and drag to create regions
-# - Press 's' to save current region
-# - Press 't' to test OCR on region
-# - Press 'q' to quit and export
+The scripts will:
+- Analyze the screenshot
+- Identify UI elements and their positions
+- Test different preprocessing options
+- Generate a configuration file
+- Save to `ocr-configs/`
+
+## Visual Region Mapper (Manual Fine-Tuning)
+
+For precise manual adjustment:
+
+```bash
+cd tools/ocr
+uv run python visual_region_mapper.py /path/to/screenshot.png
+
+# Controls:
+# - Click and drag to create/adjust regions
+# - Press 't' to test current region
+# - Press 's' to save configuration
+# - Press 'q' to quit
 ```
 
 ## What to Calibrate
 
-### Essential Regions
-1. **speed** - Top left, shows km/h
-2. **distance** - Top center, shows km
-3. **altitude** - Top center/right, shows m
-4. **race_time** - Top center, shows MM:SS
-5. **power** - Left side, shows W
-6. **cadence** - Left side, shows rpm
-7. **heart_rate** - Left side, shows bpm
-8. **gradient** - Left side (may move during climbs)
-9. **distance_to_finish** - Top right (race mode only)
-10. **leaderboard** - Right side, list of riders
-11. **rider_pose_avatar** - Center, for pose detection
+### UI-Exclusive Data Only
+We focus on data NOT available from sensors or Zwift API:
 
-### Region Guidelines
-- Add 5-10 pixel padding around text
-- Leaderboard should capture full width of names
-- Test different game states (climbing, flat, sprint)
+1. **speed** - Top bar, current speed
+2. **power** - Left panel, current watts  
+3. **distance** - Top bar, distance traveled
+4. **altitude** - Top bar, elevation
+5. **race_time** - Top bar, elapsed time
+6. **distance_to_finish** - Below top bar (race mode)
+7. **gradient** - Mini-map area (top-right corner)
+8. **route_name** - Current route/segment name
+9. **lap_counter** - Lap number and distance
+10. **lead_in_status** - "Lead-in" indicator
+11. **leaderboard** - Right side panel positions
 
-## Testing Your Configuration
+### Skip These (Available from Sensors/API)
+- Heart Rate - Available in FIT files
+- Cadence - Available in FIT files  
+- Average Power - Calculated from FIT data
+- Total Energy (kJ) - Calculated from power data
 
-### Basic Test
+### Known Locations (1920x1080)
+Based on testing:
+- **Gradient**: In the mini-map area (top-right corner of screen)
+- **Power**: Large number in top-left of left panel
+- **Distance to Finish**: Below the top bar in race mode
+
+## Common Issues and Solutions
+
+### Region Detection Problems
+
+1. **Gradient not detected**: 
+   - Located in mini-map area (top-right corner)
+   - Uses stylized font requiring image inversion
+   - Threshold 100, scale 4x
+
+2. **Partial number detection** (e.g., "9" instead of "129"):
+   - Expand region width/height
+   - Add more padding (15-20px)
+   - Check threshold settings
+
+3. **Wrong text extracted**:
+   - Region overlaps with other UI elements
+   - Reduce region size or reposition
+
+### Testing Your Configuration
+
 ```bash
-# Test single frame extraction
-cargo run --features ocr --bin zwift_ocr_compact -- \
-  --config ocr-configs/1920x1080_v1.67.0.json \
-  /path/to/test/frame.png
+# Test with debug tool
+cargo run --release --features ocr --bin debug_ocr -- /path/to/screenshot.png
+
+# Run full extraction
+cargo test --release --features ocr test_ocr_extraction
 ```
 
-### Validation Test
-```bash
-# Run on multiple frames
-for frame in /path/to/recording/frame_*.png; do
-  cargo run --features ocr --bin zwift_ocr_compact -- \
-    --config your_config.json "$frame" \
-    >> test_results.txt
-done
+### Advanced: API-Based Validation
 
-# Check for consistent extraction
-grep "speed:" test_results.txt | sort | uniq -c
+For ultimate accuracy, OCR results can be validated against real-time telemetry:
+
+- **UDP Packet Monitoring**: Zwift broadcasts telemetry on port 3022 (power, speed, distance, gradient)
+- **Ground Truth Comparison**: Compare OCR extracted values with actual telemetry
+- **Confidence Scoring**: Rate OCR accuracy based on telemetry agreement
+- **Auto-Calibration**: Automatically adjust regions based on consistent discrepancies
+
+This enables self-validating OCR that improves over time.
+
+## Contributing Your Configuration
+
+Once you've created and tested a configuration:
+
+1. Name it: `{width}x{height}_v{zwift_version}.json`
+   - Example: `1920x1080_v1.67.0.json`
+
+2. Verify all fields extract correctly
+
+3. Submit a pull request with:
+   - Your configuration file in `ocr-configs/`
+   - Test results showing successful extraction
+   - The Zwift version and your system details
+
+### Example Test Output
+```
+Speed: 34 km/h ✓
+Power: 195 W ✓
+Distance: 0.3 km ✓
+Altitude: 1 m ✓
+Race Time: 00:02:15 ✓
+Gradient: 1% ✓
+Distance to Finish: 52.5 km ✓
+Route: Watopia Flat Route ✓
+Lap: 1 / 2.5km ✓
 ```
 
-## Submitting Your Configuration
+## Advanced: Understanding the OCR Pipeline
 
-### File Naming Convention
-```
-ocr-configs/{width}x{height}_v{zwift_version}.json
-```
+1. **Region Extraction**: Cut out specific UI area from screenshot
+2. **Preprocessing**: Apply field-specific threshold, scaling, inversion
+3. **OCR**: Tesseract extracts text with character whitelist
+4. **Cleaning**: Remove non-numeric characters based on field type
+5. **Validation**: Check value ranges for sanity
 
-Examples:
-- `1920x1080_v1.67.0.json`
-- `2560x1440_v1.67.0.json`
-- `3840x2160_v1.66.0.json`
+### Per-Field Processing Details
 
-### Pull Request Checklist
-- [ ] Config file in correct location with proper naming
-- [ ] Screenshot showing the regions overlaid
-- [ ] Test results from at least 10 frames
-- [ ] Note any special considerations
-- [ ] Include your Zwift version
+| Field | Threshold | Scale | Invert | Special |
+|-------|-----------|-------|---------|---------|
+| Speed | 200 | 3x | No | Numbers only |
+| Power | 200 | 3x | No | Numbers only |
+| Distance | 200 | 3x | No | Numbers only |
+| Altitude | 230 | 3x | No | Higher threshold |
+| Race Time | 200 | 3x | No | Time format |
+| Gradient | 100 | 4x | Yes | Mini-map area, stylized font |
+| Distance to Finish | 150 | 3x | No | Dimmer text |
+| Route Name | 200 | 2x | No | Variable width |
+| Lap Counter | 200 | 3x | No | Small numbers |
+| Leaderboard | - | 2x | No | CLAHE enhancement |
 
-### Example PR Description
-```markdown
-## New OCR Config: 2560x1440 @ v1.67.0
+## Future: Real-time Validation
 
-### Testing
-- Tested on 50 frames from Tick Tock race
-- All telemetry fields extracted successfully
-- Leaderboard accuracy ~85%
-
-### Screenshots
-![Regions Overview](regions_debug.png)
-
-### Notes
-- Gradient box moves up 20px during steep climbs
-- Distance to finish only appears in races
-```
-
-## Troubleshooting
-
-### Common Issues
-
-**"Can't find text in region"**
-- Region too small - add padding
-- Wrong color threshold - test with different images
-- UI element not visible - check game state
-
-**"OCR errors on numbers"**
-- Ensure region captures full digits
-- Check for UI scaling issues
-- Verify resolution matches exactly
-
-**"Leaderboard names garbled"**
-- Normal - focus on positions, not perfect names
-- Ensure full width captured
-- Check different rider counts
-
-### Debug Mode
-```python
-# Enable visual debugging
-python visual_region_mapper.py frame.png --debug
-
-# Shows:
-# - Current regions with labels
-# - OCR results in real-time
-# - Confidence scores
-```
-
-## Advanced Tips
-
-### Handling Multiple Versions
-- UI typically changes with major Zwift updates
-- Minor updates rarely affect positions
-- Keep old configs for compatibility
-
-### Resolution Scaling
-- Positions often scale linearly
-- Can approximate from similar aspect ratios
-- Always test before submitting
-
-### Batch Calibration
-```python
-# Future tool for bulk calibration
-python batch_calibrate.py --resolution 1920x1080 --samples-dir ./recordings/
-```
-
-## Community Guidelines
-
-- Share configs even if imperfect - others can improve
-- Test on various routes/conditions
-- Document any quirks or limitations
-- Help review others' contributions
+The OCR system can be enhanced with real-time validation:
+1. **UDP monitoring** provides ground truth telemetry
+2. **Confidence scoring** rates OCR accuracy
+3. **Auto-calibration** adjusts regions automatically
+4. **Community improvement** through validated configs
 
 ## Need Help?
 
 - Open an issue with your resolution/version
-- Join discussions in PR comments  
-- Check existing configs for examples
-- Ask in the community forum
+- Include screenshot and what values should be detected
+- Share partial configs - others can help complete them
 
 Remember: Your contribution helps every Zwift racer with your setup!

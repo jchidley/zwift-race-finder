@@ -308,11 +308,15 @@ P = M·g·v·cos(arctan(G))·Crr + M·g·v·sin(arctan(G)) + (1/2)ρ·CD·A·v³
 #### Zwift-Specific Adaptations
 Based on our research findings:
 - **CdA Calculations**: `A = 0.0276·h^0.725·m^0.425`
-- **Pack Dynamics**: 24.7-33% draft savings
-- **Surface Penalties**: 
-  - Road: Crr = 0.004
-  - Gravel: Crr = 0.008 (2x penalty)
-  - Dirt: 80W reduction for road bikes
+  - Note: This formula appears to be reverse-engineered by the Zwift community
+  - Not officially documented by Zwift
+  - Equipment CdA base value: 0.1647 (also community-discovered)
+- **Pack Dynamics**: 24.7-33% draft savings (confirmed by Zwift Insider)
+- **Surface Penalties** (Source: Zwift Insider rolling resistance tests):
+  - Road: Crr = 0.004 (confirmed)
+  - Gravel on dirt: Crr = 0.018 (not 0.008 as previously stated)
+  - MTB on pavement: Crr = 0.009 (confirmed)
+  - Dirt: 80W reduction for road bikes (Nov 2023 update)
 - **Speed Relationships**:
   - Flats: Speed ∝ ∛(Power/CdA)
   - Hills: Speed ∝ Power/Weight
@@ -328,8 +332,13 @@ Based on our research findings:
 - **Martin et al. (1998)**: "Validation of a Mathematical Model for Road Cycling Power"
   - R² = 0.97 correlation with measured power
   - Standard error only 2.7W
+  - Provides base physics equations used in cycling
 - **Chung (2003)**: Virtual elevation method for CdA testing
-- **Zwift Physics Documentation**: https://zwiftinsider.com/zwift-speeds/
+- **Community Resources**:
+  - Zwift Insider rolling resistance tests: https://zwiftinsider.com/crr/
+  - Zwift speed calculations: https://zwiftinsider.com/zwift-speeds/
+  - CdA formula source: Community reverse-engineering (TrainerRoad forums, Zwift forums)
+  - Note: Specific CdA formula not officially documented by Zwift
 
 ### Expected Outcomes
 - Reduce error from 25.1% → <20%

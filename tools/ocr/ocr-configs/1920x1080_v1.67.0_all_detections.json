@@ -1,0 +1,622 @@
+{
+  "resolution": "1920x1080",
+  "total_detections": 77,
+  "detections": [
+    {
+      "text": "zZwift",
+      "x": 4,
+      "y": 4,
+      "width": 46,
+      "height": 16,
+      "confidence": 0.8847436308860779
+    },
+    {
+      "text": "195w",
+      "x": 133,
+      "y": 49,
+      "width": 172,
+      "height": 65,
+      "confidence": 0.9981757402420044
+    },
+    {
+      "text": "34KMHA",
+      "x": 655,
+      "y": 45,
+      "width": 164,
+      "height": 57,
+      "confidence": 0.7429628372192383
+    },
+    {
+      "text": "0.3M",
+      "x": 809,
+      "y": 47,
+      "width": 128,
+      "height": 51,
+      "confidence": 0.9532298445701599
+    },
+    {
+      "text": "1M",
+      "x": 1018,
+      "y": 54,
+      "width": 62,
+      "height": 39,
+      "confidence": 0.7713869214057922
+    },
+    {
+      "text": "0:59",
+      "x": 1120,
+      "y": 54,
+      "width": 152,
+      "height": 43,
+      "confidence": 0.9680029153823853
+    },
+    {
+      "text": "50",
+      "x": 652,
+      "y": 107,
+      "width": 64,
+      "height": 22,
+      "confidence": 0.995625376701355
+    },
+    {
+      "text": "3,106,158 0",
+      "x": 1124,
+      "y": 101,
+      "width": 148,
+      "height": 32,
+      "confidence": 0.9489543437957764
+    },
+    {
+      "text": "55",
+      "x": 104,
+      "y": 137,
+      "width": 46,
+      "height": 30,
+      "confidence": 0.9996614456176758
+    },
+    {
+      "text": " 129",
+      "x": 189,
+      "y": 130,
+      "width": 110,
+      "height": 46,
+      "confidence": 0.9497838020324707
+    },
+    {
+      "text": "LEAD-IN",
+      "x": 674,
+      "y": 143,
+      "width": 108,
+      "height": 20,
+      "confidence": 0.9936894178390503
+    },
+    {
+      "text": "*52.5km",
+      "x": 1136,
+      "y": 141,
+      "width": 124,
+      "height": 26,
+      "confidence": 0.9431280493736267
+    },
+    {
+      "text": "RPM",
+      "x": 104,
+      "y": 171,
+      "width": 46,
+      "height": 16,
+      "confidence": 0.9975106120109558
+    },
+    {
+      "text": "BPM",
+      "x": 248,
+      "y": 169,
+      "width": 50,
+      "height": 22,
+      "confidence": 0.9966009259223938
+    },
+    {
+      "text": "218",
+      "x": 80,
+      "y": 195,
+      "width": 70,
+      "height": 27,
+      "confidence": 0.9994533061981201
+    },
+    {
+      "text": "AVG",
+      "x": 104,
+      "y": 222,
+      "width": 48,
+      "height": 22,
+      "confidence": 0.9959454536437988
+    },
+    {
+      "text": "KJ",
+      "x": 272,
+      "y": 220,
+      "width": 24,
+      "height": 16,
+      "confidence": 0.9762258529663086
+    },
+    {
+      "text": "Tick Tock",
+      "x": 1478,
+      "y": 294,
+      "width": 106,
+      "height": 22,
+      "confidence": 0.9933301210403442
+    },
+    {
+      "text": " 1/3 Q 18.8km",
+      "x": 1712,
+      "y": 288,
+      "width": 186,
+      "height": 30,
+      "confidence": 0.9082593321800232
+    },
+    {
+      "text": "Tofu Tornado Race",
+      "x": 1666,
+      "y": 336,
+      "width": 186,
+      "height": 19,
+      "confidence": 0.9645676612854004
+    },
+    {
+      "text": "th/25",
+      "x": 1644,
+      "y": 357,
+      "width": 60,
+      "height": 22,
+      "confidence": 0.9988982081413269
+    },
+    {
+      "text": "b.janssen",
+      "x": 1760,
+      "y": 383,
+      "width": 126,
+      "height": 32,
+      "confidence": 0.9986306428909302
+    },
+    {
+      "text": "+0:00",
+      "x": 1620,
+      "y": 407,
+      "width": 60,
+      "height": 22,
+      "confidence": 0.9758156538009644
+    },
+    {
+      "text": "2.4w/kg4",
+      "x": 1729,
+      "y": 404,
+      "width": 92,
+      "height": 29,
+      "confidence": 0.9361989498138428
+    },
+    {
+      "text": "0.3KM",
+      "x": 1844,
+      "y": 409,
+      "width": 56,
+      "height": 20,
+      "confidence": 0.933351993560791
+    },
+    {
+      "text": "R.Louer",
+      "x": 1780,
+      "y": 436,
+      "width": 92,
+      "height": 27,
+      "confidence": 0.9972372055053711
+    },
+    {
+      "text": "+0:00",
+      "x": 1622,
+      "y": 457,
+      "width": 56,
+      "height": 21,
+      "confidence": 0.9796749353408813
+    },
+    {
+      "text": "3.0w/kg",
+      "x": 1732,
+      "y": 454,
+      "width": 80,
+      "height": 27,
+      "confidence": 0.9906038641929626
+    },
+    {
+      "text": "P.Caverna (ZIMUK)",
+      "x": 764,
+      "y": 466,
+      "width": 176,
+      "height": 30,
+      "confidence": 0.9671333432197571
+    },
+    {
+      "text": "0.3KM",
+      "x": 1846,
+      "y": 461,
+      "width": 52,
+      "height": 13,
+      "confidence": 0.9207218289375305
+    },
+    {
+      "text": "P.Caverna (ZIMUK)",
+      "x": 1658,
+      "y": 486,
+      "width": 228,
+      "height": 26,
+      "confidence": 0.9593438506126404
+    },
+    {
+      "text": "+0:00",
+      "x": 1622,
+      "y": 508,
+      "width": 58,
+      "height": 20,
+      "confidence": 0.9740765690803528
+    },
+    {
+      "text": "2.3w/kg",
+      "x": 1734,
+      "y": 508,
+      "width": 76,
+      "height": 22,
+      "confidence": 0.9955779910087585
+    },
+    {
+      "text": "0.3KM",
+      "x": 1846,
+      "y": 508,
+      "width": 54,
+      "height": 20,
+      "confidence": 0.9453674554824829
+    },
+    {
+      "text": "r.carareto",
+      "x": 1752,
+      "y": 536,
+      "width": 142,
+      "height": 26,
+      "confidence": 0.99793541431427
+    },
+    {
+      "text": "+0:00",
+      "x": 1622,
+      "y": 556,
+      "width": 58,
+      "height": 22,
+      "confidence": 0.9784506559371948
+    },
+    {
+      "text": "3.3w/kg4",
+      "x": 1733,
+      "y": 555,
+      "width": 82,
+      "height": 27,
+      "confidence": 0.9688527584075928
+    },
+    {
+      "text": "0.3KM",
+      "x": 1846,
+      "y": 558,
+      "width": 54,
+      "height": 20,
+      "confidence": 0.9334516525268555
+    },
+    {
+      "text": "utier (BzR Rhinos 6)",
+      "x": 1624,
+      "y": 588,
+      "width": 266,
+      "height": 20,
+      "confidence": 0.9038721323013306
+    },
+    {
+      "text": "+0:00",
+      "x": 1620,
+      "y": 608,
+      "width": 60,
+      "height": 21,
+      "confidence": 0.9781253933906555
+    },
+    {
+      "text": "3.7w/kg4",
+      "x": 1729,
+      "y": 605,
+      "width": 90,
+      "height": 29,
+      "confidence": 0.9598277807235718
+    },
+    {
+      "text": "0.3KM",
+      "x": 1844,
+      "y": 609,
+      "width": 56,
+      "height": 20,
+      "confidence": 0.9275116920471191
+    },
+    {
+      "text": "J.Chidley ",
+      "x": 1762,
+      "y": 631,
+      "width": 136,
+      "height": 28,
+      "confidence": 0.9786707162857056
+    },
+    {
+      "text": "2.3w/kg 4",
+      "x": 1731,
+      "y": 652,
+      "width": 90,
+      "height": 32,
+      "confidence": 0.9700457453727722
+    },
+    {
+      "text": "0.3KM",
+      "x": 1843,
+      "y": 657,
+      "width": 54,
+      "height": 20,
+      "confidence": 0.8755741119384766
+    },
+    {
+      "text": "T3sen CCNS [VixMix] I",
+      "x": 1622,
+      "y": 685,
+      "width": 276,
+      "height": 26,
+      "confidence": 0.8874920606613159
+    },
+    {
+      "text": "+0:00",
+      "x": 1622,
+      "y": 709,
+      "width": 58,
+      "height": 20,
+      "confidence": 0.9805532693862915
+    },
+    {
+      "text": "2.9w/kg4",
+      "x": 1731,
+      "y": 704,
+      "width": 88,
+      "height": 29,
+      "confidence": 0.9641647934913635
+    },
+    {
+      "text": "0.3KM",
+      "x": 1844,
+      "y": 709,
+      "width": 56,
+      "height": 20,
+      "confidence": 0.9261814951896667
+    },
+    {
+      "text": "B.Klingenberg",
+      "x": 1706,
+      "y": 732,
+      "width": 194,
+      "height": 30,
+      "confidence": 0.9983698725700378
+    },
+    {
+      "text": "+0:00",
+      "x": 1620,
+      "y": 756,
+      "width": 60,
+      "height": 22,
+      "confidence": 0.9751192331314087
+    },
+    {
+      "text": "J.Nielsen hck ",
+      "x": 1724,
+      "y": 786,
+      "width": 174,
+      "height": 26,
+      "confidence": 0.9962053894996643
+    },
+    {
+      "text": "+0:00",
+      "x": 1620,
+      "y": 806,
+      "width": 60,
+      "height": 22,
+      "confidence": 0.976926326751709
+    },
+    {
+      "text": "2.5w/kg",
+      "x": 1731,
+      "y": 805,
+      "width": 82,
+      "height": 27,
+      "confidence": 0.9922794699668884
+    },
+    {
+      "text": "0.3KM",
+      "x": 1846,
+      "y": 810,
+      "width": 50,
+      "height": 14,
+      "confidence": 0.9350723028182983
+    },
+    {
+      "text": "SCENDER",
+      "x": 992,
+      "y": 834,
+      "width": 90,
+      "height": 28,
+      "confidence": 0.9675379395484924
+    },
+    {
+      "text": "H.Overgaard",
+      "x": 1728,
+      "y": 836,
+      "width": 172,
+      "height": 26,
+      "confidence": 0.9997175335884094
+    },
+    {
+      "text": "+0:00",
+      "x": 1620,
+      "y": 856,
+      "width": 60,
+      "height": 22,
+      "confidence": 0.9758504629135132
+    },
+    {
+      "text": "3.1w/kg",
+      "x": 1731,
+      "y": 855,
+      "width": 80,
+      "height": 27,
+      "confidence": 0.9174399375915527
+    },
+    {
+      "text": "0.3KM",
+      "x": 1844,
+      "y": 858,
+      "width": 56,
+      "height": 20,
+      "confidence": 0.9299729466438293
+    },
+    {
+      "text": "A.Laurenti",
+      "x": 1750,
+      "y": 887,
+      "width": 144,
+      "height": 22,
+      "confidence": 0.997596263885498
+    },
+    {
+      "text": "+0:00",
+      "x": 1622,
+      "y": 905,
+      "width": 58,
+      "height": 22,
+      "confidence": 0.9789620637893677
+    },
+    {
+      "text": "6.0w/kg4",
+      "x": 1734,
+      "y": 905,
+      "width": 82,
+      "height": 25,
+      "confidence": 0.9342106580734253
+    },
+    {
+      "text": "0.3KM",
+      "x": 1848,
+      "y": 909,
+      "width": 50,
+      "height": 18,
+      "confidence": 0.9253908395767212
+    },
+    {
+      "text": "P.Hughes",
+      "x": 1764,
+      "y": 937,
+      "width": 134,
+      "height": 22,
+      "confidence": 0.9959119558334351
+    },
+    {
+      "text": "+0:00",
+      "x": 1615,
+      "y": 952,
+      "width": 66,
+      "height": 29,
+      "confidence": 0.9790671467781067
+    },
+    {
+      "text": "2.3w/kg",
+      "x": 1731,
+      "y": 954,
+      "width": 82,
+      "height": 27,
+      "confidence": 0.9923989176750183
+    },
+    {
+      "text": "+J.Nielsen hckergaardLaurenti",
+      "x": 704,
+      "y": 965,
+      "width": 522,
+      "height": 34,
+      "confidence": 0.9947283267974854
+    },
+    {
+      "text": "0.3KM",
+      "x": 1844,
+      "y": 957,
+      "width": 56,
+      "height": 20,
+      "confidence": 0.9332880973815918
+    },
+    {
+      "text": "C.VanDeWiele",
+      "x": 1712,
+      "y": 985,
+      "width": 184,
+      "height": 26,
+      "confidence": 0.9949424862861633
+    },
+    {
+      "text": "Om",
+      "x": 812,
+      "y": 1009,
+      "width": 38,
+      "height": 13,
+      "confidence": 0.701133668422699
+    },
+    {
+      "text": "3m",
+      "x": 882,
+      "y": 1011,
+      "width": 40,
+      "height": 13,
+      "confidence": 0.9911197423934937
+    },
+    {
+      "text": "1m",
+      "x": 1078,
+      "y": 1009,
+      "width": 36,
+      "height": 13,
+      "confidence": 0.5130811333656311
+    },
+    {
+      "text": "+0:00",
+      "x": 1620,
+      "y": 1007,
+      "width": 60,
+      "height": 21,
+      "confidence": 0.9789034128189087
+    },
+    {
+      "text": "2.1w/kg4",
+      "x": 1734,
+      "y": 1006,
+      "width": 82,
+      "height": 27,
+      "confidence": 0.9291090369224548
+    },
+    {
+      "text": "0.3KM",
+      "x": 1844,
+      "y": 1009,
+      "width": 56,
+      "height": 19,
+      "confidence": 0.9257976412773132
+    },
+    {
+      "text": "+12 more in group",
+      "x": 1674,
+      "y": 1040,
+      "width": 174,
+      "height": 26,
+      "confidence": 0.9997010827064514
+    }
+  ]
+}

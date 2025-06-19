@@ -1,0 +1,622 @@
+{
+  "analysis": {
+    "resolution": "1920x1080",
+    "ui_regions": {
+      "top_bar": {
+        "fields": [
+          {
+            "name": "speed",
+            "x": 141,
+            "y": 59,
+            "width": 37,
+            "height": 46,
+            "region": "top_bar"
+          },
+          {
+            "name": "distance",
+            "x": 184,
+            "y": 59,
+            "width": 39,
+            "height": 46,
+            "region": "top_bar"
+          },
+          {
+            "name": "altitude",
+            "x": 230,
+            "y": 59,
+            "width": 36,
+            "height": 46,
+            "region": "top_bar"
+          },
+          {
+            "name": "race_time",
+            "x": 269,
+            "y": 82,
+            "width": 31,
+            "height": 23,
+            "region": "top_bar"
+          }
+        ],
+        "text_boxes": [
+          {
+            "x": 141,
+            "y": 59,
+            "width": 37,
+            "height": 46
+          },
+          {
+            "x": 184,
+            "y": 59,
+            "width": 39,
+            "height": 46
+          },
+          {
+            "x": 230,
+            "y": 59,
+            "width": 36,
+            "height": 46
+          },
+          {
+            "x": 269,
+            "y": 82,
+            "width": 31,
+            "height": 23
+          },
+          {
+            "x": 660,
+            "y": 55,
+            "width": 28,
+            "height": 37
+          },
+          {
+            "x": 692,
+            "y": 56,
+            "width": 30,
+            "height": 36
+          },
+          {
+            "x": 819,
+            "y": 55,
+            "width": 32,
+            "height": 37
+          },
+          {
+            "x": 871,
+            "y": 55,
+            "width": 28,
+            "height": 37
+          },
+          {
+            "x": 1020,
+            "y": 55,
+            "width": 30,
+            "height": 37
+          },
+          {
+            "x": 1124,
+            "y": 55,
+            "width": 32,
+            "height": 37
+          },
+          {
+            "x": 1176,
+            "y": 55,
+            "width": 30,
+            "height": 37
+          },
+          {
+            "x": 1209,
+            "y": 55,
+            "width": 32,
+            "height": 37
+          }
+        ]
+      },
+      "left_panel": {
+        "fields": [],
+        "text_boxes": []
+      },
+      "right_panel": {
+        "fields": [
+          {
+            "name": "leaderboard",
+            "x": 1459,
+            "y": 123,
+            "width": 461,
+            "height": 298,
+            "region": "right_panel"
+          }
+        ]
+      },
+      "center_area": {
+        "fields": [
+          {
+            "name": "gradient",
+            "x": 1632,
+            "y": 216,
+            "width": 120,
+            "height": 60,
+            "region": "center_area"
+          },
+          {
+            "name": "distance_to_finish",
+            "x": 1113,
+            "y": 129,
+            "width": 150,
+            "height": 50,
+            "region": "center_area"
+          },
+          {
+            "name": "rider_pose_avatar",
+            "x": 768,
+            "y": 378,
+            "width": 384,
+            "height": 324,
+            "region": "center_area"
+          }
+        ]
+      }
+    },
+    "dark_panels": [
+      {
+        "x": 533,
+        "y": 842,
+        "width": 197,
+        "height": 133,
+        "area": 26201
+      },
+      {
+        "x": 659,
+        "y": 826,
+        "width": 571,
+        "height": 254,
+        "area": 145034
+      },
+      {
+        "x": 797,
+        "y": 767,
+        "width": 103,
+        "height": 158,
+        "area": 16274
+      },
+      {
+        "x": 303,
+        "y": 743,
+        "width": 268,
+        "height": 337,
+        "area": 90316
+      },
+      {
+        "x": 587,
+        "y": 705,
+        "width": 79,
+        "height": 66,
+        "area": 5214
+      },
+      {
+        "x": 894,
+        "y": 693,
+        "width": 88,
+        "height": 98,
+        "area": 8624
+      },
+      {
+        "x": 978,
+        "y": 652,
+        "width": 133,
+        "height": 173,
+        "area": 23009
+      },
+      {
+        "x": 630,
+        "y": 612,
+        "width": 85,
+        "height": 58,
+        "area": 4930
+      },
+      {
+        "x": 799,
+        "y": 586,
+        "width": 103,
+        "height": 110,
+        "area": 11330
+      },
+      {
+        "x": 701,
+        "y": 463,
+        "width": 240,
+        "height": 49,
+        "area": 11760
+      },
+      {
+        "x": 1632,
+        "y": 148,
+        "width": 69,
+        "height": 126,
+        "area": 8694
+      },
+      {
+        "x": 1689,
+        "y": 137,
+        "width": 200,
+        "height": 137,
+        "area": 27400
+      },
+      {
+        "x": 1761,
+        "y": 130,
+        "width": 103,
+        "height": 38,
+        "area": 3914
+      }
+    ],
+    "text_candidates": [
+      {
+        "x": 1013,
+        "y": 1011,
+        "width": 27,
+        "height": 45,
+        "aspect_ratio": 0.6
+      },
+      {
+        "x": 858,
+        "y": 1003,
+        "width": 68,
+        "height": 39,
+        "aspect_ratio": 1.7435897435897436
+      },
+      {
+        "x": 774,
+        "y": 1003,
+        "width": 29,
+        "height": 29,
+        "aspect_ratio": 1.0
+      },
+      {
+        "x": 1074,
+        "y": 1001,
+        "width": 48,
+        "height": 29,
+        "aspect_ratio": 1.6551724137931034
+      },
+      {
+        "x": 931,
+        "y": 1000,
+        "width": 48,
+        "height": 30,
+        "aspect_ratio": 1.6
+      },
+      {
+        "x": 806,
+        "y": 1000,
+        "width": 49,
+        "height": 28,
+        "aspect_ratio": 1.75
+      },
+      {
+        "x": 1617,
+        "y": 986,
+        "width": 65,
+        "height": 42,
+        "aspect_ratio": 1.5476190476190477
+      },
+      {
+        "x": 1617,
+        "y": 955,
+        "width": 65,
+        "height": 23,
+        "aspect_ratio": 2.8260869565217392
+      },
+      {
+        "x": 1732,
+        "y": 935,
+        "width": 171,
+        "height": 46,
+        "aspect_ratio": 3.717391304347826
+      },
+      {
+        "x": 1617,
+        "y": 905,
+        "width": 65,
+        "height": 23,
+        "aspect_ratio": 2.8260869565217392
+      },
+      {
+        "x": 1732,
+        "y": 884,
+        "width": 171,
+        "height": 47,
+        "aspect_ratio": 3.6382978723404253
+      },
+      {
+        "x": 1617,
+        "y": 836,
+        "width": 65,
+        "height": 42,
+        "aspect_ratio": 1.5476190476190477
+      },
+      {
+        "x": 1724,
+        "y": 835,
+        "width": 179,
+        "height": 47,
+        "aspect_ratio": 3.8085106382978724
+      },
+      {
+        "x": 1617,
+        "y": 805,
+        "width": 65,
+        "height": 23,
+        "aspect_ratio": 2.8260869565217392
+      },
+      {
+        "x": 1719,
+        "y": 784,
+        "width": 184,
+        "height": 48,
+        "aspect_ratio": 3.8333333333333335
+      },
+      {
+        "x": 1617,
+        "y": 756,
+        "width": 65,
+        "height": 22,
+        "aspect_ratio": 2.9545454545454546
+      },
+      {
+        "x": 1707,
+        "y": 734,
+        "width": 196,
+        "height": 48,
+        "aspect_ratio": 4.083333333333333
+      },
+      {
+        "x": 1617,
+        "y": 684,
+        "width": 286,
+        "height": 48,
+        "aspect_ratio": 5.958333333333333
+      },
+      {
+        "x": 1195,
+        "y": 593,
+        "width": 36,
+        "height": 20,
+        "aspect_ratio": 1.8
+      },
+      {
+        "x": 1158,
+        "y": 588,
+        "width": 23,
+        "height": 16,
+        "aspect_ratio": 1.4375
+      },
+      {
+        "x": 1353,
+        "y": 585,
+        "width": 32,
+        "height": 21,
+        "aspect_ratio": 1.5238095238095237
+      },
+      {
+        "x": 1306,
+        "y": 583,
+        "width": 27,
+        "height": 16,
+        "aspect_ratio": 1.6875
+      },
+      {
+        "x": 401,
+        "y": 561,
+        "width": 47,
+        "height": 17,
+        "aspect_ratio": 2.764705882352941
+      },
+      {
+        "x": 305,
+        "y": 550,
+        "width": 43,
+        "height": 16,
+        "aspect_ratio": 2.6875
+      },
+      {
+        "x": 368,
+        "y": 539,
+        "width": 72,
+        "height": 24,
+        "aspect_ratio": 3.0
+      },
+      {
+        "x": 442,
+        "y": 523,
+        "width": 91,
+        "height": 36,
+        "aspect_ratio": 2.5277777777777777
+      },
+      {
+        "x": 209,
+        "y": 522,
+        "width": 71,
+        "height": 20,
+        "aspect_ratio": 3.55
+      },
+      {
+        "x": 130,
+        "y": 507,
+        "width": 73,
+        "height": 19,
+        "aspect_ratio": 3.8421052631578947
+      },
+      {
+        "x": 1396,
+        "y": 470,
+        "width": 29,
+        "height": 29,
+        "aspect_ratio": 1.0
+      },
+      {
+        "x": 1348,
+        "y": 438,
+        "width": 62,
+        "height": 58,
+        "aspect_ratio": 1.0689655172413792
+      },
+      {
+        "x": 827,
+        "y": 408,
+        "width": 27,
+        "height": 47,
+        "aspect_ratio": 0.574468085106383
+      },
+      {
+        "x": 1130,
+        "y": 398,
+        "width": 126,
+        "height": 67,
+        "aspect_ratio": 1.8805970149253732
+      },
+      {
+        "x": 1407,
+        "y": 351,
+        "width": 31,
+        "height": 17,
+        "aspect_ratio": 1.8235294117647058
+      },
+      {
+        "x": 1022,
+        "y": 261,
+        "width": 46,
+        "height": 26,
+        "aspect_ratio": 1.7692307692307692
+      },
+      {
+        "x": 48,
+        "y": 199,
+        "width": 25,
+        "height": 35,
+        "aspect_ratio": 0.7142857142857143
+      },
+      {
+        "x": 192,
+        "y": 196,
+        "width": 30,
+        "height": 35,
+        "aspect_ratio": 0.8571428571428571
+      },
+      {
+        "x": 80,
+        "y": 192,
+        "width": 74,
+        "height": 53,
+        "aspect_ratio": 1.3962264150943395
+      },
+      {
+        "x": 841,
+        "y": 182,
+        "width": 42,
+        "height": 53,
+        "aspect_ratio": 0.7924528301886793
+      },
+      {
+        "x": 191,
+        "y": 147,
+        "width": 32,
+        "height": 28,
+        "aspect_ratio": 1.1428571428571428
+      },
+      {
+        "x": 45,
+        "y": 145,
+        "width": 31,
+        "height": 32,
+        "aspect_ratio": 0.96875
+      },
+      {
+        "x": 672,
+        "y": 141,
+        "width": 106,
+        "height": 25,
+        "aspect_ratio": 4.24
+      },
+      {
+        "x": 98,
+        "y": 137,
+        "width": 56,
+        "height": 53,
+        "aspect_ratio": 1.0566037735849056
+      },
+      {
+        "x": 20,
+        "y": 111,
+        "width": 184,
+        "height": 24,
+        "aspect_ratio": 7.666666666666667
+      },
+      {
+        "x": 136,
+        "y": 55,
+        "width": 169,
+        "height": 55,
+        "aspect_ratio": 3.0727272727272728
+      }
+    ]
+  },
+  "suggested_regions": {
+    "speed": {
+      "x": 131,
+      "y": 49,
+      "width": 57,
+      "height": 66,
+      "source": "top_bar"
+    },
+    "distance": {
+      "x": 174,
+      "y": 49,
+      "width": 59,
+      "height": 66,
+      "source": "top_bar"
+    },
+    "altitude": {
+      "x": 220,
+      "y": 49,
+      "width": 56,
+      "height": 66,
+      "source": "top_bar"
+    },
+    "race_time": {
+      "x": 259,
+      "y": 72,
+      "width": 51,
+      "height": 43,
+      "source": "top_bar"
+    },
+    "leaderboard": {
+      "x": 1449,
+      "y": 113,
+      "width": 481,
+      "height": 318,
+      "source": "right_panel"
+    },
+    "gradient": {
+      "x": 1622,
+      "y": 206,
+      "width": 140,
+      "height": 80,
+      "source": "center_area"
+    },
+    "distance_to_finish": {
+      "x": 1103,
+      "y": 119,
+      "width": 170,
+      "height": 70,
+      "source": "center_area"
+    },
+    "rider_pose_avatar": {
+      "x": 758,
+      "y": 368,
+      "width": 404,
+      "height": 344,
+      "source": "center_area"
+    }
+  }
+}

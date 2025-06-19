@@ -316,8 +316,11 @@ fn parse_leaderboard_text(text: &str) -> Result<Option<Vec<LeaderboardEntry>>> {
 
 /// Extract rider pose with parallel-safe edge detection
 fn extract_rider_pose_parallel(img: &Arc<DynamicImage>) -> Result<Option<RiderPose>> {
-    // Reuse the existing implementation from ocr_compact
-    crate::ocr_compact::extract_rider_pose(img)
+    // For parallel processing, we need to get a lock on the config manager
+    // This is a limitation of the current design - could be improved with Arc<RwLock>
+    let config_manager = crate::ocr_compact::get_config_manager();
+    let manager = config_manager.lock().unwrap();
+    crate::ocr_compact::extract_rider_pose(img, &manager)
 }
 
 #[cfg(test)]

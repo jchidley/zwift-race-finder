@@ -1,0 +1,87 @@
+{
+  "version": "1.0.0",
+  "resolution": "1920x1080",
+  "zwift_version": "1.67.0",
+  "created": "2025-06-12T17:30:00.000000",
+  "regions": {
+    "speed": {
+      "x": 640,
+      "y": 30,
+      "width": 190,
+      "height": 85,
+      "note": "34KMHA - actual speed in km/h"
+    },
+    "distance": {
+      "x": 794,
+      "y": 32,
+      "width": 158,
+      "height": 81,
+      "note": "0.3M - distance in km"
+    },
+    "altitude": {
+      "x": 1003,
+      "y": 39,
+      "width": 92,
+      "height": 69,
+      "note": "1M - altitude in meters"
+    },
+    "race_time": {
+      "x": 1105,
+      "y": 39,
+      "width": 182,
+      "height": 73,
+      "note": "0:59 - elapsed time"
+    },
+    "power": {
+      "x": 118,
+      "y": 34,
+      "width": 202,
+      "height": 95,
+      "note": "195w - current power"
+    },
+    "cadence": {
+      "x": 89,
+      "y": 122,
+      "width": 76,
+      "height": 60,
+      "note": "55 - RPM"
+    },
+    "heart_rate": {
+      "x": 174,
+      "y": 115,
+      "width": 140,
+      "height": 76,
+      "note": "129 - heart rate"
+    },
+    "gradient": {
+      "x": 1680,
+      "y": 220,
+      "width": 120,
+      "height": 60,
+      "note": "1% - gradient above leaderboard position indicator"
+    },
+    "distance_to_finish": {
+      "x": 1121,
+      "y": 126,
+      "width": 154,
+      "height": 56,
+      "note": "52.5km - distance to finish"
+    },
+    "leaderboard": {
+      "x": 1478,
+      "y": 288,
+      "width": 422,
+      "height": 778,
+      "note": "leaderboard_area"
+    },
+    "rider_pose_avatar": {
+      "x": 768,
+      "y": 378,
+      "width": 384,
+      "height": 324,
+      "note": "avatar_area"
+    }
+  },
+  "notes": "Manually corrected based on actual values: Speed=34, Power=195, HR=129, Cadence=55, Distance=0.3, Altitude=1M, Distance to finish=52.5km",
+  "calibration_image": "frame_000100.png"
+}
