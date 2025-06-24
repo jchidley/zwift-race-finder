@@ -2,19 +2,20 @@
 # ABOUTME: Process Zwift video streams/recordings to extract telemetry data
 # Handles live streams, video files, and can output to various formats
 
+import csv
+import json
+import queue
+import sqlite3
+import threading
+import time
+from collections import deque
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Optional
+
 import cv2
 import numpy as np
-from pathlib import Path
-import json
-import time
-import sqlite3
-import csv
-from typing import Dict, List, Optional, Tuple, Generator
-from dataclasses import dataclass, asdict
-from datetime import datetime
-import threading
-import queue
-from collections import deque
 
 # Import our OCR extractor
 from zwift_ocr_improved import ZwiftOCRExtractor, ZwiftUILayout
@@ -52,10 +53,10 @@ class TelemetryStorage:
     def __init__(self, base_path: str, session_name: str):
         self.base_path = Path(base_path)
         self.session_name = session_name
-        self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 
         # Create session directory
-        self.session_dir = self.base_path / f"{self.session_name}_{self.timestamp}"
+        self.session_dir = self.base_path / f'{self.session_name}_{self.timestamp}'
         self.session_dir.mkdir(parents=True, exist_ok=True)
 
         # Initialize storage backends
@@ -65,7 +66,7 @@ class TelemetryStorage:
 
     def _init_sqlite(self):
         """Initialize SQLite database"""
-        self.db_path = self.session_dir / "telemetry.db"
+        self.db_path = self.session_dir / 'telemetry.db'
         self.conn = sqlite3.connect(str(self.db_path))
         self.conn.execute(
             """
@@ -91,23 +92,23 @@ class TelemetryStorage:
 
     def _init_csv(self):
         """Initialize CSV file"""
-        self.csv_path = self.session_dir / "telemetry.csv"
-        with open(self.csv_path, "w", newline="") as f:
+        self.csv_path = self.session_dir / 'telemetry.csv'
+        with open(self.csv_path, 'w', newline='') as f:
             writer = csv.DictWriter(
                 f,
                 fieldnames=[
-                    "timestamp",
-                    "frame_number",
-                    "speed",
-                    "distance",
-                    "altitude",
-                    "race_time",
-                    "power",
-                    "cadence",
-                    "heart_rate",
-                    "avg_power",
-                    "energy",
-                    "gradient",
+                    'timestamp',
+                    'frame_number',
+                    'speed',
+                    'distance',
+                    'altitude',
+                    'race_time',
+                    'power',
+                    'cadence',
+                    'heart_rate',
+                    'avg_power',
+                    'energy',
+                    'gradient',
                 ],
             )
             writer.writeheader()
@@ -140,7 +141,7 @@ class TelemetryStorage:
         self.conn.commit()
 
         # CSV
-        with open(self.csv_path, "a", newline="") as f:
+        with open(self.csv_path, 'a', newline='') as f:
             writer = csv.DictWriter(f, fieldnames=frame.to_dict().keys())
             writer.writerow(frame.to_dict())
 
@@ -149,8 +150,8 @@ class TelemetryStorage:
 
     def save_json(self):
         """Save accumulated data to JSON file"""
-        json_path = self.session_dir / "telemetry.json"
-        with open(json_path, "w") as f:
+        json_path = self.session_dir / 'telemetry.json'
+        with open(json_path, 'w') as f:
             json.dump(self.json_data, f, indent=2)
 
     def close(self):
@@ -162,7 +163,7 @@ class TelemetryStorage:
 class ZwiftVideoProcessor:
     """Process Zwift video to extract telemetry data"""
 
-    def __init__(self, ocr_engine="paddle", storage_path="./telemetry_data"):
+    def __init__(self, ocr_engine='paddle', storage_path='./telemetry_data'):
         self.ocr_extractor = ZwiftOCRExtractor(ocr_engine)
         self.storage_path = storage_path
         self.is_processing = False
@@ -179,7 +180,7 @@ class ZwiftVideoProcessor:
         """Extract telemetry from a single frame"""
         # Create temporary file for OCR (required by current implementation)
         # In production, we'd modify the OCR extractor to work directly with numpy arrays
-        temp_path = f"/tmp/zwift_frame_{frame_number}.jpg"
+        temp_path = f'/tmp/zwift_frame_{frame_number}.jpg'
         cv2.imwrite(temp_path, frame)
 
         try:
@@ -191,8 +192,8 @@ class ZwiftVideoProcessor:
 
             # Map extracted values
             for field, data in telemetry.items():
-                if data["value"] is not None:
-                    setattr(frame_data, field, data["value"])
+                if data['value'] is not None:
+                    setattr(frame_data, field, data['value'])
 
             return frame_data
         finally:
@@ -214,7 +215,7 @@ class ZwiftVideoProcessor:
             except queue.Empty:
                 continue
             except Exception as e:
-                print(f"OCR error: {e}")
+                print(f'OCR error: {e}')
 
     def process_video(
         self,
@@ -237,19 +238,17 @@ class ZwiftVideoProcessor:
         """
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
-            raise ValueError(f"Could not open video: {video_path}")
+            raise ValueError(f'Could not open video: {video_path}')
 
         # Get video properties
         fps = cap.get(cv2.CAP_PROP_FPS)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-        print(f"Video properties:")
-        print(f"  FPS: {fps}")
-        print(f"  Total frames: {total_frames}")
-        print(f"  Duration: {total_frames/fps:.1f}s")
-        print(
-            f"  Processing every {skip_frames} frames ({fps/skip_frames:.1f} samples/sec)"
-        )
+        print('Video properties:')
+        print(f'  FPS: {fps}')
+        print(f'  Total frames: {total_frames}')
+        print(f'  Duration: {total_frames / fps:.1f}s')
+        print(f'  Processing every {skip_frames} frames ({fps / skip_frames:.1f} samples/sec)')
 
         # Initialize storage
         session_name = Path(video_path).stem
@@ -277,12 +276,10 @@ class ZwiftVideoProcessor:
                 if frame_count % skip_frames == 0:
                     # Add to processing queue
                     try:
-                        self.frame_queue.put(
-                            (frame.copy(), frame_count, timestamp), timeout=0.1
-                        )
+                        self.frame_queue.put((frame.copy(), frame_count, timestamp), timeout=0.1)
                         processed_count += 1
                     except queue.Full:
-                        print("Warning: Frame queue full, skipping frame")
+                        print('Warning: Frame queue full, skipping frame')
 
                 # Get results from queue
                 try:
@@ -299,10 +296,10 @@ class ZwiftVideoProcessor:
                                 self.fps_counter[-1] - self.fps_counter[0]
                             )
                             print(
-                                f"\rFrame {frame_count}/{total_frames} "
-                                f"({frame_count/total_frames*100:.1f}%) "
-                                f"Processing: {actual_fps:.1f} fps",
-                                end="",
+                                f'\rFrame {frame_count}/{total_frames} '
+                                f'({frame_count / total_frames * 100:.1f}%) '
+                                f'Processing: {actual_fps:.1f} fps',
+                                end='',
                             )
 
                 except queue.Empty:
@@ -313,7 +310,7 @@ class ZwiftVideoProcessor:
                     # Draw extraction regions
                     preview = frame.copy()
                     for region in ZwiftUILayout.get_all_regions():
-                        if region.name not in ["minimap", "rider_list"]:
+                        if region.name not in ['minimap', 'rider_list']:
                             cv2.rectangle(
                                 preview,
                                 (region.x, region.y),
@@ -325,10 +322,10 @@ class ZwiftVideoProcessor:
                     # Resize for display
                     scale = 0.5
                     preview = cv2.resize(preview, None, fx=scale, fy=scale)
-                    cv2.imshow("Zwift Telemetry Extraction", preview)
+                    cv2.imshow('Zwift Telemetry Extraction', preview)
 
-                    if cv2.waitKey(1) & 0xFF == ord("q"):
-                        print("\nProcessing interrupted by user")
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                        print('\nProcessing interrupted by user')
                         break
 
                 # Simulate realtime processing if requested
@@ -357,11 +354,11 @@ class ZwiftVideoProcessor:
 
             # Print summary
             elapsed = time.time() - start_time
-            print(f"\n\nProcessing complete:")
-            print(f"  Total time: {elapsed:.1f}s")
-            print(f"  Frames processed: {processed_count}")
-            print(f"  Average processing rate: {processed_count/elapsed:.1f} fps")
-            print(f"  Data saved to: {storage.session_dir}")
+            print('\n\nProcessing complete:')
+            print(f'  Total time: {elapsed:.1f}s')
+            print(f'  Frames processed: {processed_count}')
+            print(f'  Average processing rate: {processed_count / elapsed:.1f} fps')
+            print(f'  Data saved to: {storage.session_dir}')
 
             return str(storage.session_dir)
 
@@ -389,15 +386,13 @@ class ZwiftVideoProcessor:
         if stream_url.isdigit():
             stream_url = int(stream_url)  # Webcam device index
 
-        return self.process_video(
-            stream_url, skip_frames, realtime=True, show_preview=show_preview
-        )
+        return self.process_video(stream_url, skip_frames, realtime=True, show_preview=show_preview)
 
 
 def analyze_telemetry(session_dir: str):
     """Analyze extracted telemetry data and generate summary statistics"""
     session_path = Path(session_dir)
-    db_path = session_path / "telemetry.db"
+    db_path = session_path / 'telemetry.db'
 
     conn = sqlite3.connect(str(db_path))
 
@@ -420,17 +415,17 @@ def analyze_telemetry(session_dir: str):
     """
     ).fetchone()
 
-    print("\nTelemetry Analysis:")
-    print(f"  Total samples: {stats[0]}")
-    print(f"  Duration: {stats[2] - stats[1]:.1f}s")
-    print(f"  Average speed: {stats[3]:.1f} km/h")
-    print(f"  Max speed: {stats[4]:.1f} km/h")
-    print(f"  Average power: {stats[5]:.0f}W")
-    print(f"  Max power: {stats[6]:.0f}W")
-    print(f"  Average HR: {stats[7]:.0f} bpm")
-    print(f"  Max HR: {stats[8]:.0f} bpm")
-    print(f"  Total distance: {stats[9]:.1f} km")
-    print(f"  Total elevation: {stats[10]:.0f}m")
+    print('\nTelemetry Analysis:')
+    print(f'  Total samples: {stats[0]}')
+    print(f'  Duration: {stats[2] - stats[1]:.1f}s')
+    print(f'  Average speed: {stats[3]:.1f} km/h')
+    print(f'  Max speed: {stats[4]:.1f} km/h')
+    print(f'  Average power: {stats[5]:.0f}W')
+    print(f'  Max power: {stats[6]:.0f}W')
+    print(f'  Average HR: {stats[7]:.0f} bpm')
+    print(f'  Max HR: {stats[8]:.0f} bpm')
+    print(f'  Total distance: {stats[9]:.1f} km')
+    print(f'  Total elevation: {stats[10]:.0f}m')
 
     conn.close()
 
@@ -439,23 +434,17 @@ def main():
     """Example usage of video processor"""
     import argparse
 
-    parser = argparse.ArgumentParser(description="Extract telemetry from Zwift video")
-    parser.add_argument("input", help="Video file path or stream URL")
+    parser = argparse.ArgumentParser(description='Extract telemetry from Zwift video')
+    parser.add_argument('input', help='Video file path or stream URL')
     parser.add_argument(
-        "--skip-frames",
+        '--skip-frames',
         type=int,
         default=30,
-        help="Process every Nth frame (default: 30)",
+        help='Process every Nth frame (default: 30)',
     )
-    parser.add_argument(
-        "--no-preview", action="store_true", help="Disable preview window"
-    )
-    parser.add_argument(
-        "--realtime", action="store_true", help="Process at video framerate"
-    )
-    parser.add_argument(
-        "--analyze", action="store_true", help="Analyze telemetry after extraction"
-    )
+    parser.add_argument('--no-preview', action='store_true', help='Disable preview window')
+    parser.add_argument('--realtime', action='store_true', help='Process at video framerate')
+    parser.add_argument('--analyze', action='store_true', help='Analyze telemetry after extraction')
 
     args = parser.parse_args()
 
@@ -473,5 +462,5 @@ def main():
         analyze_telemetry(session_dir)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

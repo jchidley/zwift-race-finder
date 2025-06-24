@@ -8,13 +8,14 @@ This version uses zwift_ocr_compact.py for core OCR functionality and adds:
 - Multiple preprocessing fallbacks
 """
 
+import json
+import re
+import sys
+from datetime import datetime
+from typing import Any, Dict, Optional
+
 import cv2
 import numpy as np
-from typing import Optional, Dict, Any, List
-import re
-from datetime import datetime
-import json
-import sys
 
 # Import the compact OCR as our core library
 from zwift_ocr_compact import ZwiftOCR
@@ -40,10 +41,10 @@ class ZwiftOCRExtractorFinal:
         # Load image for additional processing
         image = cv2.imread(image_path)
         if image is None:
-            raise ValueError(f"Could not load image: {image_path}")
+            raise ValueError(f'Could not load image: {image_path}')
 
         # Add powerup detection (not in compact version)
-        results["powerup_name"] = self._extract_powerup(image)
+        results['powerup_name'] = self._extract_powerup(image)
 
         # Add debug visualization if enabled
         if self.debug:
@@ -68,20 +69,20 @@ class ZwiftOCRExtractorFinal:
         if result and result[0]:
             text = result[0][0][1][0]
             # Extract only letters
-            letters_only = re.sub(r"[^A-Za-z]", "", text)
+            letters_only = re.sub(r'[^A-Za-z]', '', text)
 
             if self.debug:
                 print(f"Powerup OCR text: '{text}' -> '{letters_only}'")
 
             # Known powerups
             powerups = {
-                "feather": "Featherweight",
-                "aero": "Aero Boost",
-                "draft": "Draft Boost",
-                "lightweight": "Lightweight",
-                "steamroller": "Steamroller",
-                "anvil": "Anvil",
-                "burrito": "Burrito",
+                'feather': 'Featherweight',
+                'aero': 'Aero Boost',
+                'draft': 'Draft Boost',
+                'lightweight': 'Lightweight',
+                'steamroller': 'Steamroller',
+                'anvil': 'Anvil',
+                'burrito': 'Burrito',
             }
 
             text_lower = letters_only.lower()
@@ -126,7 +127,7 @@ class ZwiftOCRExtractorFinal:
         cv2.rectangle(debug_img, (x, y), (x + w, y + h), (255, 0, 255), 2)
         cv2.putText(
             debug_img,
-            "powerup",
+            'powerup',
             (x, y - 5),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.5,
@@ -135,42 +136,42 @@ class ZwiftOCRExtractorFinal:
         )
 
         # Save debug image
-        debug_path = "debug_ocr_output.jpg"
+        debug_path = 'debug_ocr_output.jpg'
         cv2.imwrite(debug_path, debug_img)
-        print(f"Debug visualization saved to: {debug_path}")
+        print(f'Debug visualization saved to: {debug_path}')
 
     def validate_extraction(self, results: Dict[str, Any]) -> Dict[str, Any]:
         """Validate extracted data against expected ranges"""
-        validation = {"valid": True, "warnings": [], "field_status": {}}
+        validation = {'valid': True, 'warnings': [], 'field_status': {}}
 
         # Check each field
         checks = {
-            "speed": (0, 100, "km/h"),
-            "power": (0, 2000, "W"),
-            "heart_rate": (40, 220, "bpm"),
-            "cadence": (0, 150, "rpm"),
-            "gradient": (-20, 20, "%"),
+            'speed': (0, 100, 'km/h'),
+            'power': (0, 2000, 'W'),
+            'heart_rate': (40, 220, 'bpm'),
+            'cadence': (0, 150, 'rpm'),
+            'gradient': (-20, 20, '%'),
         }
 
         for field, (min_val, max_val, unit) in checks.items():
             value = results.get(field)
             if value is not None:
                 if min_val <= value <= max_val:
-                    validation["field_status"][field] = "valid"
+                    validation['field_status'][field] = 'valid'
                 else:
-                    validation["field_status"][field] = "out_of_range"
-                    validation["warnings"].append(
-                        f"{field}: {value}{unit} is outside normal range ({min_val}-{max_val})"
+                    validation['field_status'][field] = 'out_of_range'
+                    validation['warnings'].append(
+                        f'{field}: {value}{unit} is outside normal range ({min_val}-{max_val})'
                     )
-                    validation["valid"] = False
+                    validation['valid'] = False
             else:
-                validation["field_status"][field] = "missing"
+                validation['field_status'][field] = 'missing'
 
         # Check data consistency
-        if results.get("power") and results.get("speed"):
-            if results["power"] > 300 and results["speed"] < 20:
-                validation["warnings"].append(
-                    "High power with low speed - possible climb or calibration issue"
+        if results.get('power') and results.get('speed'):
+            if results['power'] > 300 and results['speed'] < 20:
+                validation['warnings'].append(
+                    'High power with low speed - possible climb or calibration issue'
                 )
 
         return validation
@@ -180,37 +181,37 @@ class ZwiftOCRExtractorFinal:
     ) -> Dict[str, Any]:
         """Compare extracted values with expected values for accuracy testing"""
         comparison = {
-            "total_fields": len(expected),
-            "correct_fields": 0,
-            "accuracy_by_field": {},
-            "overall_accuracy": 0.0,
+            'total_fields': len(expected),
+            'correct_fields': 0,
+            'accuracy_by_field': {},
+            'overall_accuracy': 0.0,
         }
 
         for field, expected_value in expected.items():
             actual_value = results.get(field)
 
             if actual_value is None:
-                comparison["accuracy_by_field"][field] = {
-                    "status": "missing",
-                    "actual": None,
-                    "expected": expected_value,
+                comparison['accuracy_by_field'][field] = {
+                    'status': 'missing',
+                    'actual': None,
+                    'expected': expected_value,
                 }
             elif actual_value == expected_value:
-                comparison["correct_fields"] += 1
-                comparison["accuracy_by_field"][field] = {
-                    "status": "correct",
-                    "actual": actual_value,
-                    "expected": expected_value,
+                comparison['correct_fields'] += 1
+                comparison['accuracy_by_field'][field] = {
+                    'status': 'correct',
+                    'actual': actual_value,
+                    'expected': expected_value,
                 }
             else:
-                comparison["accuracy_by_field"][field] = {
-                    "status": "incorrect",
-                    "actual": actual_value,
-                    "expected": expected_value,
+                comparison['accuracy_by_field'][field] = {
+                    'status': 'incorrect',
+                    'actual': actual_value,
+                    'expected': expected_value,
                 }
 
-        comparison["overall_accuracy"] = (
-            comparison["correct_fields"] / comparison["total_fields"]
+        comparison['overall_accuracy'] = (
+            comparison['correct_fields'] / comparison['total_fields']
         ) * 100
 
         return comparison
@@ -221,87 +222,83 @@ def main():
     if len(sys.argv) > 1:
         image_path = sys.argv[1]
     else:
-        print("Usage: python zwift_ocr_improved_final.py <image_path> [--validate]")
+        print('Usage: python zwift_ocr_improved_final.py <image_path> [--validate]')
         return
 
     # Check for validation mode
-    validate_mode = "--validate" in sys.argv
+    validate_mode = '--validate' in sys.argv
 
     extractor = ZwiftOCRExtractorFinal(debug=True)
     results = extractor.extract_telemetry(image_path)
 
-    print("\nExtracted Telemetry:")
-    print("-" * 40)
+    print('\nExtracted Telemetry:')
+    print('-' * 40)
 
     # Display results
     for key, value in results.items():
         if value is not None:
-            print(f"{key}: {value}")
+            print(f'{key}: {value}')
 
     # Validation mode
     if validate_mode:
-        print("\n\nValidation Results:")
-        print("-" * 40)
+        print('\n\nValidation Results:')
+        print('-' * 40)
         validation = extractor.validate_extraction(results)
 
-        print(f"Overall Valid: {validation['valid']}")
-        print("\nField Status:")
-        for field, status in validation["field_status"].items():
-            print(f"  {field}: {status}")
+        print(f'Overall Valid: {validation["valid"]}')
+        print('\nField Status:')
+        for field, status in validation['field_status'].items():
+            print(f'  {field}: {status}')
 
-        if validation["warnings"]:
-            print("\nWarnings:")
-            for warning in validation["warnings"]:
-                print(f"  - {warning}")
+        if validation['warnings']:
+            print('\nWarnings:')
+            for warning in validation['warnings']:
+                print(f'  - {warning}')
 
     # Test against known values if available
-    if "normal_1_01_16_02_21" in image_path:
+    if 'normal_1_01_16_02_21' in image_path:
         # Known values from the test screenshot
         expected = {
-            "speed": 34,
-            "distance": 6.4,
-            "altitude": 28,
-            "race_time": "11:07",
-            "power": 268,
-            "heart_rate": 160,
-            "cadence": 72,
-            "gradient": 3.0,
-            "distance_to_finish": 28.6,
+            'speed': 34,
+            'distance': 6.4,
+            'altitude': 28,
+            'race_time': '11:07',
+            'power': 268,
+            'heart_rate': 160,
+            'cadence': 72,
+            'gradient': 3.0,
+            'distance_to_finish': 28.6,
         }
 
-        print("\n\nAccuracy Test Results:")
-        print("-" * 40)
+        print('\n\nAccuracy Test Results:')
+        print('-' * 40)
         comparison = extractor.compare_with_expected(results, expected)
 
-        print(f"Overall Accuracy: {comparison['overall_accuracy']:.1f}%")
-        print(
-            f"Correct Fields: {comparison['correct_fields']}/{comparison['total_fields']}"
-        )
+        print(f'Overall Accuracy: {comparison["overall_accuracy"]:.1f}%')
+        print(f'Correct Fields: {comparison["correct_fields"]}/{comparison["total_fields"]}')
 
-        print("\nField-by-Field Results:")
-        for field, details in comparison["accuracy_by_field"].items():
-            status_symbol = "✓" if details["status"] == "correct" else "✗"
+        print('\nField-by-Field Results:')
+        for field, details in comparison['accuracy_by_field'].items():
+            status_symbol = '✓' if details['status'] == 'correct' else '✗'
             print(
-                f"  {status_symbol} {field}: {details['actual']} (expected: {details['expected']})"
+                f'  {status_symbol} {field}: {details["actual"]} (expected: {details["expected"]})'
             )
 
     # Save results
-    output_file = f"ocr_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-    with open(output_file, "w") as f:
+    output_file = f'ocr_results_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
+    with open(output_file, 'w') as f:
         json.dump(
             {
-                "image": image_path,
-                "timestamp": datetime.now().isoformat(),
-                "results": results,
-                "validation": (
-                    extractor.validate_extraction(results) if validate_mode else None
-                ),
+                'image': image_path,
+                'timestamp': datetime.now().isoformat(),
+                'results': results,
+                'validation': (extractor.validate_extraction(results) if validate_mode else None),
             },
             f,
             indent=2,
         )
-    print(f"\nResults saved to: {output_file}")
+    print(f'\nResults saved to: {output_file}')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

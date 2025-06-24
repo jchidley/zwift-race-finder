@@ -55,3 +55,7 @@ Learning log for project-specific insights and solutions.
 ## 2025-06-19: Power Simulation Tools - vpower and gymnasticon
 **Insight**: Tools like vpower (https://github.com/oldnapalm/vpower) and gymnasticon can simulate power output for Zwift, enabling controlled testing of race duration algorithms with repeatable power profiles.
 **Impact**: Can validate duration predictions by simulating consistent power outputs across different routes and conditions. Useful for understanding power/speed relationships and testing edge cases without needing real race data.
+
+## 2025-06-22: Garmin Connect API - FIT Files Wrapped in ZIP
+**Insight**: Garmin Connect API returns FIT files wrapped in ZIP containers (identified by PK\x03\x04 header). Virtual cycling activities from Zwift use "virtual_ride" or "virtual_cycling" activity type keys, not the standard cycling types.
+**Impact**: When downloading FIT files, check for ZIP header and extract. Must include virtual_* activity types to capture Zwift rides.

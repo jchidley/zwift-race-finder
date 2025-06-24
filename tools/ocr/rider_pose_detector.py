@@ -2,13 +2,14 @@
 # ABOUTME: Advanced rider pose detection for Zwift avatars
 # Uses template matching and feature analysis for accurate pose classification
 
-import cv2
-import numpy as np
-from pathlib import Path
-from typing import Dict, Tuple, Optional
 import json
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
+from typing import Dict, Optional, Tuple
+
+import cv2
+import numpy as np
 
 
 class RiderPose(Enum):
@@ -17,11 +18,11 @@ class RiderPose(Enum):
     Note: In Zwift, the "tuck" position counterintuitively has HIGH drag!
     """
 
-    NORMAL_TUCK = "normal_tuck"  # Tucked position (HIGH DRAG in Zwift)
-    NORMAL_NORMAL = "normal_normal"  # Standard upright (NORMAL DRAG)
-    CLIMBING_SEATED = "climbing_seated"  # Seated climbing (NORMAL DRAG)
-    CLIMBING_STANDING = "climbing_standing"  # Out of saddle (HIGH DRAG)
-    UNKNOWN = "unknown"
+    NORMAL_TUCK = 'normal_tuck'  # Tucked position (HIGH DRAG in Zwift)
+    NORMAL_NORMAL = 'normal_normal'  # Standard upright (NORMAL DRAG)
+    CLIMBING_SEATED = 'climbing_seated'  # Seated climbing (NORMAL DRAG)
+    CLIMBING_STANDING = 'climbing_standing'  # Out of saddle (HIGH DRAG)
+    UNKNOWN = 'unknown'
 
 
 @dataclass
@@ -49,41 +50,41 @@ class RiderPoseDetector:
         """
         self.calibration = self._load_default_calibration()
         if calibration_file and Path(calibration_file).exists():
-            with open(calibration_file, "r") as f:
+            with open(calibration_file) as f:
                 custom_calibration = json.load(f)
                 self.calibration.update(custom_calibration)
 
     def _load_default_calibration(self) -> Dict:
         """Load default pose detection thresholds based on Zwift's drag model"""
         return {
-            "normal_tuck": {
+            'normal_tuck': {
                 # Tucked position - HIGH DRAG in Zwift
-                "aspect_ratio_range": (0.8, 1.3),
-                "torso_angle_range": (30, 60),  # more horizontal
-                "head_height_ratio_range": (0.5, 0.7),
-                "center_of_mass_y_range": (0.55, 0.7),
+                'aspect_ratio_range': (0.8, 1.3),
+                'torso_angle_range': (30, 60),  # more horizontal
+                'head_height_ratio_range': (0.5, 0.7),
+                'center_of_mass_y_range': (0.55, 0.7),
             },
-            "normal_normal": {
+            'normal_normal': {
                 # Standard upright - NORMAL DRAG
-                "aspect_ratio_range": (1.3, 1.7),
-                "torso_angle_range": (-15, 15),  # degrees from vertical
-                "head_height_ratio_range": (0.7, 0.85),
-                "center_of_mass_y_range": (0.45, 0.55),
+                'aspect_ratio_range': (1.3, 1.7),
+                'torso_angle_range': (-15, 15),  # degrees from vertical
+                'head_height_ratio_range': (0.7, 0.85),
+                'center_of_mass_y_range': (0.45, 0.55),
             },
-            "climbing_standing": {
+            'climbing_standing': {
                 # Out of saddle - HIGH DRAG
-                "aspect_ratio_range": (1.7, 2.5),
-                "torso_angle_range": (-5, 25),
-                "head_height_ratio_range": (0.8, 0.95),
-                "center_of_mass_y_range": (0.3, 0.45),
-                "symmetry_threshold": 0.7,  # Less symmetric when standing
+                'aspect_ratio_range': (1.7, 2.5),
+                'torso_angle_range': (-5, 25),
+                'head_height_ratio_range': (0.8, 0.95),
+                'center_of_mass_y_range': (0.3, 0.45),
+                'symmetry_threshold': 0.7,  # Less symmetric when standing
             },
-            "climbing_seated": {
+            'climbing_seated': {
                 # Seated climbing - NORMAL DRAG
-                "aspect_ratio_range": (1.4, 1.8),
-                "torso_angle_range": (5, 30),
-                "head_height_ratio_range": (0.65, 0.8),
-                "center_of_mass_y_range": (0.45, 0.6),
+                'aspect_ratio_range': (1.4, 1.8),
+                'torso_angle_range': (5, 30),
+                'head_height_ratio_range': (0.65, 0.8),
+                'center_of_mass_y_range': (0.45, 0.6),
             },
         }
 
@@ -104,9 +105,7 @@ class RiderPoseDetector:
         edges = cv2.Canny(gray, 50, 150)
 
         # Find contours
-        contours, _ = cv2.findContours(
-            edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-        )
+        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         if not contours:
             return PoseFeatures(0, 0, 0, 0.5, 0, 0, 0)
@@ -120,9 +119,9 @@ class RiderPoseDetector:
 
         # Moments for center of mass
         moments = cv2.moments(rider_contour)
-        if moments["m00"] > 0:
-            cx = moments["m10"] / moments["m00"]
-            cy = moments["m01"] / moments["m00"]
+        if moments['m00'] > 0:
+            cx = moments['m10'] / moments['m00']
+            cy = moments['m01'] / moments['m00']
             cy_norm = cy / avatar_region.shape[0]
         else:
             cy_norm = 0.5
@@ -162,8 +161,7 @@ class RiderPoseDetector:
         right_flipped = right_flipped[:, :min_width]
 
         symmetry_score = 1 - (
-            np.sum(np.abs(left_half - right_flipped))
-            / (min_width * edges.shape[0] * 255)
+            np.sum(np.abs(left_half - right_flipped)) / (min_width * edges.shape[0] * 255)
         )
 
         return PoseFeatures(
@@ -193,36 +191,36 @@ class RiderPoseDetector:
             total_checks = 0
 
             # Check aspect ratio
-            if "aspect_ratio_range" in thresholds:
-                min_ar, max_ar = thresholds["aspect_ratio_range"]
+            if 'aspect_ratio_range' in thresholds:
+                min_ar, max_ar = thresholds['aspect_ratio_range']
                 if min_ar <= features.aspect_ratio <= max_ar:
                     score += 1
                 total_checks += 1
 
             # Check torso angle
-            if "torso_angle_range" in thresholds:
-                min_angle, max_angle = thresholds["torso_angle_range"]
+            if 'torso_angle_range' in thresholds:
+                min_angle, max_angle = thresholds['torso_angle_range']
                 if min_angle <= features.torso_angle <= max_angle:
                     score += 1
                 total_checks += 1
 
             # Check head height
-            if "head_height_ratio_range" in thresholds:
-                min_hh, max_hh = thresholds["head_height_ratio_range"]
+            if 'head_height_ratio_range' in thresholds:
+                min_hh, max_hh = thresholds['head_height_ratio_range']
                 if min_hh <= features.head_height_ratio <= max_hh:
                     score += 1
                 total_checks += 1
 
             # Check center of mass
-            if "center_of_mass_y_range" in thresholds:
-                min_cm, max_cm = thresholds["center_of_mass_y_range"]
+            if 'center_of_mass_y_range' in thresholds:
+                min_cm, max_cm = thresholds['center_of_mass_y_range']
                 if min_cm <= features.center_of_mass_y <= max_cm:
                     score += 1
                 total_checks += 1
 
             # Check symmetry for standing position
-            if "symmetry_threshold" in thresholds:
-                if features.symmetry_score < thresholds["symmetry_threshold"]:
+            if 'symmetry_threshold' in thresholds:
+                if features.symmetry_score < thresholds['symmetry_threshold']:
                     score += 0.5  # Partial score for asymmetry
                 total_checks += 0.5
 
@@ -274,7 +272,7 @@ class RiderPoseDetector:
         text_color = (0, 255, 0) if pose != RiderPose.UNKNOWN else (0, 0, 255)
         cv2.putText(
             result,
-            f"Pose: {pose.value}",
+            f'Pose: {pose.value}',
             (10, 30),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.7,
@@ -284,10 +282,10 @@ class RiderPoseDetector:
 
         # Add feature info
         info_text = [
-            f"AR: {features.aspect_ratio:.2f}",
-            f"Angle: {features.torso_angle:.1f}°",
-            f"Head: {features.head_height_ratio:.2f}",
-            f"CoM: {features.center_of_mass_y:.2f}",
+            f'AR: {features.aspect_ratio:.2f}',
+            f'Angle: {features.torso_angle:.1f}°',
+            f'Head: {features.head_height_ratio:.2f}',
+            f'CoM: {features.center_of_mass_y:.2f}',
         ]
 
         for i, text in enumerate(info_text):
@@ -318,7 +316,7 @@ def calibrate_from_samples(sample_dir: str, output_file: str):
     sample_path = Path(sample_dir)
     for pose_dir in sample_path.iterdir():
         if pose_dir.is_dir() and pose_dir.name in pose_features:
-            for img_file in pose_dir.glob("*.jpg"):
+            for img_file in pose_dir.glob('*.jpg'):
                 img = cv2.imread(str(img_file))
                 if img is not None:
                     features = detector.extract_features(img)
@@ -329,45 +327,45 @@ def calibrate_from_samples(sample_dir: str, output_file: str):
     for pose_name, features_list in pose_features.items():
         if features_list:
             calibration[pose_name] = {
-                "aspect_ratio_range": (
+                'aspect_ratio_range': (
                     min(f.aspect_ratio for f in features_list) * 0.9,
                     max(f.aspect_ratio for f in features_list) * 1.1,
                 ),
-                "torso_angle_range": (
+                'torso_angle_range': (
                     min(f.torso_angle for f in features_list) - 5,
                     max(f.torso_angle for f in features_list) + 5,
                 ),
-                "head_height_ratio_range": (
+                'head_height_ratio_range': (
                     min(f.head_height_ratio for f in features_list) * 0.95,
                     max(f.head_height_ratio for f in features_list) * 1.05,
                 ),
-                "center_of_mass_y_range": (
+                'center_of_mass_y_range': (
                     min(f.center_of_mass_y for f in features_list) - 0.05,
                     max(f.center_of_mass_y for f in features_list) + 0.05,
                 ),
             }
 
-    with open(output_file, "w") as f:
+    with open(output_file, 'w') as f:
         json.dump(calibration, f, indent=2)
 
-    print(f"Calibration saved to {output_file}")
+    print(f'Calibration saved to {output_file}')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     # Example usage
     detector = RiderPoseDetector()
 
     # Test on sample image
-    test_image_path = "docs/screenshots/with_climbing_1_01_36_01_42.jpg"
+    test_image_path = 'docs/screenshots/with_climbing_1_01_36_01_42.jpg'
     if Path(test_image_path).exists():
         img = cv2.imread(test_image_path)
         # Extract avatar region (approximate)
         avatar_region = img[400:700, 860:1060]
 
         pose, features = detector.detect_pose(avatar_region)
-        print(f"Detected pose: {pose.value}")
-        print(f"Features: {features}")
+        print(f'Detected pose: {pose.value}')
+        print(f'Features: {features}')
 
         # Visualize
         result = detector.visualize_detection(avatar_region, pose, features)
-        cv2.imwrite("pose_detection_result.jpg", result)
+        cv2.imwrite('pose_detection_result.jpg', result)

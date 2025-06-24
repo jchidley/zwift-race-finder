@@ -1,10 +1,10 @@
 # Project: Zwift Race Finder
-Updated: 2025-06-19 23:00:00
+Updated: 2025-06-22 05:43:00
 
 ## Current State
-Status: Comprehensive racing tactics documentation created based on academic research
+Status: Created Garmin Connect cycling downloader with incremental sync capabilities
 Target: 20.4% mean absolute error on race time predictions
-Latest: Created 11 racing guides documenting real-world vs Zwift physics and tactics
+Latest: Added Python utility for downloading cycling activities from Garmin Connect
 
 ## Essential Context
 - 378 routes in database from third-party sources (ZwiftHacks, WhatsOnZwift)
@@ -15,23 +15,10 @@ Latest: Created 11 racing guides documenting real-world vs Zwift physics and tac
 - Racing tactics documented: Binary draft model, attack mid-climb not base, 3-5 rider breakaways optimal
 
 ## Next Step
-Consider testing racing tactics with vpower/gymnasticon for controlled power profiles
+Commit the Garmin downloader script and test virtual cycling activity downloads
 
 ## Active Todo List
-All documentation-related todos completed:
-- [✓] Analyze documentation for different audiences
-- [✓] Design organization serving both racing optimization AND development
-- [✓] Create navigation strategy
-- [✓] Identify consolidation candidates
-- [✓] Create and execute migration plan
-- [✓] Write navigation READMEs
-- [✓] Create user-focused racing guides
-
-Future development todos:
-- [ ] Test gymnasticon bot for race duration algorithm validation
-- [ ] Implement UDP packet monitoring for real-time OCR validation
-- [ ] Polish OCR calibration tools for community contributions
-- [ ] Review and clean up pending git changes
+No active todos
 
 ## If Blocked
 No current blockers - zwift-offline integration working, 378 routes provide good coverage

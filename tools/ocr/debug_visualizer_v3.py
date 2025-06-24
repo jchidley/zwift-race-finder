@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Debug visualizer v3 for Zwift OCR extraction - shows corrected regions"""
 
-import cv2
-import numpy as np
-from zwift_ocr_improved_v3 import ZwiftOCRExtractorV3, ZwiftUILayoutV3
 import sys
 from datetime import datetime
+
+import cv2
+from zwift_ocr_improved_v3 import ZwiftOCRExtractorV3, ZwiftUILayoutV3
 
 
 class DebugVisualizerV3:
@@ -13,19 +13,19 @@ class DebugVisualizerV3:
 
     def __init__(self):
         self.colors = {
-            "power": (0, 0, 255),  # Red
-            "speed": (0, 255, 0),  # Green
-            "heart_rate": (255, 0, 0),  # Blue
-            "cadence": (255, 255, 0),  # Cyan
-            "distance": (255, 0, 255),  # Magenta
-            "altitude": (0, 255, 255),  # Yellow
-            "race_time": (128, 255, 128),  # Light green
-            "avg_power": (255, 128, 128),  # Light red
-            "energy": (128, 128, 255),  # Light blue
-            "gradient": (255, 165, 0),  # Orange
-            "distance_to_finish": (100, 200, 255),  # Sky blue
-            "leaderboard": (200, 200, 200),  # Light gray
-            "default": (128, 128, 128),  # Gray
+            'power': (0, 0, 255),  # Red
+            'speed': (0, 255, 0),  # Green
+            'heart_rate': (255, 0, 0),  # Blue
+            'cadence': (255, 255, 0),  # Cyan
+            'distance': (255, 0, 255),  # Magenta
+            'altitude': (0, 255, 255),  # Yellow
+            'race_time': (128, 255, 128),  # Light green
+            'avg_power': (255, 128, 128),  # Light red
+            'energy': (128, 128, 255),  # Light blue
+            'gradient': (255, 165, 0),  # Orange
+            'distance_to_finish': (100, 200, 255),  # Sky blue
+            'leaderboard': (200, 200, 200),  # Light gray
+            'default': (128, 128, 128),  # Gray
         }
 
     def create_debug_image(self, image_path: str, save_path: str = None):
@@ -34,14 +34,14 @@ class DebugVisualizerV3:
         # Load image
         image = cv2.imread(image_path)
         if image is None:
-            print(f"Could not load image: {image_path}")
+            print(f'Could not load image: {image_path}')
             return
 
         # Create copy for visualization
         vis_image = image.copy()
 
         # Run OCR extraction
-        print("Running OCR extraction...")
+        print('Running OCR extraction...')
         extractor = ZwiftOCRExtractorV3(debug=False)
         results = extractor.extract_telemetry(image_path)
 
@@ -54,113 +54,113 @@ class DebugVisualizerV3:
         self._draw_region(
             vis_image,
             ZwiftUILayoutV3.POWER,
-            "power",
-            f"Power: {results.get('power', '?')}W",
-            self.colors["power"],
+            'power',
+            f'Power: {results.get("power", "?")}W',
+            self.colors['power'],
         )
 
         self._draw_region(
             vis_image,
             ZwiftUILayoutV3.HEART_RATE,
-            "heart_rate",
-            f"HR: {results.get('heart_rate', '?')} BPM",
-            self.colors["heart_rate"],
+            'heart_rate',
+            f'HR: {results.get("heart_rate", "?")} BPM',
+            self.colors['heart_rate'],
         )
 
         self._draw_region(
             vis_image,
             ZwiftUILayoutV3.CADENCE,
-            "cadence",
-            f"Cadence: {results.get('cadence', '?')} RPM",
-            self.colors["cadence"],
+            'cadence',
+            f'Cadence: {results.get("cadence", "?")} RPM',
+            self.colors['cadence'],
         )
 
         self._draw_region(
             vis_image,
             ZwiftUILayoutV3.AVG_POWER,
-            "avg_power",
-            f"Avg Power: {results.get('avg_power', '?')}W",
-            self.colors["avg_power"],
+            'avg_power',
+            f'Avg Power: {results.get("avg_power", "?")}W',
+            self.colors['avg_power'],
         )
 
         self._draw_region(
             vis_image,
             ZwiftUILayoutV3.ENERGY,
-            "energy",
-            f"Energy: {results.get('energy', '?')} kJ",
-            self.colors["energy"],
+            'energy',
+            f'Energy: {results.get("energy", "?")} kJ',
+            self.colors['energy'],
         )
 
         # Top bar elements (split into 4)
         self._draw_region(
             vis_image,
             ZwiftUILayoutV3.SPEED,
-            "speed",
-            f"Speed: {results.get('speed', '?')} km/h",
-            self.colors["speed"],
+            'speed',
+            f'Speed: {results.get("speed", "?")} km/h',
+            self.colors['speed'],
         )
 
         self._draw_region(
             vis_image,
             ZwiftUILayoutV3.DISTANCE,
-            "distance",
-            f"Dist: {results.get('distance', '?')} km",
-            self.colors["distance"],
+            'distance',
+            f'Dist: {results.get("distance", "?")} km',
+            self.colors['distance'],
         )
 
         self._draw_region(
             vis_image,
             ZwiftUILayoutV3.ALTITUDE,
-            "altitude",
-            f"Alt: {results.get('altitude', '?')}m",
-            self.colors["altitude"],
+            'altitude',
+            f'Alt: {results.get("altitude", "?")}m',
+            self.colors['altitude'],
         )
 
         self._draw_region(
             vis_image,
             ZwiftUILayoutV3.RACE_TIME,
-            "race_time",
-            f"Time: {results.get('race_time', '?')}",
-            self.colors["race_time"],
+            'race_time',
+            f'Time: {results.get("race_time", "?")}',
+            self.colors['race_time'],
         )
 
         # Distance to finish
         self._draw_region(
             vis_image,
             ZwiftUILayoutV3.DISTANCE_TO_FINISH,
-            "distance_to_finish",
-            f"To Finish: {results.get('distance_to_finish', '?')} km",
-            self.colors["distance_to_finish"],
+            'distance_to_finish',
+            f'To Finish: {results.get("distance_to_finish", "?")} km',
+            self.colors['distance_to_finish'],
         )
 
         # Gradient
         self._draw_region(
             vis_image,
             ZwiftUILayoutV3.GRADIENT_BOX,
-            "gradient",
-            f"Gradient: {results.get('gradient', '?')}%",
-            self.colors["gradient"],
+            'gradient',
+            f'Gradient: {results.get("gradient", "?")}%',
+            self.colors['gradient'],
         )
 
         # Leaderboard area
         self._draw_region(
             vis_image,
             ZwiftUILayoutV3.LEADERBOARD_AREA,
-            "leaderboard",
-            f"Leaderboard: {len(results.get('leaderboard', []))} entries",
-            self.colors["leaderboard"],
+            'leaderboard',
+            f'Leaderboard: {len(results.get("leaderboard", []))} entries',
+            self.colors['leaderboard'],
         )
 
         # Add leaderboard text if present
-        if results.get("leaderboard"):
+        if results.get('leaderboard'):
             y_offset = ZwiftUILayoutV3.LEADERBOARD_AREA.y - 10
-            for entry in results["leaderboard"][:5]:  # Show top 5 entries
+            for entry in results['leaderboard'][:5]:  # Show top 5 entries
                 if isinstance(entry, dict):
-                    name = entry.get("name", "Unknown")
-                    w_kg = entry.get("watts_per_kg", "?")
-                    km = entry.get("distance_km", "?")
-                    gap = entry.get("gap", "")
-                    text = f"{gap} {name}: {w_kg} w/kg, {km} km".strip()
+                    name = entry.get('name', 'Unknown')
+                    w_kg = entry.get('watts_per_kg', '?')
+                    km = entry.get('distance_km', '?')
+                    gap = entry.get('gap', '')
+                    text = f'{gap} {name}: {w_kg} w/kg, {km} km'.strip()
                 else:
                     text = str(entry)
                 cv2.putText(
@@ -169,7 +169,7 @@ class DebugVisualizerV3:
                     (ZwiftUILayoutV3.LEADERBOARD_AREA.x, y_offset),
                     font,
                     0.6,
-                    self.colors["leaderboard"],
+                    self.colors['leaderboard'],
                     1,
                 )
                 y_offset -= 20
@@ -178,10 +178,10 @@ class DebugVisualizerV3:
         self._add_legend(vis_image, results)
 
         # Add timestamp
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         cv2.putText(
             vis_image,
-            f"OCR Debug V3 - {timestamp}",
+            f'OCR Debug V3 - {timestamp}',
             (10, image.shape[0] - 10),
             font,
             0.5,
@@ -191,10 +191,10 @@ class DebugVisualizerV3:
 
         # Save result
         if save_path is None:
-            save_path = f"debug_ocr_v3_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
+            save_path = f'debug_ocr_v3_{datetime.now().strftime("%Y%m%d_%H%M%S")}.jpg'
 
         cv2.imwrite(save_path, vis_image)
-        print(f"\nDebug visualization saved to: {save_path}")
+        print(f'\nDebug visualization saved to: {save_path}')
 
         # Print extraction summary
         self._print_summary(results)
@@ -245,12 +245,12 @@ class DebugVisualizerV3:
 
         # Calculate expected vs actual values
         expected = {
-            "speed": 20,
-            "distance": 18.4,
-            "altitude": 28,
-            "race_time": "31:06",
-            "distance_to_finish": 28.6,
-            "gradient": 3,
+            'speed': 20,
+            'distance': 18.4,
+            'altitude': 28,
+            'race_time': '31:06',
+            'distance_to_finish': 28.6,
+            'gradient': 3,
         }
 
         # Background
@@ -272,7 +272,7 @@ class DebugVisualizerV3:
         # Title
         cv2.putText(
             image,
-            "OCR EXTRACTION STATUS",
+            'OCR EXTRACTION STATUS',
             (legend_x, legend_y),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.7,
@@ -283,17 +283,17 @@ class DebugVisualizerV3:
 
         # Status for each field
         fields = [
-            ("Speed", results.get("speed"), "speed"),
-            ("Distance", results.get("distance"), "distance"),
-            ("Altitude", results.get("altitude"), "altitude"),
-            ("Race Time", results.get("race_time"), "race_time"),
-            ("Power", results.get("power"), "power"),
-            ("Heart Rate", results.get("heart_rate"), "heart_rate"),
-            ("Cadence", results.get("cadence"), "cadence"),
-            ("Avg Power", results.get("avg_power"), "avg_power"),
-            ("Energy", results.get("energy"), "energy"),
-            ("Gradient", results.get("gradient"), "gradient"),
-            ("Dist to Finish", results.get("distance_to_finish"), "distance_to_finish"),
+            ('Speed', results.get('speed'), 'speed'),
+            ('Distance', results.get('distance'), 'distance'),
+            ('Altitude', results.get('altitude'), 'altitude'),
+            ('Race Time', results.get('race_time'), 'race_time'),
+            ('Power', results.get('power'), 'power'),
+            ('Heart Rate', results.get('heart_rate'), 'heart_rate'),
+            ('Cadence', results.get('cadence'), 'cadence'),
+            ('Avg Power', results.get('avg_power'), 'avg_power'),
+            ('Energy', results.get('energy'), 'energy'),
+            ('Gradient', results.get('gradient'), 'gradient'),
+            ('Dist to Finish', results.get('distance_to_finish'), 'distance_to_finish'),
         ]
 
         for field_name, value, color_key in fields:
@@ -302,19 +302,17 @@ class DebugVisualizerV3:
                 image,
                 (legend_x, legend_y - 12),
                 (legend_x + 15, legend_y + 3),
-                self.colors.get(color_key, self.colors["default"]),
+                self.colors.get(color_key, self.colors['default']),
                 -1,
             )
 
             # Status text
-            status = "✓" if value is not None else "✗"
-            text = (
-                f"{status} {field_name}: {value if value is not None else 'Not found'}"
-            )
+            status = '✓' if value is not None else '✗'
+            text = f'{status} {field_name}: {value if value is not None else "Not found"}'
 
             # Add expected value if different
             if color_key in expected and value != expected[color_key]:
-                text += f" (expected: {expected[color_key]})"
+                text += f' (expected: {expected[color_key]})'
 
             cv2.putText(
                 image,
@@ -329,48 +327,48 @@ class DebugVisualizerV3:
 
     def _print_summary(self, results):
         """Print extraction summary to console"""
-        print("\n" + "=" * 60)
-        print("OCR EXTRACTION SUMMARY")
-        print("=" * 60)
+        print('\n' + '=' * 60)
+        print('OCR EXTRACTION SUMMARY')
+        print('=' * 60)
 
         # Expected values
         expected = {
-            "speed": 20,
-            "distance": 18.4,
-            "altitude": 28,
-            "race_time": "31:06",
-            "power": 268,
-            "heart_rate": 160,
-            "cadence": 72,
-            "avg_power": 222,
-            "energy": 142,
-            "gradient": 3.0,
-            "distance_to_finish": 28.6,
+            'speed': 20,
+            'distance': 18.4,
+            'altitude': 28,
+            'race_time': '31:06',
+            'power': 268,
+            'heart_rate': 160,
+            'cadence': 72,
+            'avg_power': 222,
+            'energy': 142,
+            'gradient': 3.0,
+            'distance_to_finish': 28.6,
         }
 
         successful = sum(1 for v in results.values() if v is not None and v != [])
         total = len(results)
 
-        print(f"Success rate: {successful}/{total} ({successful/total*100:.1f}%)")
-        print("\nExtracted values:")
+        print(f'Success rate: {successful}/{total} ({successful / total * 100:.1f}%)')
+        print('\nExtracted values:')
 
         for key, value in results.items():
             if value is not None and value != []:
-                status = "✓"
+                status = '✓'
                 # Check if matches expected
                 if key in expected:
                     if value == expected[key]:
-                        status += " (correct)"
+                        status += ' (correct)'
                     else:
-                        status += f" (expected: {expected[key]})"
-                print(f"  {status} {key}: {value}")
+                        status += f' (expected: {expected[key]})'
+                print(f'  {status} {key}: {value}')
             else:
-                status = "✗"
+                status = '✗'
                 if key in expected:
-                    status += f" (expected: {expected[key]})"
-                print(f"  {status} {key}: Not found")
+                    status += f' (expected: {expected[key]})'
+                print(f'  {status} {key}: Not found')
 
-        print("=" * 60)
+        print('=' * 60)
 
 
 def main():
@@ -382,9 +380,9 @@ def main():
         visualizer = DebugVisualizerV3()
         visualizer.create_debug_image(image_path, save_path)
     else:
-        print("Usage: python debug_visualizer_v3.py <image_path> [output_path]")
-        print("Example: python debug_visualizer_v3.py screenshot.jpg debug_output.jpg")
+        print('Usage: python debug_visualizer_v3.py <image_path> [output_path]')
+        print('Example: python debug_visualizer_v3.py screenshot.jpg debug_output.jpg')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

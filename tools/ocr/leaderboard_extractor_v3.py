@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """Improved leaderboard extraction with better name detection"""
-import cv2
-import numpy as np
-from paddleocr import PaddleOCR
+
+import re
 import warnings
 from dataclasses import dataclass
-from typing import List, Dict, Any, Optional
-import re
+from typing import List, Optional
 
-warnings.filterwarnings("ignore", category=UserWarning, module="paddle")
+import cv2
+from paddleocr import PaddleOCR
+
+warnings.filterwarnings('ignore', category=UserWarning, module='paddle')
 
 
 @dataclass
@@ -26,40 +27,38 @@ class LeaderboardEntry:
 def is_likely_name(text: str) -> bool:
     """Determine if text is likely a rider name"""
     # Filter out obvious non-names
-    if "KM" in text.upper():
+    if 'KM' in text.upper():
         return False
-    if "w/kg" in text.lower():
+    if 'w/kg' in text.lower():
         return False
-    if text.replace(".", "").replace(",", "").isdigit():
+    if text.replace('.', '').replace(',', '').isdigit():
         return False
 
     # Positive indicators for names
     # Has dots between letters (J.Chidley)
-    if re.match(r"^[A-Z]\.[A-Za-z]", text):
+    if re.match(r'^[A-Z]\.[A-Za-z]', text):
         return True
     # Multiple dots (C.J.Y.S)
-    if text.count(".") >= 2 and any(c.isalpha() for c in text):
+    if text.count('.') >= 2 and any(c.isalpha() for c in text):
         return True
     # Starts with uppercase and has lowercase (Laindre)
-    if re.match(r"^[A-Z][a-z]", text):
+    if re.match(r'^[A-Z][a-z]', text):
         return True
     # Contains parenthesis (J.T.Noxen))
-    if "(" in text or ")" in text:
+    if '(' in text or ')' in text:
         return True
     # Single letter with dot
-    if re.match(r"^[A-Z]\.$", text):
+    if re.match(r'^[A-Z]\.$', text):
         return True
 
     return False
 
 
-def extract_leaderboard_improved(
-    image_path: str, debug: bool = False
-) -> List[LeaderboardEntry]:
+def extract_leaderboard_improved(image_path: str, debug: bool = False) -> List[LeaderboardEntry]:
     """Extract leaderboard with improved logic"""
 
     img = cv2.imread(image_path)
-    ocr = PaddleOCR(use_angle_cls=True, lang="en", show_log=False)
+    ocr = PaddleOCR(use_angle_cls=True, lang='en', show_log=False)
 
     # Leaderboard area - you might need to adjust these coordinates
     x, y, w, h = 1500, 200, 420, 600
@@ -86,34 +85,34 @@ def extract_leaderboard_improved(
 
         detections.append(
             {
-                "text": text,
-                "y_center": y_center,
-                "y_top": y_top,
-                "y_bottom": y_bottom,
-                "x": x_left,
-                "height": y_bottom - y_top,
-                "conf": conf,
+                'text': text,
+                'y_center': y_center,
+                'y_top': y_top,
+                'y_bottom': y_bottom,
+                'x': x_left,
+                'height': y_bottom - y_top,
+                'conf': conf,
             }
         )
 
     # Sort by Y position
-    detections.sort(key=lambda d: d["y_center"])
+    detections.sort(key=lambda d: d['y_center'])
 
     if debug:
-        print("Filtered detections:")
+        print('Filtered detections:')
         for d in detections:
             print(
                 f"Y={d['y_center']:.1f}, X={d['x']:.1f}, Text='{d['text']}', IsName={is_likely_name(d['text'])}"
             )
 
     # Find rider names
-    names = [d for d in detections if is_likely_name(d["text"])]
+    names = [d for d in detections if is_likely_name(d['text'])]
 
     # Skip the event title if it exists
-    if names and names[0]["y_center"] < 180:  # Adjust threshold as needed
+    if names and names[0]['y_center'] < 180:  # Adjust threshold as needed
         event_title = names.pop(0)
         if debug:
-            print(f"Skipping event title: {event_title['text']}")
+            print(f'Skipping event title: {event_title["text"]}')
 
     entries = []
 
@@ -121,48 +120,46 @@ def extract_leaderboard_improved(
         # Initialize entry
         entry = LeaderboardEntry(
             position=i + 1,
-            name=name_det["text"].strip(),
+            name=name_det['text'].strip(),
             time_delta=None,
             watts_per_kg=0.0,
             distance_km=0.0,
         )
 
         # Define the data row region (typically 15-35 pixels below name)
-        name_y = name_det["y_center"]
+        name_y = name_det['y_center']
         data_row_min_y = name_y + 10
         data_row_max_y = name_y + 40
 
         # Find all detections in the data row
-        data_row = [
-            d for d in detections if data_row_min_y <= d["y_center"] <= data_row_max_y
-        ]
+        data_row = [d for d in detections if data_row_min_y <= d['y_center'] <= data_row_max_y]
 
         if debug and data_row:
-            print(f"\nData row for {entry.name}:")
+            print(f'\nData row for {entry.name}:')
             for d in data_row:
-                print(f"  {d['text']}")
+                print(f'  {d["text"]}')
 
         # Process each detection in the data row
         for det in data_row:
-            text = det["text"].strip()
+            text = det['text'].strip()
 
             # Time delta (contains : and +/-)
-            if ":" in text and any(c in text for c in ["+", "-"]):
+            if ':' in text and any(c in text for c in ['+', '-']):
                 entry.time_delta = text
             # Distance (contains KM)
-            elif "KM" in text.upper():
-                num_match = re.search(r"(\d+\.?\d*)", text)
+            elif 'KM' in text.upper():
+                num_match = re.search(r'(\d+\.?\d*)', text)
                 if num_match:
                     entry.distance_km = float(num_match.group(1))
             # W/kg (contains w/kg or is a decimal in the middle region)
-            elif "w/kg" in text.lower() or "wkg" in text.lower():
-                num_match = re.search(r"(\d+\.?\d*)", text)
+            elif 'w/kg' in text.lower() or 'wkg' in text.lower():
+                num_match = re.search(r'(\d+\.?\d*)', text)
                 if num_match:
                     entry.watts_per_kg = float(num_match.group(1))
             # Check position to determine if it's w/kg (middle column)
-            elif 80 < det["x"] < 180 and "." in text:
+            elif 80 < det['x'] < 180 and '.' in text:
                 # Likely w/kg value based on position
-                num_match = re.search(r"(\d+\.?\d*)", text)
+                num_match = re.search(r'(\d+\.?\d*)', text)
                 if num_match:
                     value = float(num_match.group(1))
                     if 0.5 <= value <= 7.0:  # Reasonable w/kg range
@@ -170,9 +167,7 @@ def extract_leaderboard_improved(
 
         # Determine if this is the current rider
         # Current rider has no time delta but has other data
-        if entry.time_delta is None and (
-            entry.watts_per_kg > 0 or entry.distance_km > 0
-        ):
+        if entry.time_delta is None and (entry.watts_per_kg > 0 or entry.distance_km > 0):
             entry.is_current_rider = True
 
         # Only add entries with at least some data
@@ -184,8 +179,8 @@ def extract_leaderboard_improved(
 
 def update_leaderboard_extraction_in_main_script():
     """Generate the updated leaderboard extraction method"""
-    print("\n\nUpdated _extract_leaderboard_structured method:")
-    print("=" * 60)
+    print('\n\nUpdated _extract_leaderboard_structured method:')
+    print('=' * 60)
     print(
         '''
     def _extract_leaderboard_structured(self, image: np.ndarray) -> List[Dict[str, Any]]:
@@ -280,26 +275,26 @@ def update_leaderboard_extraction_in_main_script():
     )
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     import sys
 
     if len(sys.argv) > 1:
         image_path = sys.argv[1]
     else:
-        image_path = "../../docs/screenshots/normal_1_01_16_02_21.jpg"
+        image_path = '../../docs/screenshots/normal_1_01_16_02_21.jpg'
 
-    print("Extracting leaderboard with improved logic...")
+    print('Extracting leaderboard with improved logic...')
     entries = extract_leaderboard_improved(image_path, debug=True)
 
-    print("\n\nExtracted entries:")
-    print("-" * 60)
+    print('\n\nExtracted entries:')
+    print('-' * 60)
     for entry in entries:
-        marker = " ⬅️  YOU" if entry.is_current_rider else ""
-        time_str = entry.time_delta if entry.time_delta else "---"
+        marker = ' ⬅️  YOU' if entry.is_current_rider else ''
+        time_str = entry.time_delta if entry.time_delta else '---'
         print(
-            f"{entry.position}. {entry.name:<15} {time_str:>6}  "
-            f"{entry.watts_per_kg:>3.1f} w/kg  "
-            f"{entry.distance_km:>4.1f} km{marker}"
+            f'{entry.position}. {entry.name:<15} {time_str:>6}  '
+            f'{entry.watts_per_kg:>3.1f} w/kg  '
+            f'{entry.distance_km:>4.1f} km{marker}'
         )
 
     # Show the code to update
