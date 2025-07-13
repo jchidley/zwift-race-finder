@@ -73,7 +73,6 @@ coverage/
 mutants.out/
 mutants.out.old/
 mutation_results/
-cargo-mutants/
 
 # Profiling
 perf.data
@@ -82,11 +81,7 @@ flamegraph.svg
 *.profdata
 
 # Reference repositories
-zwiftmap-reference/
-zwift-data-reference/
-zwift-client-reference/
 zwift-offline/
-gymnasticon/
 
 # Python cache
 __pycache__/

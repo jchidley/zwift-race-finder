@@ -1,0 +1,15 @@
+[submodule "cargo-mutants"]
+	path = cargo-mutants
+	url = https://github.com/sourcefrog/cargo-mutants.git
+[submodule "gymnasticon"]
+	path = gymnasticon
+	url = https://github.com/ptx2/gymnasticon.git
+[submodule "zwift-client-reference"]
+	path = zwift-client-reference
+	url = https://github.com/jsmits/zwift-client.git
+[submodule "zwift-data-reference"]
+	path = zwift-data-reference
+	url = https://github.com/andipaetzold/zwift-data.git
+[submodule "zwiftmap-reference"]
+	path = zwiftmap-reference
+	url = https://github.com/andipaetzold/zwiftmap.git
