@@ -142,7 +142,7 @@ Zwift shows race distances but not expected durations. A 40km race might take 60
 ### 7. Security
 
 - **NFR-7.1**: Never store API credentials in code
-- **NFR-7.2**: Use secure token storage for OAuth (Bitwarden, GPG, or secure directory)
+- **NFR-7.2**: Use secure token storage for OAuth (GPG/direnv or secure directory)
 - **NFR-7.3**: Exclude sensitive files via .gitignore
 - **NFR-7.4**: Support environment variables for secrets
 - **NFR-7.5**: Provide security audit scripts (check_secrets.sh, sanitize_personal_data.sh)
@@ -200,7 +200,7 @@ Zwift shows race distances but not expected durations. A 40km race might take 60
 - **DR-13.1**: Support JSON configuration files (legacy)
 - **DR-13.2**: Support TOML for improved readability (preferred)
 - **DR-13.3**: Allow environment variable overrides
-- **DR-13.4**: Provide secure storage options (Bitwarden integration)
+- **DR-13.4**: Provide secure storage options (GPG/direnv integration)
 - **DR-13.5**: Configuration loading priority: local → secure dir → env vars → defaults
 - **DR-13.6**: Separate secrets from non-secret configuration
 - **DR-13.7**: Support personal wrappers that auto-load configuration
@@ -444,7 +444,7 @@ Zwift shows race distances but not expected durations. A 40km race might take 60
 - 2025-05-27: Updated with user concerns and recent session improvements
 - 2025-05-27: Comprehensive update after reviewing all 41 project *.md files
   - Added security requirements from SECURITY_AUDIT.md
-  - Enhanced configuration requirements based on Bitwarden integration
+  - Enhanced configuration requirements based on GPG/direnv integration
   - Added physics modeling details from PHYSICAL_STATS.md
   - Incorporated pack dynamics and event type discoveries
   - Added AI development insights from AI_DEVELOPMENT.md

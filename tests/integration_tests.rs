@@ -61,7 +61,11 @@ fn test_new_routes_only_flag() {
     let (stdout, _, _) = run_command(&["--new-routes-only"]);
 
     // Should either work or give appropriate message
-    assert!(stdout.contains("routes") || stdout.contains("No results"));
+    assert!(
+        stdout.contains("routes")
+            || stdout.contains("No results")
+            || stdout.contains("No matching events")
+    );
 }
 
 #[test]

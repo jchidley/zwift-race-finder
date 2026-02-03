@@ -1,2 +1,0 @@
-src/main.rs:1081:5: replace prepare_event_row -> EventTableRow with Default::default()
-src/main.rs:609:24: replace + with * in filter_events

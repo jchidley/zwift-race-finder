@@ -1,5 +1,5 @@
 # Zwift Race Finder Configuration
-# Non-secret settings only - secrets are stored in Bitwarden
+# Non-secret settings only - secrets are loaded from environment variables
 
 [defaults]
 zwift_score = 195

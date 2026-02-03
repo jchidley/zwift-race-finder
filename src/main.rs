@@ -233,6 +233,7 @@ fn generate_filter_description(args: &Args, min_duration: u32, max_duration: u32
 }
 
 async fn fetch_zwiftpower_stats(secrets: &Secrets) -> Result<Option<UserStats>> {
+    let debug = std::env::var("ZRF_ZP_DEBUG").is_ok();
     // Only try to fetch if we have profile ID configured
     let (profile_id, session_id) = match (
         &secrets.zwiftpower_profile_id,
@@ -242,10 +243,18 @@ async fn fetch_zwiftpower_stats(secrets: &Secrets) -> Result<Option<UserStats>> 
         (Some(pid), None) => {
             // Try without session ID (might work for public profiles)
             let url = format!("https://zwiftpower.com/profile.php?z={}", pid);
+            if debug {
+                eprintln!("ZP: no session ID configured, trying public profile access");
+            }
             eprintln!("Note: No session ID configured, trying public profile access...");
             return fetch_zwiftpower_public(&url).await;
         }
-        _ => return Ok(None), // No profile ID configured
+        _ => {
+            if debug {
+                eprintln!("ZP: missing profile ID, skipping fetch");
+            }
+            return Ok(None);
+        }
     };
 
     let url = format!(
@@ -264,19 +273,33 @@ async fn fetch_zwiftpower_stats(secrets: &Secrets) -> Result<Option<UserStats>> 
             let html = resp.text().await?;
 
             // Parse Zwift Racing Score from the HTML
-            let score_regex = Regex::new(r"Zwift Racing Score.*?(\d+)").unwrap();
-            let category_regex = Regex::new(r"Category:\s*([ABCD])").unwrap();
+            let score_regex = Regex::new(r"(?s)Zwift Racing Score.*?(\d+)").unwrap();
+            let category_regex =
+                Regex::new(r"Category(?:[^A-Z]+)?([A-E]\\+?)").unwrap();
 
-            if let (Some(score_match), Some(cat_match)) =
-                (score_regex.captures(&html), category_regex.captures(&html))
-            {
+            if debug {
+                eprintln!(
+                    "ZP: body has score label? {}",
+                    html.contains("Zwift Racing Score")
+                );
+                eprintln!("ZP: score regex match? {}", score_regex.is_match(&html));
+                eprintln!(
+                    "ZP: category regex match? {}",
+                    category_regex.is_match(&html)
+                );
+            }
+
+            if let Some(score_match) = score_regex.captures(&html) {
                 let zwift_score: u32 = score_match[1].parse().unwrap_or(195);
-                let category = cat_match[1].to_string();
+                let category = category_regex
+                    .captures(&html)
+                    .and_then(|caps| caps.get(1).map(|m| m.as_str().to_string()))
+                    .unwrap_or_else(|| get_category_from_score(zwift_score).to_string());
 
                 return Ok(Some(UserStats {
                     zwift_score,
                     category,
-                    username: "User".to_string(),
+                    username: "ZwiftPower".to_string(),
                 }));
             }
         }

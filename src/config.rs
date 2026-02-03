@@ -251,7 +251,7 @@ impl Config {
 impl Secrets {
     /// Load secrets from environment variables
     pub fn load() -> Self {
-        // Load secrets from environment variables (set by Bitwarden)
+        // Load secrets from environment variables (set via direnv/ak or equivalent)
         Secrets {
             zwiftpower_profile_id: std::env::var("ZWIFTPOWER_PROFILE_ID").ok(),
             zwiftpower_session_id: std::env::var("ZWIFTPOWER_SESSION_ID").ok(),

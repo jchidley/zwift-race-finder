@@ -121,7 +121,7 @@ After running the sanitization script and addressing the high-priority issues, t
 - Created comprehensive system to sanitize personal data before making repository public
 - Implemented multiple secure configuration options that survive repository updates
 - Migrated from JSON to TOML configuration for better readability
-- Integrated Bitwarden for secure secret management
+- Integrated GPG/direnv for secure secret management
 
 ### Key Discoveries
 - Personal data was scattered across multiple files (profile IDs, session tokens, file paths)
@@ -136,12 +136,12 @@ After running the sanitization script and addressing the high-priority issues, t
    - `setup_git_hooks.sh` - Pre-commit hooks to prevent accidental secret commits
 
 2. **Secure Configuration Options**:
-   - **Bitwarden Integration**: Secrets stored in password manager, config in TOML
+   - **GPG/direnv Integration**: Secrets loaded via environment variables
    - **Local Secure Directory**: `~/.config/zwift-race-finder/` with restricted permissions
    - **GPG Encrypted**: Passphrase-protected configuration
 
 3. **Configuration Architecture**:
-   - Separated secrets (Bitwarden/env vars) from settings (TOML files)
+   - Separated secrets (env vars) from settings (TOML files)
    - Multi-source config loading: local → secure dir → env vars → defaults
    - Smart wrappers that auto-load from preferred source
 
@@ -151,7 +151,7 @@ After running the sanitization script and addressing the high-priority issues, t
 ```rust
 1. ./config.toml (local)
 2. ~/.config/zwift-race-finder/config.toml (secure)
-3. Environment variables (from Bitwarden)
+3. Environment variables (from direnv/ak)
 4. Default values
 ```
 
@@ -172,7 +172,7 @@ default_tolerance = 30
 ### Lessons Learned
 - Always separate secrets from configuration
 - Provide multiple security options for different user preferences
-- Use standard tools (Bitwarden, GPG) rather than custom encryption
+- Use standard tools (GPG/direnv) rather than custom encryption
 - Make the "right thing" (security) the easy thing (one command setup)
 - TOML is more user-friendly than JSON for configuration files
 
@@ -183,11 +183,8 @@ default_tolerance = 30
 # One-time personal config setup (interactive)
 ./setup_personal_config.sh
 
-# Bitwarden setup and usage
-bw login
-export BW_SESSION=$(bw unlock --raw)
-./bw_config.sh setup
-source <(./bw_config.sh export)
+# Secrets setup (direnv/ak)
+direnv allow
 
 # Security checks before committing
 ./check_secrets.sh

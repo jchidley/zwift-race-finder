@@ -1,78 +1,26 @@
-# Zwift Race Finder Documentation
+# Documentation
 
-Welcome! This documentation serves multiple audiences. Choose your path:
+Use this index to find the right material quickly.
 
-## 🚴 For Racers - Optimize Your Performance
-**[→ Go to Racing Guides](/docs/for-racers/)**
+## Start Here
 
-New to the tool? Want to race faster? Start here for:
-- Power optimization strategies
-- Draft tactics and pack dynamics
-- Route-specific strategies
-- Understanding Zwift as a game
+- Racers: `docs/for-racers/`
+- Developers: `docs/for-developers/`
 
-## 🛠️ For Developers - Extend and Contribute
-**[→ Go to Developer Docs](/docs/for-developers/)**
+## How-to Guides
 
-Contributing code? Debugging issues? Find:
-- Architecture and design decisions
-- Testing strategies
-- API research
-- Active development plans
+- `docs/guides/` - Setup, data import, and operations
 
-## 📚 Reference - Core Knowledge
-Essential technical documentation:
-- [Algorithms](reference/ALGORITHMS.md) - How predictions work
-- [Architecture](reference/ARCHITECTURE.md) - System design
-- [Zwift Domain](reference/ZWIFT_DOMAIN.md) - Key concepts
+## Reference
 
-## 🔬 Research - Deep Dives
-**[→ Browse Research](/docs/research/)**
+- `docs/reference/` - Algorithms, architecture, domain concepts
 
-Investigations into:
-- Zwift physics equations
-- Route analysis techniques
-- Performance optimization
+## Explanation
 
-## 📋 Guides - Operations
-**[→ View Guides](/docs/guides/)**
+- `docs/research/` - Deep dives and analysis
+- `docs/project-history/` - Accuracy timeline and key decisions
 
-Setup and operational procedures:
-- Installation and deployment
-- Data import workflows
-- Security considerations
+## Related Reading
 
-## 📜 Project History
-**[→ Explore History](/docs/project-history/)**
-
-Learn how we achieved 23.6% prediction accuracy:
-- Development timeline
-- Key decisions and pivots
-- Testing evolution
-
-## Quick Links
-
-### Current Status
-- **Prediction Accuracy**: 23.6% (exceeds 30% target)
-- **Test Coverage**: Comprehensive with mutation testing
-- **Active Development**: UOM migration, racing guides
-
-### Key Insights
-- `PROJECT_WISDOM.md` - Accumulated learnings
-- `COMPREHENSIVE_TESTING_GUIDE.md` - Testing philosophy
-- `TEST_SUITE_SUMMARY.md` - Current test status
-
-### Getting Started
-1. **Users**: Start with [Racing Guides](/docs/for-racers/)
-2. **Developers**: Check [Current Development Plan](/docs/for-developers/CURRENT_DEVELOPMENT_PLAN.md)
-3. **Contributors**: Read [Architecture](reference/ARCHITECTURE.md) first
-
-## Documentation Philosophy
-
-This project maintains extensive documentation because:
-- It's an ongoing project with active development
-- Multiple audiences need different information
-- Historical context helps future decisions
-- Transparency aids AI-assisted development
-
-Questions? Check the guides or dive into the research!
+- `PROJECT_WISDOM.md`
+- `COMPREHENSIVE_TESTING_GUIDE.md`

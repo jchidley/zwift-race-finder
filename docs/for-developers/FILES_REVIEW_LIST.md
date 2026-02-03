@@ -49,7 +49,7 @@ This document tracks all *.md files in the project, sorted by modification time 
 38. ✅ `/home/jack/tools/rust/zwift-race-finder/GITHUB_PUBLISH_LOG.md` - GitHub publishing
 39. ✅ `/home/jack/tools/rust/zwift-race-finder/ZWIFTPOWER_EXPORT_STEPS.md` - Data export guide
 40. ✅ `/home/jack/tools/rust/zwift-race-finder/SECURITY_AUDIT.md` - Security review
-41. ✅ `/home/jack/tools/rust/zwift-race-finder/BITWARDEN_SETUP.md` - Password manager setup
+41. ✅ `/home/jack/tools/rust/zwift-race-finder/docs/guides/SECRETS_SETUP.md` - Secrets setup (direnv + ak)
 
 ## Comprehensive Review Complete (All 41 Files ✅)
 
@@ -68,7 +68,7 @@ This document tracks all *.md files in the project, sorted by modification time 
 5. **AI Development**: Human expertise + AI implementation = successful product
 
 ### Security Requirements Added
-- Bitwarden integration for secure token storage
+- GPG/direnv integration for secure token storage
 - Pre-commit hooks to prevent secret commits
 - Sanitization scripts for public release
 - Multiple secure config options (GPG, secure dir, env vars)
