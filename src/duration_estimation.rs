@@ -320,78 +320,10 @@ mod tests {
             "Road to Sky Cat C multiplier should be ~0.42, got {}", rts_c);
     }
 
-    #[test]
-    fn test_weighted_average_calculation() {
-        // Test the weighted average formula specifically
-        // pack_time * (1.0 - drop_probability) + solo_time * drop_probability
-
-        let pack_time = 60.0;
-        let solo_time = 80.0;
-        let drop_prob = 0.25;
-
-        let weighted = pack_time * (1.0 - drop_prob) + solo_time * drop_prob;
-        assert_eq!(weighted, 65.0); // 60 * 0.75 + 80 * 0.25 = 45 + 20 = 65
-
-        // If * became +, we'd get very different results
-        assert_ne!(
-            weighted,
-            pack_time + (1.0 - drop_prob) + solo_time + drop_prob
-        );
-
-        // Test edge cases
-        let weighted_0 = pack_time * 1.0 + solo_time * 0.0;
-        assert_eq!(weighted_0, pack_time);
-
-        let weighted_1 = pack_time * 0.0 + solo_time * 1.0;
-        assert_eq!(weighted_1, solo_time);
-    }
-
-    #[test]
-    fn test_drop_probability_match_guards() {
-        // Test match guard conditions in calculate_drop_probability
-        // Mutation: replace match guard with true/false
-
-        // Test various elevation levels
-        let test_cases = vec![
-            (5.0, 0.0),  // < 10 m/km -> 0%
-            (15.0, 0.1), // 10-20 m/km -> 10%
-            (25.0, 0.3), // 20-30 m/km -> 30%
-            (35.0, 0.5), // 30-40 m/km -> 50%
-            (45.0, 0.7), // 40-50 m/km -> 70%
-            (55.0, 0.9), // > 50 m/km -> 90%
-        ];
-
-        for (elevation_per_km, expected_prob) in test_cases {
-            let prob = match elevation_per_km {
-                e if e < 10.0 => 0.0,
-                e if e < 20.0 => 0.1,
-                e if e < 30.0 => 0.3,
-                e if e < 40.0 => 0.5,
-                e if e < 50.0 => 0.7,
-                _ => 0.9,
-            };
-
-            assert_eq!(prob, expected_prob);
-        }
-    }
-
-    #[test]
-    fn test_minutes_calculation() {
-        // Test conversion from hours to minutes
-        // Formula: (distance_km / speed_kmh) * 60
-
-        let distance = 20.0;
-        let speed = 30.0;
-
-        let time_hours = distance / speed; // 0.667 hours
-        let time_minutes = time_hours * MINUTES_PER_HOUR as f64; // 40 minutes
-
-        assert_eq!(time_minutes as u32, 40);
-
-        // If * became +, we'd get 60.667
-        assert!(time_minutes < 50.0);
-
-        // If / became *, we'd get 600 hours
-        assert!(time_hours < 1.0);
-    }
+    // NOTE: test_weighted_average_calculation, test_drop_probability_match_guards,
+    // and test_minutes_calculation were removed during test audit.
+    // They tested reimplemented inline logic (no production function calls).
+    // The dual-speed pack/solo model they tested was removed from production code.
+    // The formulas they verified are already tested indirectly through
+    // estimate_duration_for_category and property tests.
 }

@@ -14,6 +14,7 @@ use zwift_race_finder::duration_estimation::{
     get_route_difficulty_multiplier_from_elevation,
     get_route_difficulty_multiplier_from_elevation_and_category,
 };
+use zwift_race_finder::parsing::{parse_distance_from_name, parse_lap_count};
 
 // ── Monotonicity: longer routes take more time ──────────────────────────────
 
@@ -179,5 +180,45 @@ proptest! {
         // 200 km at 28 km/h E speed with 0.7 alpe multiplier ≈ 612 min
         prop_assert!(duration > 0, "Duration should be > 0, got {} for {} km", duration, distance_km);
         prop_assert!(duration < 700, "Duration should be < 700 min, got {} for {} km", duration, distance_km);
+    }
+}
+
+// ── Roundtrip: formatted km distance parses back correctly ──────────────────
+
+proptest! {
+    #[test]
+    fn km_distance_roundtrip(
+        distance in 1.0f64..999.0
+    ) {
+        // Format as "X km" string, then parse — should recover the same value
+        let formatted = format!("{:.1} km race", distance);
+        let parsed = parse_distance_from_name(&formatted);
+        prop_assert!(
+            parsed.is_some(),
+            "Should parse distance from '{}'", formatted
+        );
+        let parsed_val = parsed.unwrap();
+        // Allow for floating-point formatting round-trip (1 decimal place)
+        let expected = (distance * 10.0).round() / 10.0;
+        prop_assert!(
+            (parsed_val - expected).abs() < 0.01,
+            "Parsed {} from '{}', expected {}", parsed_val, formatted, expected
+        );
+    }
+}
+
+// ── Roundtrip: lap count formatting parses back correctly ───────────────────
+
+proptest! {
+    #[test]
+    fn lap_count_roundtrip(
+        laps in 1u32..100
+    ) {
+        let formatted = format!("{} laps of Watopia", laps);
+        let parsed = parse_lap_count(&formatted);
+        prop_assert_eq!(
+            parsed, Some(laps),
+            "Should parse {} laps from '{}'", laps, formatted
+        );
     }
 }
