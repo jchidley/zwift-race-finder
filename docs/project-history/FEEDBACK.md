@@ -47,7 +47,7 @@ Found an unknown route? Help by:
 - Use `--show-unknown-routes` to see what needs mapping
 - Contribute route data via GitHub issues
 
-## Current Accuracy: 16.1%
+## Current Accuracy: 17.4%
 We've exceeded our <20% target! Help us get even better by sharing your race results.
 
 ## Privacy

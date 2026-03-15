@@ -152,7 +152,6 @@ def main():
         "check_token_expiry",
         "refresh_auth_token",
         "validate_filters",
-        "calculate_drop_probability",
         "get_rider_weight",
         "apply_elevation_penalty",
     ]

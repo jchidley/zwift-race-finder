@@ -36,7 +36,7 @@ if [[ ! -f "$DOWNLOAD_FILE" ]]; then
     echo "To extract your results:"
     echo "1. Go to your ZwiftPower profile page"
     echo "2. Open browser console (F12)"
-    echo "3. Run: cat ~/tools/rust/zwift-race-finder/extract_zwiftpower_v2.js | xclip -selection clipboard"
+    echo "3. Run: cat ~/github/zwift-race-finder/extract_zwiftpower_v2.js | xclip -selection clipboard"
     echo "4. Paste and run in console"
     echo "5. File will download automatically"
     exit 1
@@ -152,5 +152,5 @@ fi
 echo ""
 echo "🎯 Next steps:"
 echo "1. Check for unknown routes above and add them to the route database"
-echo "2. Run: cd ~/tools/rust/zwift-race-finder && cargo run -- --show-unknown-routes"
+echo "2. Run: cd ~/github/zwift-race-finder && cargo run --bin zwift-race-finder -- --show-unknown-routes"
 echo "3. Build regression tests with your actual data"

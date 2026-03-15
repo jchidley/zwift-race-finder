@@ -2,155 +2,79 @@
 
 ## Overview
 
-The core challenge is estimating how long it will take a specific rider to complete a Zwift race. This involves route characteristics, rider capabilities, and pack dynamics.
+Estimates how long a Zwift race will take for a specific rider based on route characteristics and Racing Score category.
 
-## Primary Algorithm: Dual-Speed Model
+## Production Algorithm: Category Speed Model
 
-### Core Concept
-Races have two states:
-- **With Pack**: ~33% power savings from draft, higher speed
-- **Solo/Dropped**: No draft benefit, ~77% of pack speed
+The algorithm used in production (`estimate_duration_for_category` in `src/duration_estimation.rs`):
 
-### Implementation
-
-```rust
-// 1. Calculate pack speed based on category
-let pack_speed_kmh = match category {
-    "A" | "A+" => 42.0,
-    "B" => 37.0,
-    "C" => 33.0,
-    "D" => 30.9,
-    "E" => 28.0,
-    _ => 28.0,
-};
-
-// 2. Calculate drop probability based on elevation
-let drop_probability = calculate_drop_probability(
-    elevation_m,
-    weight_kg,
-    category
-);
-
-// 3. Weight the two speeds
-let solo_speed = pack_speed * 0.77;
-let average_speed = (pack_speed * (1.0 - drop_probability)) + 
-                   (solo_speed * drop_probability);
-
-// 4. Calculate time
-let time_hours = distance_km / average_speed;
+```
+duration_minutes = (distance_km / (category_speed * difficulty_multiplier)) × 60
 ```
 
-### Drop Probability Factors
+### Category Speeds (km/h)
 
-1. **Elevation Impact**:
-   - <100m: Low probability (0.1-0.2)
-   - 100-300m: Medium (0.3-0.5)
-   - >300m: High (0.6-0.8)
+Empirical averages from real races. Already include draft benefit.
 
-2. **Weight Penalty**:
-   - 86kg vs typical 70-75kg = disadvantage on climbs
-   - Additional 0.1-0.2 probability per 10kg over average
+| Category | Score Range | Speed (km/h) |
+|----------|-------------|--------------|
+| E | 0–99 | 28.0 |
+| D | 100–199 | 30.9 |
+| C | 200–299 | 33.0 |
+| B | 300–399 | 37.0 |
+| A | 400–599 | 42.0 |
+| A++ | 600+ | 45.0 |
 
-3. **Category Factor**:
-   - Lower categories = higher drop probability
-   - D: +0.1, C: +0.05, B: 0, A: -0.05
+Source: Cat D speed (30.9) calibrated from 151 real races. Others scaled from Cat D.
 
-## Pack Dynamics Insights
+### Route Difficulty Multiplier
 
-### Draft Benefit (Empirical)
-- Zwift: ~33% power savings (vs 25% real world)
-- Bigger groups = more consistent draft
-- Position in pack matters less than being in pack
+Based on elevation per kilometer (`get_route_difficulty_multiplier_from_elevation`):
 
-### Binary State Discovery
-Analysis of 151 races revealed:
-- Either with pack OR dropped - no gradual separation
-- Transition happens quickly (usually on climbs)
-- Once dropped, very hard to rejoin
+| Elevation/km | Multiplier | Terrain |
+|-------------|------------|---------|
+| < 5 m/km | 1.0 | Flat |
+| 5–10 m/km | ~1.05 | Rolling |
+| 10–15 m/km | ~1.1 | Hilly |
+| 15–20 m/km | ~1.15 | Mountainous |
+| > 20 m/km | ~1.2 | Epic climbing |
 
-### High Variance Explanation
-Bell Lap example: 32-86 minutes for same route
-- Best case: Stay with pack entire race (32 min)
-- Worst case: Dropped early, solo most of race (86 min)
-- 82.6% of variance explained by drop dynamics
+When elevation data is unavailable, a name-based lookup (`get_route_difficulty_multiplier`) provides a fallback.
 
-## Route Difficulty Multipliers
+### Estimation Priority
 
-Based on elevation per kilometer:
+`event_filtering.rs` tries these in order:
 
-```rust
-fn get_difficulty_multiplier(elevation_per_km: f64) -> f64 {
-    match elevation_per_km {
-        x if x < 5.0 => 1.0,   // Flat
-        x if x < 10.0 => 1.05, // Rolling
-        x if x < 15.0 => 1.1,  // Hilly
-        x if x < 20.0 => 1.15, // Mountainous
-        _ => 1.2,              // Epic climbing
-    }
-}
-```
+1. **Multi-lap with known route**: route distance × laps + lead-in → estimate with route data
+2. **Known distance + known route**: use route difficulty data
+3. **Known distance + unknown route**: category speed with name-based multiplier
+4. **Known route only**: `estimate_duration_from_route_id` (route distance, no lead-in added)
+5. **Racing Score event**: parse distance from description text
+6. **Fallback**: category speed × parsed or estimated distance
 
-## Fallback Estimations
-
-When route data unavailable:
-
-### Category-Based
-```rust
-// Base speeds by category (km/h) — empirical from real races, includes draft
-let base_speed = match category {
-    "A" | "A+" => 42.0,
-    "B" => 37.0,
-    "C" => 33.0,
-    "D" => 30.9,
-    "E" => 28.0,
-    _ => 28.0,
-};
-```
-
-### Distance Parsing
-1. Check event description for patterns:
-   - "1 lap" → use route distance
-   - "2 laps" → route distance × 2
-   - "20km" → direct distance
-
-2. Multi-stage events:
-   - Parse each stage distance
-   - Sum for total
+Lead-in distance (0.2–5.7 km) is added to all route-based estimates and multi-lap calculations.
 
 ## Calibration
 
-### Regression Testing
-- Historical: 151 actual race results achieved 16.1% MAE
-- Current DB: No real race results imported — regression suite needs Strava data
-- Target: <20% MAE
+- **Current MAE**: 17.9% on 125 matched races
+- **Target**: < 20% MAE
+- **Threshold**: regression test asserts < 30% MAE
+- Run: `cargo test --lib test_race_predictions_accuracy -- --nocapture`
 
 ### Key Findings
+
 1. Pure physics models fail (127% error)
-2. Draft benefit crucial for accuracy
-3. High variance is inherent to racing
-4. Category speeds relatively consistent
+2. Draft benefit crucial — already baked into category speeds
+3. High variance is inherent to racing (same route: 32–86 min depending on pack dynamics)
+4. Binary state: with pack or dropped, no gradual separation
+5. 82.6% of variance explained by drop dynamics
 
 ## Special Cases
 
-### Time Trials
-- No draft benefit
-- Use solo speed throughout
-- Lower variance in predictions
-
-### Multi-Category Events
-- Use specific category's speed
-- Account for different start times
-- May have category-specific distances
-
-### Lead-in Distance
-- Additional distance before official route
-- Varies by event type (0.2-5.7 km)
-- Must be added to route distance
-
-## Future Improvements
-
-1. **Machine Learning**: Train on larger dataset
-2. **Weather Integration**: Headwind/tailwind effects
-3. **Power-Based**: Use FTP for personalized estimates
-4. **Historical Performance**: Weight recent results
-5. **Route-Specific Patterns**: Some routes favor breakaways
+| Case | Handling |
+|------|----------|
+| Time trials | No draft, use solo speed |
+| Multi-lap | Route distance × laps + lead-in |
+| Racing Score events | `distanceInMeters: 0` in API; parse from description |
+| Unknown routes | Name-based difficulty multiplier fallback |
+| Category E | Treated as separate category (28 km/h) |

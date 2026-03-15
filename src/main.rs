@@ -54,10 +54,6 @@ struct Args {
     #[arg(short = 'n', long, default_value = "1")]
     days: u32,
 
-    /// ZwiftPower username (optional, for auto-fetching stats)
-    #[arg(long)]
-    zwiftpower_username: Option<String>,
-
     /// Debug mode - show why events are filtered out
     #[arg(long)]
     debug: bool,
@@ -686,14 +682,29 @@ fn record_race_result(input: &str) -> Result<()> {
 
     let db = Database::new()?;
 
-    // Check if route exists
+    // Ensure route exists so race_result FK is satisfied
     if db.get_route(route_id)?.is_none() {
         println!(
-            "{}: Route {} not found in database",
+            "{}: Route {} not found in database — creating stub entry",
             "Warning".yellow(),
             route_id
         );
-        println!("Recording as unknown route for future mapping.");
+        let stub = database::RouteData {
+            route_id,
+            distance_km: 0.0,
+            elevation_m: 0,
+            name: event_name.clone(),
+            world: "Unknown".to_string(),
+            surface: "road".to_string(),
+            lead_in_distance_km: 0.0,
+            lead_in_elevation_m: 0,
+            lead_in_distance_free_ride_km: None,
+            lead_in_elevation_free_ride_m: None,
+            lead_in_distance_meetups_km: None,
+            lead_in_elevation_meetups_m: None,
+            slug: None,
+        };
+        db.add_route(&stub)?;
         db.record_unknown_route(route_id, &event_name, "RACE")?;
     }
 
@@ -743,14 +754,8 @@ async fn analyze_event_descriptions() -> Result<()> {
             .bold()
     );
 
-    // Fetch current events
-    let client = reqwest::Client::new();
-    let response = client
-        .get("https://api.zwift.com/api/public/events")
-        .send()
-        .await?;
-
-    let events: Vec<ZwiftEvent> = response.json().await?;
+    // Fetch current events (reuse same endpoint as main event fetch)
+    let events = fetch_events().await?;
 
     let mut route_patterns: std::collections::HashMap<String, Vec<String>> =
         std::collections::HashMap::new();
@@ -1228,7 +1233,6 @@ mod tests {
                 tolerance: 10,
                 event_type: "all".to_string(),
                 days: 1,
-                zwiftpower_username: None,
                 debug: false,
                 show_unknown_routes: false,
                 analyze_descriptions: false,
@@ -1277,7 +1281,6 @@ mod tests {
             tolerance: 30, // Accept 90-150 min
             event_type: "all".to_string(),
             days: 1,
-            zwiftpower_username: None,
             debug: false,
             show_unknown_routes: false,
             analyze_descriptions: false,
@@ -1312,7 +1315,6 @@ mod tests {
             tolerance: 20, // ±20 minutes
             event_type: "all".to_string(),
             days: 1,
-            zwiftpower_username: None,
             debug: false,
             show_unknown_routes: false,
             analyze_descriptions: false,
@@ -1533,7 +1535,6 @@ mod tests {
             tolerance: 60, // Wide tolerance to catch all
             event_type: "race".to_string(),
             days: 1,
-            zwiftpower_username: None,
             debug: false,
             show_unknown_routes: false,
             analyze_descriptions: false,
@@ -1635,7 +1636,6 @@ mod tests {
             tolerance: 10, // ±10 minutes
             event_type: "race".to_string(),
             days: 1,
-            zwiftpower_username: None,
             debug: false,
             show_unknown_routes: false,
             analyze_descriptions: false,
@@ -1713,7 +1713,6 @@ mod tests {
             tolerance: 10, // ±10 minutes
             event_type: "race".to_string(),
             days: 1,
-            zwiftpower_username: None,
             debug: false,
             show_unknown_routes: false,
             analyze_descriptions: false,
@@ -1744,7 +1743,6 @@ mod tests {
             tolerance: 10,
             event_type: "race".to_string(),
             days: 1,
-            zwiftpower_username: None,
             debug: false,
             show_unknown_routes: false,
             analyze_descriptions: false,
@@ -1796,7 +1794,6 @@ mod tests {
             tolerance: 10,
             event_type: "race".to_string(),
             days: 1,
-            zwiftpower_username: None,
             debug: false,
             show_unknown_routes: false,
             analyze_descriptions: false,
@@ -1828,7 +1825,6 @@ mod tests {
             tolerance: 10,
             event_type: "tt".to_string(),
             days: 1,
-            zwiftpower_username: None,
             debug: false,
             show_unknown_routes: false,
             analyze_descriptions: false,
@@ -1859,7 +1855,6 @@ mod tests {
             tolerance: 10,
             event_type: "all".to_string(),
             days: 1,
-            zwiftpower_username: None,
             debug: false,
             show_unknown_routes: false,
             analyze_descriptions: false,
@@ -1891,7 +1886,6 @@ mod tests {
             tolerance: 15,
             days: 3,
             zwift_score: None,
-            zwiftpower_username: None,
             tags: vec![],
             exclude_tags: vec![],
             show_unknown_routes: false,
@@ -1916,7 +1910,6 @@ mod tests {
             tolerance: 15,
             days: 3,
             zwift_score: None,
-            zwiftpower_username: None,
             tags: vec![],
             exclude_tags: vec![],
             show_unknown_routes: false,
@@ -1940,7 +1933,6 @@ mod tests {
             tolerance: 15,
             days: 3,
             zwift_score: None,
-            zwiftpower_username: None,
             tags: vec![],
             exclude_tags: vec![],
             show_unknown_routes: false,

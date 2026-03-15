@@ -2,7 +2,7 @@
 # Debug script to examine Stage 4 event data
 
 echo "Fetching Stage 4 event data..."
-cargo run -- --debug 2>&1 | \
+cargo run --bin zwift-race-finder -- --debug 2>&1 | \
   awk '/Stage 4: Makuri May: Three Village Loop/{found=1} found && /^Event:/{if(count++) found=0} found{print}' | \
   head -200 > stage4_debug.txt
 

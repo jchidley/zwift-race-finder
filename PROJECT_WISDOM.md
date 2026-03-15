@@ -50,7 +50,7 @@ Learning log for project-specific insights and solutions.
 
 ## 2025-06-19: Duration Model Simplification - Draft Already in Category Speeds
 **Insight**: Claude simplified the original modeling approach for unknown reasons. Original intent was to model solo riding accurately then apply drafting factors, assuming detailed route profiling beyond just elevation/distance. Current system uses category speeds (30.9 km/h for Cat D) that already include average draft benefits from 151 real races.
-**Impact**: The dual-speed model in `calculate_duration_with_dual_speed` exists but isn't used. Current 20.4% accuracy achieved with simpler model because empirical speeds inherently include draft. More sophisticated modeling still possible with better route profiling.
+**Impact**: The dual-speed model was removed (2026-03-15) since it was never called in production. Current 17.9% accuracy achieved with simpler category speed model because empirical speeds inherently include draft. More sophisticated modeling still possible with better route profiling.
 
 ## 2025-06-19: Power Simulation Tools - vpower and gymnasticon
 **Insight**: Tools like vpower (https://github.com/oldnapalm/vpower) and gymnasticon can simulate power output for Zwift, enabling controlled testing of race duration algorithms with repeatable power profiles.

@@ -12,7 +12,7 @@ def fetch_events():
     # Only get next 6 hours of events to reduce noise
     end_time = datetime.utcnow() + timedelta(hours=6)
     
-    url = "https://api.zwift.com/events"
+    url = "https://us-or-rly101.zwift.com/api/public/events/upcoming"
     params = {
         "start": 0,
         "limit": 20,

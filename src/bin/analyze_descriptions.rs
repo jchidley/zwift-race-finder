@@ -11,7 +11,6 @@
 //! development analysis rather than production functionality.
 
 use anyhow::Result;
-use chrono::Utc;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -28,20 +27,22 @@ struct ZwiftEvent {
     route_id: Option<u32>,
 }
 
-#[derive(Debug, Deserialize)]
-struct ApiResponse {
-    events: Vec<ZwiftEvent>,
-}
-
 async fn fetch_events() -> Result<Vec<ZwiftEvent>> {
-    let url = format!(
-        "https://eu-west-1.zwift.com/api/public/events?limit=200&start={}&sport=CYCLING",
-        Utc::now().timestamp_millis()
-    );
+    let url = "https://us-or-rly101.zwift.com/api/public/events/upcoming";
 
-    let response = reqwest::get(&url).await?;
-    let api_response: ApiResponse = response.json().await?;
-    Ok(api_response.events)
+    let client = reqwest::Client::builder()
+        .user_agent("Zwift Race Finder")
+        .timeout(std::time::Duration::from_secs(30))
+        .build()?;
+
+    let response = client
+        .get(url)
+        .header("Content-Type", "application/json")
+        .send()
+        .await?;
+
+    let events: Vec<ZwiftEvent> = response.json().await?;
+    Ok(events)
 }
 
 fn extract_distance_patterns(description: &str) -> Vec<String> {
@@ -74,6 +75,14 @@ fn extract_distance_patterns(description: &str) -> Vec<String> {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Simple --help support
+    if std::env::args().any(|a| a == "--help" || a == "-h") {
+        println!("analyze_descriptions — fetch Zwift events and extract distance/elevation patterns from descriptions");
+        println!("\nUsage: analyze_descriptions");
+        println!("\nDevelopment tool for understanding Zwift event description formats.");
+        return Ok(());
+    }
+
     println!("Fetching recent Zwift events to analyze descriptions...\n");
 
     let events = fetch_events().await?;

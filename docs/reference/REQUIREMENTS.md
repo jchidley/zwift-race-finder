@@ -18,7 +18,7 @@ This document specifies the functional and non-functional requirements for the Z
 
 ## Project Overview
 
-The Zwift Race Finder is a command-line tool that helps cyclists find Zwift races matching their target duration and fitness level. It predicts race completion times based on the rider's Zwift Racing Score and route characteristics, achieving 16.1% prediction accuracy using real race data.
+The Zwift Race Finder is a command-line tool that helps cyclists find Zwift races matching their target duration and fitness level. It predicts race completion times based on the rider's Zwift Racing Score and route characteristics, achieving 17.4% prediction accuracy on 125 matched races.
 
 ## Core Problem Statement
 
@@ -341,7 +341,7 @@ Zwift shows race distances but not expected durations. A 40km race might take 60
 
 ### 21. Key Performance Indicators
 
-- **KPI-21.1**: Prediction accuracy <20% MAE (historically 16.1%; current DB lacks race results for validation)
+- **KPI-21.1**: Prediction accuracy <20% MAE ✅ (Currently 17.4% on 125 races)
 - **KPI-21.2**: Race matching rate >75% ✅ (Currently 80%)
 - **KPI-21.3**: User satisfaction (via feedback)
 - **KPI-21.4**: Route coverage >90% of common races
@@ -450,7 +450,7 @@ Zwift shows race distances but not expected durations. A 40km race might take 60
   - Added physics modeling details from PHYSICAL_STATS.md
   - Incorporated pack dynamics and event type discoveries
   - Added AI development insights from AI_DEVELOPMENT.md
-- Based on: Production deployment with 16.1% accuracy achieved
+- Based on: Production deployment with 16.1% accuracy achieved (now 17.4% on current DB)
 - Status: Requirements now comprehensive, reflecting all documented needs and discoveries
 - 2025-06-01: Added discovery insights from zwiftmap and zwift-data projects
   - Found comprehensive route database in zwift-data npm package (MIT licensed)
@@ -647,5 +647,5 @@ Therefore, video analysis of the game display is the only viable method for real
 7. Live coaching features
 8. Integration with zwift-race-finder
 
-- Based on: Production deployment with 16.1% accuracy achieved
+- Based on: Production deployment with 16.1% accuracy achieved (now 17.4% on current DB)
 - Status: Requirements now complete with insights from all reference sources

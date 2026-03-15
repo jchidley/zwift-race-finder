@@ -68,7 +68,8 @@ pub fn estimate_duration_from_route_id(route_id: u32, zwift_score: u32) -> Optio
     };
 
     let effective_speed = base_speed * difficulty_multiplier;
-    let duration_hours = route_data.distance_km / effective_speed;
+    let total_distance = route_data.distance_km + route_data.lead_in_distance_km;
+    let duration_hours = total_distance / effective_speed;
     let duration_minutes = (duration_hours * crate::constants::MINUTES_PER_HOUR as f64) as u32;
 
     Some(duration_minutes)

@@ -6,7 +6,7 @@ ROUTE_IDS=("1917017591" "2128890027" "3366225080")
 
 # Fetch events from Zwift API
 echo "Fetching events from Zwift API..."
-EVENTS=$(curl -s "https://us-or-rly101.zwift.com/api/public/events")
+EVENTS=$(curl -s "https://us-or-rly101.zwift.com/api/public/events/upcoming")
 
 if [ $? -ne 0 ]; then
     echo "Error: Failed to fetch events from API"

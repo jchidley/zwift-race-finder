@@ -1,7 +1,7 @@
 //! Duration estimation functions for Zwift races
 
 use crate::category::{get_category_from_score, get_category_speed};
-use crate::constants::{METERS_PER_KILOMETER, MINUTES_PER_HOUR, PERCENT_MULTIPLIER};
+use crate::constants::MINUTES_PER_HOUR;
 
 /// Calculate difficulty multiplier based on elevation gain per km
 pub fn get_route_difficulty_multiplier_from_elevation(distance_km: f64, elevation_m: u32) -> f64 {
@@ -42,58 +42,6 @@ pub fn estimate_duration_for_category(distance_km: f64, route_name: &str, zwift_
 
     let duration_hours = distance_km / effective_speed;
     (duration_hours * MINUTES_PER_HOUR as f64) as u32
-}
-
-/// Calculate duration with dual-speed model (pack vs solo)
-pub fn calculate_duration_with_dual_speed(
-    distance_km: f64,
-    elevation_m: u32,
-    zwift_score: u32,
-    weight_kg: f64,
-    ftp_watts: f64,
-) -> u32 {
-    let category = get_category_from_score(zwift_score);
-
-    // Base pack speeds (km/h) - from actual race data
-    let pack_speed = match category {
-        "E" => 27.0,
-        "D" => 30.9,
-        "C" => 34.5,
-        "B" => 37.0,
-        "A" => 39.0,
-        "A+" => 41.0,
-        _ => 30.9,
-    };
-
-    // Solo speed is 77% of pack speed (based on empirical data)
-    let solo_speed = pack_speed * 0.77;
-
-    // Calculate drop probability based on elevation and W/kg
-    let watts_per_kg = ftp_watts / weight_kg;
-    let avg_gradient =
-        (elevation_m as f64 / (distance_km * METERS_PER_KILOMETER)) * PERCENT_MULTIPLIER;
-
-    // Drop probability increases with gradient and decreases with W/kg
-    let drop_probability = if avg_gradient > 2.0 {
-        // On hilly routes, lower W/kg riders more likely to drop
-        let w_kg_factor = match watts_per_kg {
-            w if w < 2.5 => 0.8, // Very likely to drop
-            w if w < 3.0 => 0.6, // Likely to drop
-            w if w < 3.5 => 0.4, // May drop
-            w if w < 4.0 => 0.2, // Unlikely to drop
-            _ => 0.1,            // Very unlikely to drop
-        };
-        w_kg_factor * (avg_gradient / 10.0).min(1.0)
-    } else {
-        0.1 // Low drop probability on flat routes
-    };
-
-    // Weighted average of pack and solo times
-    let pack_time = (distance_km / pack_speed) * MINUTES_PER_HOUR as f64;
-    let solo_time = (distance_km / solo_speed) * MINUTES_PER_HOUR as f64;
-    let estimated_time = pack_time * (1.0 - drop_probability) + solo_time * drop_probability;
-
-    estimated_time as u32
 }
 
 #[cfg(test)]
@@ -317,43 +265,6 @@ mod tests {
             get_route_difficulty_multiplier_from_elevation(1000.0, 5000),
             1.0
         ); // 5m/km on long route
-    }
-
-    #[test]
-    fn test_calculate_duration_with_dual_speed_arithmetic() {
-        // Test arithmetic operations in calculate_duration_with_dual_speed
-        // Mutations: replace * with +, replace / with *, etc.
-
-        // Test basic calculation with flat route (low drop probability)
-        let distance = 30.0;
-        let elevation = 100; // Flat route: 3.3 m/km
-        let zwift_score = 195; // Cat D
-        let weight = 86.0;
-        let ftp = 217.0;
-
-        // For flat route, drop probability should be 0
-        let duration =
-            calculate_duration_with_dual_speed(distance, elevation, zwift_score, weight, ftp);
-        // Pack time = 30 / 30.9 * 60 = 58.25 minutes, rounded to 59
-        assert_eq!(duration, 59);
-
-        // Test with hilly route (higher drop probability)
-        let elevation_hilly = 600; // 20 m/km = 30% drop probability
-        let duration_hilly =
-            calculate_duration_with_dual_speed(distance, elevation_hilly, zwift_score, weight, ftp);
-
-        // Should be between pack time (59) and solo time (~76)
-        assert!(duration_hilly >= duration); // >= pack time (might be same due to rounding)
-        assert!(duration_hilly < 80); // < full solo time
-
-        // Test with very hilly route (high drop probability)
-        let elevation_steep = 1500; // 50 m/km = 90% drop probability
-        let duration_steep =
-            calculate_duration_with_dual_speed(distance, elevation_steep, zwift_score, weight, ftp);
-
-        // Should be longer than pack time but with difficulty multiplier it might be shorter
-        // Very steep routes get a 0.7 multiplier
-        assert!(duration_steep > 40); // With steep difficulty multiplier
     }
 
     #[test]

@@ -130,7 +130,7 @@ rm -f import.sql
 echo ""
 echo "🎯 Next steps:"
 echo "1. Run the Rust program to see unknown routes:"
-echo "   cd ~/tools/rust/zwift-race-finder && cargo run -- --show-unknown-routes"
+echo "   cd ~/github/zwift-race-finder && cargo run --bin zwift-race-finder -- --show-unknown-routes"
 echo ""
 echo "2. Add route mappings for common events"
 echo ""
