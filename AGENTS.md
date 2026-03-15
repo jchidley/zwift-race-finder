@@ -46,14 +46,18 @@ This crate has 8 binaries. Always use `--bin zwift-race-finder` with `cargo run`
 - Do not modify files under `archive/` — they are historical records.
 
 ## Duration model (what actually runs)
-The production algorithm is `estimate_duration_for_category`: `distance_km / (category_speed * difficulty_multiplier)`. Category speeds: E=28, D=30.9, C=33, B=37, A=42, A++=45 km/h. These are empirical from real races and already include draft benefit.
+The production algorithm is `distance_km / (category_speed * difficulty_multiplier)`. Category speeds: E=28, D=30.9, C=33, B=37, A=42, A++=45 km/h. These are empirical from real races and already include draft benefit.
 
-Lead-in distance is added to all route-based estimates (`estimate_duration_from_route_id`) and multi-lap calculations.
+The difficulty multiplier uses piecewise linear interpolation on elevation gain per km (m/km), with category-aware penalties on climbs >15 m/km. Lower categories (D, E) are disproportionately slower on climbs due to lower w/kg. The `estimate_duration_with_distance` and `estimate_duration_from_route_id` functions both use the elevation-based multiplier when elevation data is available. The name-based fallback (`estimate_duration_for_category`) is only used when elevation data is unavailable.
+
+Route aliases map alternative Zwift API route IDs (event-only variants) to canonical DB route IDs via the `route_aliases` table, checked transparently by `Database::get_route()`.
+
+Lead-in distance is added only for multi-lap races in `event_filtering.rs`. Single-lap estimation does not add lead-in (potential accuracy gap).
 
 ## Current metrics
-- MAE: 17.9% on 125 matched races (target: <20%)
-- Routes in DB: 126
-- Total tests: 169 passing (across lib + 7 integration test files)
+- MAE: 16.6% on 125 matched races (target: <20%)
+- Routes in DB: 126 (+ 11 route aliases for event-only variants)
+- Total tests: 170 passing (across lib + 7 integration test files)
 
 ## Troubleshooting
 | Symptom | Fix |
@@ -63,6 +67,24 @@ Lead-in distance is added to all route-based estimates (`estimate_duration_from_
 | Build fails (OpenSSL) | Install `libssl-dev pkg-config` |
 | `cargo run` ambiguous binary | Add `--bin zwift-race-finder` |
 | OCR build fails | Needs `--features ocr` plus leptonica/tesseract system libs |
+| `--record-result` FK error | Route must exist in routes table first; add it before recording results |
+
+## Known issues
+- Only one API base URL in code (`us-or-rly101`) — no failover to other regions.
+- `rider_stats` table stores weight/FTP but values are not used directly in the estimation algorithm. The w/kg effect on climbs is captured through the category × elevation interaction in the difficulty multiplier.
+- Time trials use same draft-inclusive category speeds as races (known inaccuracy — TTs have no draft).
+- Route data export has 309 routes but only 126 are imported to DB — gap may contain usable routes.
+- Single-lap estimation does not add lead-in distance (potential accuracy gap).
+
+## Unimplemented improvements (from archive review 2026-03-15)
+Verified against current codebase — these are still valid and not yet done:
+- **TT draft removal**: Time trials should use solo speeds, not pack speeds.
+- **Race field size factor**: Bigger fields = more consistent draft, smaller fields = more variance.
+- **Elevation profile database**: Currently only uses elevation/km ratio, not gradient profile.
+- **Route mapping gaps**: Event series like EVO CC, Sydkysten, Tofu Tornado still use placeholder or missing route IDs. Research in `archive/consolidated-originals/ROUTE_MAPPING_RESEARCH.md` has specific route_id mappings not yet imported.
+- **Lap detection from descriptions**: Could automate multi-lap detection from event description text.
+- **Route completion tracking**: DB schema exists (`route_completion` table) but no CLI integration. Design spec in `archive/consolidated-originals/ROUTE_TRACKING_IDEAS.md`.
+- **Hidden event tags**: Zwift API contains undocumented tags useful for filtering (research in `archive/consolidated-originals/ZWIFTHACKS_TECHNIQUES.md`).
 
 ## Documentation
 Human-readable docs follow Diátaxis in `docs/`:

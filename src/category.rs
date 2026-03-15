@@ -19,7 +19,7 @@ pub const CAT_E_SPEED: f64 = 28.0; // Beginner category, ~10% slower than Cat D
 /// - 200-299: Category C
 /// - 300-399: Category B
 /// - 400-599: Category A
-/// - 600+: Category A+ (elite)
+/// - 600+: Category A++ (elite)
 pub fn get_category_from_score(zwift_score: u32) -> &'static str {
     match zwift_score {
         0..=99 => "E",
@@ -27,7 +27,7 @@ pub fn get_category_from_score(zwift_score: u32) -> &'static str {
         200..=299 => "C",
         300..=399 => "B",
         400..=599 => "A",
-        _ => "A+",
+        600.. => "A++",
     }
 }
 
@@ -51,7 +51,8 @@ pub fn get_detailed_category_from_score(zwift_score: u32) -> &'static str {
         390..=399 => "B+",
         400..=499 => "A-",
         500..=589 => "A",
-        _ => "A+",
+        590..=649 => "A+",
+        650.. => "A++",
     }
 }
 
@@ -135,10 +136,10 @@ mod tests {
         assert_eq!(get_category_from_score(500), "A");
         assert_eq!(get_category_from_score(599), "A");
 
-        // Category A+
-        assert_eq!(get_category_from_score(600), "A+");
-        assert_eq!(get_category_from_score(700), "A+");
-        assert_eq!(get_category_from_score(999), "A+");
+        // Category A++
+        assert_eq!(get_category_from_score(600), "A++");
+        assert_eq!(get_category_from_score(700), "A++");
+        assert_eq!(get_category_from_score(999), "A++");
     }
 
     #[test]
@@ -165,7 +166,7 @@ mod tests {
         // A categories
         assert_eq!(get_detailed_category_from_score(450), "A-");
         assert_eq!(get_detailed_category_from_score(550), "A");
-        assert_eq!(get_detailed_category_from_score(650), "A+");
+        assert_eq!(get_detailed_category_from_score(650), "A++");
     }
 
     #[test]

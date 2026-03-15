@@ -1439,7 +1439,7 @@ mod tests {
         assert_eq!(get_category_from_score(250), "C");
         assert_eq!(get_category_from_score(350), "B");
         assert_eq!(get_category_from_score(450), "A");
-        assert_eq!(get_category_from_score(650), "A+");
+        assert_eq!(get_category_from_score(650), "A++");
     }
 
     #[test]

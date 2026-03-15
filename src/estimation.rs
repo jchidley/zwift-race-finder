@@ -6,8 +6,8 @@
 
 use crate::database::{Database, RouteData as DbRouteData};
 use crate::duration_estimation::{
-    estimate_duration_for_category, get_route_difficulty_multiplier,
-    get_route_difficulty_multiplier_from_elevation,
+    get_route_difficulty_multiplier,
+    get_route_difficulty_multiplier_from_elevation_and_category,
 };
 use crate::models::RouteData;
 
@@ -59,9 +59,10 @@ pub fn estimate_duration_from_route_id(route_id: u32, zwift_score: u32) -> Optio
 
     // Use elevation-based multiplier if we have elevation data
     let difficulty_multiplier = if route_data.elevation_m > 0 {
-        get_route_difficulty_multiplier_from_elevation(
+        get_route_difficulty_multiplier_from_elevation_and_category(
             route_data.distance_km,
             route_data.elevation_m,
+            category,
         )
     } else {
         get_route_difficulty_multiplier(route_data.name)
@@ -76,6 +77,10 @@ pub fn estimate_duration_from_route_id(route_id: u32, zwift_score: u32) -> Optio
 }
 
 /// Estimate duration with a specific distance (for multi-lap races)
+///
+/// Uses elevation data from the route when available, falling back to
+/// name-based difficulty estimation. The distance parameter overrides the
+/// route's stored distance (for multi-lap races where total distance differs).
 pub fn estimate_duration_with_distance(
     route_id: u32,
     distance_km: f64,
@@ -83,7 +88,24 @@ pub fn estimate_duration_with_distance(
 ) -> Option<u32> {
     let route_data = get_route_data(route_id)?;
 
-    // Use route name for elevation-based difficulty estimation
-    let duration = estimate_duration_for_category(distance_km, route_data.name, zwift_score);
-    Some(duration)
+    let category = crate::category::get_category_from_score(zwift_score);
+    let base_speed = crate::category::get_category_speed(category);
+
+    // Use elevation-based multiplier when we have elevation data
+    let difficulty_multiplier = if route_data.elevation_m > 0 {
+        get_route_difficulty_multiplier_from_elevation_and_category(
+            route_data.distance_km,
+            route_data.elevation_m,
+            category,
+        )
+    } else {
+        get_route_difficulty_multiplier(route_data.name)
+    };
+
+    let effective_speed = base_speed * difficulty_multiplier;
+    let duration_hours = distance_km / effective_speed;
+    let duration_minutes =
+        (duration_hours * crate::constants::MINUTES_PER_HOUR as f64) as u32;
+
+    Some(duration_minutes)
 }

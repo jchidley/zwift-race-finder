@@ -8,7 +8,7 @@ use crate::category::{
 use crate::constants::METERS_PER_KILOMETER;
 use crate::database::Database;
 use crate::duration_estimation::estimate_duration_for_category;
-use crate::duration_estimation::get_route_difficulty_multiplier_from_elevation;
+use crate::duration_estimation::get_route_difficulty_multiplier_from_elevation_and_category;
 use crate::estimation::{get_route_data, get_route_data_from_db};
 use crate::event_analysis::find_user_subgroup;
 use crate::event_filtering::FilterStats;
@@ -234,9 +234,10 @@ fn display_calculated_duration(
     let category = get_category_from_score(zwift_score);
     let effective_speed = get_category_speed(category);
 
-    let difficulty_multiplier = get_route_difficulty_multiplier_from_elevation(
+    let difficulty_multiplier = get_route_difficulty_multiplier_from_elevation_and_category(
         route_data.distance_km, // Use base route for elevation calculation
         route_data.elevation_m,
+        category,
     );
 
     let surface_multiplier = match route_data.surface {
@@ -534,9 +535,10 @@ pub fn prepare_event_row(event: &ZwiftEvent, zwift_score: u32) -> EventTableRow 
             let category = get_category_from_score(zwift_score);
             let effective_speed = get_category_speed(category);
 
-            let difficulty_multiplier = get_route_difficulty_multiplier_from_elevation(
+            let difficulty_multiplier = get_route_difficulty_multiplier_from_elevation_and_category(
                 route_data.distance_km,
                 route_data.elevation_m,
+                category,
             );
 
             let surface_multiplier = match route_data.surface {

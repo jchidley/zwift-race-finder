@@ -85,4 +85,4 @@ zwift-race-finder
 - [How to import race data from Strava](../howto/DATA_IMPORT.md) — improve prediction accuracy with your actual race times
 - [How to deploy and update](../howto/DEPLOYMENT.md) — install the tool permanently
 - [Algorithm reference](../reference/ALGORITHMS.md) — understand how duration predictions work
-- [About Zwift racing categories](../explanation/CATEGORY_RACING.md) — how Racing Score maps to categories
+- [About Zwift racing tactics](../explanation/ZWIFT_RACING_TACTICS.md) — pack dynamics, positioning, attack timing

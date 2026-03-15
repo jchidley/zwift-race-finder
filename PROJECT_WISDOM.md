@@ -50,7 +50,7 @@ Learning log for project-specific insights and solutions.
 
 ## 2025-06-19: Duration Model Simplification - Draft Already in Category Speeds
 **Insight**: Claude simplified the original modeling approach for unknown reasons. Original intent was to model solo riding accurately then apply drafting factors, assuming detailed route profiling beyond just elevation/distance. Current system uses category speeds (30.9 km/h for Cat D) that already include average draft benefits from 151 real races.
-**Impact**: The dual-speed model was removed (2026-03-15) since it was never called in production. Current 17.9% accuracy achieved with simpler category speed model because empirical speeds inherently include draft. More sophisticated modeling still possible with better route profiling.
+**Impact**: The dual-speed model was removed (2026-03-15) since it was never called in production. Current 16.6% accuracy achieved with simpler category speed model because empirical speeds inherently include draft. More sophisticated modeling still possible with better route profiling.
 
 ## 2025-06-19: Power Simulation Tools - vpower and gymnasticon
 **Insight**: Tools like vpower (https://github.com/oldnapalm/vpower) and gymnasticon can simulate power output for Zwift, enabling controlled testing of race duration algorithms with repeatable power profiles.
@@ -59,3 +59,10 @@ Learning log for project-specific insights and solutions.
 ## 2025-06-22: Garmin Connect API - FIT Files Wrapped in ZIP
 **Insight**: Garmin Connect API returns FIT files wrapped in ZIP containers (identified by PK\x03\x04 header). Virtual cycling activities from Zwift use "virtual_ride" or "virtual_cycling" activity type keys, not the standard cycling types.
 **Impact**: When downloading FIT files, check for ZIP header and extract. Must include virtual_* activity types to capture Zwift rides.
+## 2026-03-15: Zwift Route ID Aliasing - Same Route, Different IDs
+**Insight**: Zwift uses different internal route IDs for the same physical route depending on whether it's accessed in a free-ride or event-only context. The zwift-offline export lists 309 routes with their IDs, and cross-referencing with the `unknown_routes` table revealed 11 cases where the API sends one route_id but the DB stores the same route under a different ID. Example: "Scotland - Loch Loop" is 742057576 in event context but 3019598975 in the DB.
+**Impact**: Added `route_aliases` table and transparent alias resolution in `Database::get_route()`. Resolved ~2,640 previously-unresolvable event sightings. Always check aliases when a route_id lookup fails. The alias SQL is in `sql/mappings/route_aliases.sql`.
+
+## 2026-03-15: Climb Speed Modeling - Category × Elevation Interaction
+**Insight**: The question "should we use rider weight/height for better predictions?" was a misframing. Analysis of 125 races showed: on flat terrain, all categories ride near their empirical speed (ratio ≈ 1.0), but on climbs >20 m/km, Cat D achieves only 48% of its flat speed while Cat C achieves 54%. This is the w/kg effect, but it's better modeled as a category × elevation interaction than raw weight input. Two bugs were the real culprit: (a) `estimate_duration_with_distance()` used name-based multiplier, ignoring elevation data for routes like "Road to Sky" (got 1.0 instead of ~0.35); (b) the elevation multiplier capped at 0.7, far too high for steep climbs.
+**Impact**: Replaced step-function with 9-breakpoint piecewise linear interpolation + category climbing penalty. MAE: 17.9% → 16.6%. Climbing MAE: 43.8% → <20%. No flat route regression. Weight/height remain stored but unused — the effect is fully captured through category-aware elevation multipliers.

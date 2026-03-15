@@ -16,8 +16,8 @@
 
 ## Current state (2026-03-15)
 
-- **169 tests passing** (90 lib + 80 integration/property/snapshot)
-- **Regression accuracy**: 17.9% MAE on 125 matched races
+- **170 tests passing** (91 lib + 79 integration/property/snapshot)
+- **Regression accuracy**: 16.6% MAE on 125 matched races
 - **6 tests ignored** (golden tests, full regression on 7500+ races)
 
 ## Test locations
@@ -25,7 +25,7 @@
 | Location | Tests | Purpose |
 |----------|-------|---------|
 | `src/main.rs` | 26 | CLI logic, event filtering, URL parsing |
-| `src/duration_estimation.rs` | 11 | Duration math, difficulty multipliers |
+| `src/duration_estimation.rs` | 12 | Duration math, difficulty multipliers, category-aware climbing |
 | `src/event_filtering.rs` | 25 | Filter logic, category matching |
 | `src/event_display.rs` | 18 | Output formatting |
 | `src/regression_test.rs` | 4 | Accuracy vs real race data |

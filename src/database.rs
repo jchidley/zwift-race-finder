@@ -199,6 +199,20 @@ impl Database {
             [],
         )?;
 
+        // Route aliases: maps alternative route IDs (used by Zwift API for
+        // event-only variants) to canonical route IDs in our routes table.
+        // Zwift often uses different internal route IDs for the same physical
+        // route depending on whether it's a free-ride or event-only context.
+        self.conn.execute(
+            "CREATE TABLE IF NOT EXISTS route_aliases (
+                alias_route_id INTEGER PRIMARY KEY,
+                canonical_route_id INTEGER NOT NULL,
+                notes TEXT,
+                FOREIGN KEY (canonical_route_id) REFERENCES routes(route_id)
+            )",
+            [],
+        )?;
+
         Ok(())
     }
 
@@ -287,8 +301,37 @@ impl Database {
         Ok(())
     }
 
-    /// Get route data by ID
+    /// Get route data by ID, falling back to alias lookup
+    ///
+    /// If the route_id isn't found directly, checks the route_aliases table
+    /// for a mapping to a canonical route_id. This handles Zwift's use of
+    /// different internal IDs for the same physical route (event-only vs
+    /// free-ride variants).
     pub fn get_route(&self, route_id: u32) -> Result<Option<RouteData>> {
+        // Direct lookup first
+        if let Some(route) = self.get_route_direct(route_id)? {
+            return Ok(Some(route));
+        }
+
+        // Try alias lookup
+        let canonical_id: Option<u32> = self
+            .conn
+            .query_row(
+                "SELECT canonical_route_id FROM route_aliases WHERE alias_route_id = ?1",
+                [route_id],
+                |row| row.get(0),
+            )
+            .optional()?;
+
+        if let Some(canon_id) = canonical_id {
+            return self.get_route_direct(canon_id);
+        }
+
+        Ok(None)
+    }
+
+    /// Get route data by direct ID (no alias fallback)
+    fn get_route_direct(&self, route_id: u32) -> Result<Option<RouteData>> {
         let mut stmt = self.conn.prepare(
             "SELECT route_id, distance_km, elevation_m, name, world, surface,
                     lead_in_distance_km, lead_in_elevation_m,

@@ -18,8 +18,24 @@ use serde_json::Value;
 use std::collections::HashMap;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    if std::env::args().any(|a| a == "--help" || a == "-h") {
+        println!("debug_tags — analyze event tag frequency from saved Zwift API data");
+        println!("\nUsage: debug_tags");
+        println!("\nReads debug_event_tags.json from the current directory.");
+        println!("To create this file, save the output of the Zwift events API.");
+        return Ok(());
+    }
+
+    let path = "debug_event_tags.json";
+    if !std::path::Path::new(path).exists() {
+        eprintln!("Error: {path} not found in current directory.");
+        eprintln!("This tool reads saved Zwift API event data.");
+        eprintln!("Run from the project root, or save API output to {path} first.");
+        std::process::exit(1);
+    }
+
     // Read the debug JSON file
-    let json_str = std::fs::read_to_string("debug_event_tags.json")?;
+    let json_str = std::fs::read_to_string(path)?;
     let events: Vec<Value> = serde_json::from_str(&json_str)?;
 
     // Analyze tags

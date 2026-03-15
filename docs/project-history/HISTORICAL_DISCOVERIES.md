@@ -225,8 +225,11 @@ When documentation lacks:
 - Weather integration
 - Social features
 
+### Resolved Questions
+- **Why do some routes have multiple IDs?** — Zwift uses different internal route IDs for the same physical route depending on context (event-only vs free-ride). Discovered 2026-03-15 by cross-referencing the `unknown_routes` table with the zwift-offline export. Solved with `route_aliases` table (11 aliases, ~2,640 sightings resolved).
+- **Should we use rider weight/height for predictions?** — No. The w/kg effect on climbs is better modeled as a category × elevation interaction. Lower categories are disproportionately slower on climbs (Cat D: 48% of flat speed on >20 m/km, Cat C: 54%). Adding category-aware climbing penalties reduced climbing MAE from 43.8% to <20% without needing weight input.
+
 ### Unresolved Questions
-- Why do some routes have multiple IDs?
 - How does Zwift calculate Racing Score?
 - What determines lead-in distance?
 - Can we predict pack dynamics better?

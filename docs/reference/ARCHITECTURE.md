@@ -1,104 +1,90 @@
 # Zwift Race Finder Architecture
 
-## Overview
-
-Zwift Race Finder helps riders find races that match their schedule and fitness level by estimating race completion times based on route characteristics and rider capabilities.
-
 ## System Architecture
 
 ```
 Zwift API → Filter Events → Estimate Duration → Display Results
      ↓                            ↑
-ZwiftPower → Import → SQLite → Route Mappings
+ZwiftPower → Import → SQLite → Route Data
 ```
 
 ## Core Components
 
-### 1. Event Fetching (`main.rs`)
-- Fetches events from Zwift's public API
-- Handles both Traditional (A/B/C/D) and Racing Score (0-650) events
-- Filters by type (race, time trial, etc.)
+### 1. CLI and Orchestration (`main.rs`)
+- Clap-based argument parsing (20+ flags)
+- Fetches events from Zwift public API (`us-or-rly101.zwift.com`)
+- Optionally fetches Racing Score from ZwiftPower (environment variables: `ZWIFTPOWER_PROFILE_ID`, `ZWIFTPOWER_SESSION_ID`)
+- Dispatches to filtering, display, route discovery, or progress tracking
 
-### 2. Duration Estimation (`duration_estimation.rs`)
-- Primary: Uses route_id to lookup known route data
-- Secondary: Parses distance from event descriptions
-- Applies rider-specific adjustments based on weight and category
+### 2. Duration Estimation (`duration_estimation.rs`, `estimation.rs`)
+- `duration_estimation.rs`: Pure functions — category speed lookup, difficulty multipliers (piecewise linear with category-aware climbing penalty), duration math
+- `estimation.rs`: Bridge — route lookup from DB (with alias resolution), lead-in addition, connects to `duration_estimation`
+- Category speed and elevation are the rider/route inputs. Weight/FTP are stored but **not used** directly — the weight effect is captured through category × elevation interaction.
 
 ### 3. Event Filtering (`event_filtering.rs`)
-- Filters by estimated duration within tolerance
-- Matches user's category or racing score
-- Handles multi-category events
+- 9-step estimation priority (see [Algorithms](ALGORITHMS.md))
+- Handles both Traditional (A/B/C/D) and Racing Score (0–650) events
+- Racing Score events have `distanceInMeters: 0` — distance parsed from description text
+- Tag-based filtering (`--tags`, `--exclude-tags`)
 
-### 4. Database (`database.rs`)
-- SQLite storage in `~/.local/share/zwift-race-finder/races.db`
-- Tables: routes, race_results, unknown_routes
-- Caches route information and historical results
+### 4. Event Display (`event_display.rs`)
+- Compact table (default) or verbose multi-line format
+- Colored output with time-until-start, distance, estimated duration
+- Route completion indicators
 
-## Data Flow
+### 5. Database (`database.rs`)
+- SQLite at `~/.local/share/zwift-race-finder/races.db`
+- Created automatically on first run
+- 6 tables:
 
-1. **API Request**: Fetch events from Zwift API
-2. **Event Processing**: Parse event data, identify event type
-3. **Route Resolution**: Map event to route_id or extract from description
-4. **Duration Calculation**: Apply algorithm based on route and rider data
-5. **Filtering**: Select events matching criteria
-6. **Display**: Format results with estimated times
+| Table | Purpose |
+|-------|---------|
+| `routes` | Route data (distance, elevation, lead-in, surface, slug) |
+| `race_results` | Actual race times for regression testing |
+| `unknown_routes` | Routes seen in events but not yet mapped |
+| `route_aliases` | Maps event-only route IDs to canonical DB route IDs |
+| `route_completion` | User's route completion tracking |
+| `rider_stats` | Height, weight, FTP (stored but not used in estimation) |
+| `route_discovery_attempts` | Tracks web search attempts to avoid repeats |
 
-## Event Types
+### 6. Config (`config.rs`)
+- Config loading priority: `./config.toml` → `~/.config/zwift-race-finder/config.toml` → `~/.local/share/zwift-race-finder/config.toml` → defaults
+- Secrets from environment variables only (no file storage for credentials)
+- Defaults: score=195, category=D, duration=120min, tolerance=30min
 
-### Traditional Categories
-- Categories: A/B/C/D/E
-- Has `distanceInMeters` field populated
-- Simple category matching
+### 7. Route Discovery (`route_discovery.rs`)
+- Searches whatsonzwift.com for unknown routes
+- Caches results in `route_discovery_attempts` table
+- Rate-limited (500ms between requests)
 
-### Racing Score Events
-- Score ranges: 0-650
-- `distanceInMeters: 0` (must parse from description)
-- Identified by `rangeAccessLabel` field presence
-- More granular matching
+## Binaries
+
+| Binary | Purpose | Feature gate |
+|--------|---------|-------------|
+| `zwift-race-finder` | Main CLI | — |
+| `analyze_descriptions` | Fetch events and extract description patterns | — |
+| `debug_tags` | Analyze event tags from saved JSON | — |
+| `import_zwift_offline_routes` | Import routes from zwift-offline fork | — |
+| `test_ocr` | OCR testing | `ocr` |
+| `debug_ocr` | OCR debugging | `ocr` |
+| `zwift_ocr_benchmark` | OCR benchmarking | `ocr` |
+| `zwift_ocr_compact` | Compact OCR extraction | `ocr` |
+
+## API Integration
+
+### Zwift Public API
+- URL: `https://us-or-rly101.zwift.com/api/public/events/upcoming`
+- No authentication required
+- Maximum 200 events returned (~12 hours of data)
+
+### ZwiftPower
+- Profile scraping via environment variable credentials
+- Provides Racing Score auto-detection
+- Script: `scripts/refresh_zwiftpower_stats.sh`
 
 ## Route ID System
 
-- Zwift uses internal route IDs that are stable across event name changes
-- Route 9999 is a placeholder for unmapped routes
-- Routes discovered through:
-  - ZwiftHacks.com database
-  - WhatsOnZwift route information
-  - Empirical testing with known events
-
-## API Integration Points
-
-### Zwift Public API
-- Endpoint: `https://us-or-rly101.zwift.com/api/public/events`
-- No authentication required
-- Returns upcoming events
-
-### ZwiftPower Integration
-- Manual export via browser console script
-- Imports historical race results
-- Provides regression testing data
-
-### Strava Integration
-- OAuth authentication
-- Fetches completed Zwift activities
-- Validates route predictions
-
-## Error Handling
-
-- Network failures: Retry with exponential backoff
-- Unknown routes: Log to database for investigation
-- Missing data: Fallback estimation methods
-- API changes: Defensive parsing with defaults
-
-## Performance Considerations
-
-- SQLite for fast local queries
-- Route data cached indefinitely
-- API responses cached for session
-- Minimal external dependencies
-
-## Security
-
-- No credentials stored in code
-- OAuth tokens in secure storage
-- Read-only API access
-- Local database with user data only
+- Route IDs are unsigned 32-bit integers (`u32` in Rust, `INTEGER` in SQLite)
+- Values can exceed `i32` max (2^31) — appear negative when serialized as signed integers
+- Import code uses `i64` for deserialization, then casts to `u32`
+- Route names change; route IDs are stable. Always use IDs as primary key.

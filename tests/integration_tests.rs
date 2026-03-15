@@ -260,10 +260,10 @@ mod output_format_tests {
                 max_minutes: 48,
             },
             RouteExpectation {
-                route_id: 2663908549, // Mt. Fuji (20.3km, 1159m elevation)
+                route_id: 2663908549, // Mt. Fuji (20.3km, 1159m elevation, 57 m/km)
                 name: "Mt. Fuji",
-                min_minutes: 52, // Very hilly route, 20.3km at ~23 km/h
-                max_minutes: 70,
+                min_minutes: 85,  // Steep mountain climb with Cat D penalty
+                max_minutes: 115, // Similar gradient to Road to Sky (110 min for 17.6km Cat D)
             },
         ];
 
