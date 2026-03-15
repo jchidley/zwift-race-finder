@@ -6,19 +6,18 @@
 // ABOUTME: Tool to find Zwift races suitable for Cat C riders (~180 ZwiftScore) lasting ~2 hours
 // Fetches events from Zwift API and filters based on race duration estimates
 
+mod api;
+mod commands;
 mod config;
 mod database;
 mod route_discovery;
+mod zwiftpower;
 
 use anyhow::Result;
 use chrono::Utc;
 use clap::Parser;
 use colored::*;
-use config::{FullConfig, Secrets};
-use database::Database;
-use regex::Regex;
-use std::io::Write;
-use zwift_race_finder::cache::*;
+use config::FullConfig;
 use zwift_race_finder::category::*;
 use zwift_race_finder::constants::*;
 use zwift_race_finder::errors::*;
@@ -228,187 +227,7 @@ fn generate_filter_description(args: &Args, min_duration: u32, max_duration: u32
     parts.join(" | ")
 }
 
-async fn fetch_zwiftpower_stats(secrets: &Secrets) -> Result<Option<UserStats>> {
-    let debug = std::env::var("ZRF_ZP_DEBUG").is_ok();
-    // Only try to fetch if we have profile ID configured
-    let (profile_id, session_id) = match (
-        &secrets.zwiftpower_profile_id,
-        &secrets.zwiftpower_session_id,
-    ) {
-        (Some(pid), Some(sid)) => (pid, sid),
-        (Some(pid), None) => {
-            // Try without session ID (might work for public profiles)
-            let url = format!("https://zwiftpower.com/profile.php?z={}", pid);
-            if debug {
-                eprintln!("ZP: no session ID configured, trying public profile access");
-            }
-            eprintln!("Note: No session ID configured, trying public profile access...");
-            return fetch_zwiftpower_public(&url).await;
-        }
-        _ => {
-            if debug {
-                eprintln!("ZP: missing profile ID, skipping fetch");
-            }
-            return Ok(None);
-        }
-    };
 
-    let url = format!(
-        "https://zwiftpower.com/profile.php?z={}&sid={}",
-        profile_id, session_id
-    );
-
-    let client = reqwest::Client::builder()
-        .user_agent("Zwift Race Finder")
-        .build()?;
-
-    let response = client.get(&url).send().await;
-
-    match response {
-        Ok(resp) if resp.status().is_success() => {
-            let html = resp.text().await?;
-
-            // Parse Zwift Racing Score from the HTML
-            let score_regex = Regex::new(r"(?s)Zwift Racing Score.*?(\d+)").unwrap();
-            let category_regex =
-                Regex::new(r"Category(?:[^A-Z]+)?([A-E]\\+?)").unwrap();
-
-            if debug {
-                eprintln!(
-                    "ZP: body has score label? {}",
-                    html.contains("Zwift Racing Score")
-                );
-                eprintln!("ZP: score regex match? {}", score_regex.is_match(&html));
-                eprintln!(
-                    "ZP: category regex match? {}",
-                    category_regex.is_match(&html)
-                );
-            }
-
-            if let Some(score_match) = score_regex.captures(&html) {
-                let zwift_score: u32 = score_match[1].parse().unwrap_or(195);
-                let category = category_regex
-                    .captures(&html)
-                    .and_then(|caps| caps.get(1).map(|m| m.as_str().to_string()))
-                    .unwrap_or_else(|| get_category_from_score(zwift_score).to_string());
-
-                return Ok(Some(UserStats {
-                    zwift_score,
-                    category,
-                    username: "ZwiftPower".to_string(),
-                }));
-            }
-        }
-        _ => {
-            // If we can't fetch from ZwiftPower, return None to use defaults
-            return Ok(None);
-        }
-    }
-
-    Ok(None)
-}
-
-async fn fetch_zwiftpower_public(url: &str) -> Result<Option<UserStats>> {
-    // Simplified version for public profile access
-    let client = reqwest::Client::builder()
-        .user_agent("Zwift Race Finder")
-        .build()?;
-
-    match client.get(url).send().await {
-        Ok(resp) if resp.status().is_success() => {
-            // Try to parse what we can from public page
-            Ok(None) // Public pages might be limited
-        }
-        _ => Ok(None),
-    }
-}
-
-async fn get_user_stats(config: &FullConfig) -> Result<UserStats> {
-    // Try to load from cache first
-    if let Ok(Some(stats)) = load_cached_stats() {
-        return Ok(stats);
-    }
-
-    // Try to fetch from ZwiftPower
-    if let Ok(Some(stats)) = fetch_zwiftpower_stats(&config.secrets).await {
-        // Cache the fetched stats
-        let _ = save_cached_stats(&stats);
-        return Ok(stats);
-    }
-
-    // Use configured defaults or fallback
-    let zwift_score = config.default_zwift_score().unwrap_or(195);
-    Ok(UserStats {
-        zwift_score,
-        category: config
-            .default_category()
-            .cloned()
-            .unwrap_or_else(|| get_category_from_score(zwift_score).to_string()),
-        username: "User".to_string(),
-    })
-}
-
-async fn fetch_events() -> Result<Vec<ZwiftEvent>> {
-    // API has a hard limit of 200 events (about 12 hours worth)
-    // The API ignores pagination parameters (limit/offset) and date filters
-    // This is a Zwift API limitation, not a bug in this tool
-    let url = "https://us-or-rly101.zwift.com/api/public/events/upcoming";
-
-    let client = reqwest::Client::builder()
-        .user_agent("Zwift Race Finder")
-        .timeout(std::time::Duration::from_secs(30))
-        .build()?;
-
-    let response = match client
-        .get(url)
-        .header("Content-Type", "application/json")
-        .send()
-        .await
-    {
-        Ok(resp) => resp,
-        Err(e) => {
-            let err = anyhow::Error::from(e);
-            api_connection_error(&err).display();
-            return Err(err);
-        }
-    };
-
-    // Check for rate limiting
-    if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
-        api_rate_limit().display();
-        return Err(anyhow::anyhow!("API rate limit exceeded"));
-    }
-
-    // Check for other HTTP errors
-    if !response.status().is_success() {
-        let status = response.status();
-        let error = UserError::new(
-            format!("Zwift API returned error: {}", status),
-            format!(
-                "HTTP {}: {}",
-                status.as_u16(),
-                status.canonical_reason().unwrap_or("Unknown error")
-            ),
-        )
-        .with_suggestion("The API might be temporarily unavailable")
-        .with_suggestion("Try again in a few minutes");
-        error.display();
-        return Err(anyhow::anyhow!("API returned status: {}", status));
-    }
-
-    let events: Vec<ZwiftEvent> = response.json().await.map_err(|e| {
-        UserError::new(
-            "Failed to parse Zwift API response",
-            "The API returned data in an unexpected format",
-        )
-        .with_suggestion("This might indicate an API change")
-        .with_suggestion(format!("Technical details: {}", e))
-        .display();
-        e
-    })?;
-
-    Ok(events)
-}
 
 fn filter_events(
     mut events: Vec<ZwiftEvent>,
@@ -478,424 +297,11 @@ fn filter_events(
     (events, stats)
 }
 
-fn show_unknown_routes() -> Result<()> {
-    let db = Database::new()?;
-    let routes = db.get_unknown_routes()?;
 
-    if routes.is_empty() {
-        println!("No unknown routes found. Great job mapping!");
-    } else {
-        println!("\n{}", "Unknown Routes (need mapping):".yellow().bold());
-        println!("{}", "=".repeat(60));
-        println!("{:<12} {:<8} {}", "Route ID", "Seen", "Event Name");
-        println!("{}", "-".repeat(60));
 
-        for (route_id, event_name, times_seen) in routes {
-            println!(
-                "{:<12} {:<8} {}",
-                route_id.to_string().yellow(),
-                times_seen,
-                event_name
-            );
-        }
 
-        println!(
-            "\n{}: Research these routes on ZwiftHacks or Zwift Insider",
-            "Tip".yellow()
-        );
-        println!("Then add them to the database with distance and elevation data.");
-    }
-    Ok(())
-}
 
-async fn discover_unknown_routes() -> Result<()> {
-    let db = Database::new()?;
-    let mut unknown = db.get_unknown_routes()?;
 
-    if unknown.is_empty() {
-        println!("No unknown routes to discover!");
-        return Ok(());
-    }
-
-    // Sort by frequency (times_seen) to prioritize high-value routes
-    unknown.sort_by(|a, b| b.2.cmp(&a.2));
-
-    let total_count = unknown.len();
-    println!(
-        "🔍 Starting route discovery for {} unknown routes...",
-        total_count
-    );
-    println!("📋 Prioritizing high-frequency events first\n");
-
-    // Process in batches to avoid timeouts
-    const BATCH_SIZE: usize = 20;
-    const BATCH_TIMEOUT_MINS: u64 = 2;
-
-    let discovery = route_discovery::RouteDiscovery::new()?;
-    let mut total_discovered = 0;
-    let mut total_failed = 0;
-    let mut total_skipped = 0;
-
-    // Process routes in batches
-    for (batch_num, chunk) in unknown.chunks(BATCH_SIZE).enumerate() {
-        let batch_start = std::time::Instant::now();
-        println!(
-            "\n📦 Batch {} of {} ({} routes):",
-            batch_num + 1,
-            (unknown.len() + BATCH_SIZE - 1) / BATCH_SIZE,
-            chunk.len()
-        );
-
-        let mut batch_discovered = 0;
-        let mut batch_failed = 0;
-
-        for (route_id, event_name, times_seen) in chunk {
-            // Check if we're approaching timeout
-            if batch_start.elapsed().as_secs() > BATCH_TIMEOUT_MINS * 60 - 30 {
-                println!("\n⏰ Approaching timeout limit, saving progress...");
-                break;
-            }
-
-            // Check if we should attempt discovery (not tried recently)
-            if !db.should_attempt_discovery(*route_id)? {
-                println!("⏭️  Skipping {} (recently attempted)", event_name);
-                total_skipped += 1;
-                continue;
-            }
-
-            print!(
-                "🔎 [{:3}x] Searching for '{}' (ID: {})... ",
-                times_seen, event_name, route_id
-            );
-            std::io::stdout().flush()?;
-
-            // Record the attempt
-            db.record_discovery_attempt(*route_id, event_name)?;
-
-            // Try to discover route data
-            match discovery.discover_route(event_name).await {
-                Ok(discovered) => {
-                    // Use the discovered route_id if it's valid, otherwise use the original
-                    let final_route_id = if discovered.route_id != 9999 {
-                        discovered.route_id
-                    } else {
-                        *route_id
-                    };
-
-                    // Save to database
-                    db.save_discovered_route(
-                        final_route_id,
-                        discovered.distance_km,
-                        discovered.elevation_m,
-                        &discovered.world,
-                        &discovered.surface,
-                        &discovered.name,
-                    )?;
-
-                    println!(
-                        "✅ Found! {}km, {}m elevation, ID: {}",
-                        discovered.distance_km, discovered.elevation_m, final_route_id
-                    );
-                    batch_discovered += 1;
-                }
-                Err(e) => {
-                    println!("❌ Failed: {}", e);
-                    batch_failed += 1;
-                }
-            }
-
-            // Small delay to be polite to external services
-            tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-        }
-
-        total_discovered += batch_discovered;
-        total_failed += batch_failed;
-
-        // Batch summary
-        println!(
-            "\nBatch {} complete: {} found, {} failed",
-            batch_num + 1,
-            batch_discovered,
-            batch_failed
-        );
-
-        // Check if we should continue
-        if batch_start.elapsed().as_secs() > BATCH_TIMEOUT_MINS * 60 - 30 {
-            println!(
-                "\n⏰ Timeout reached. {} routes remaining for next run.",
-                total_count - (batch_num + 1) * BATCH_SIZE
-            );
-            break;
-        }
-
-        // Pause between batches
-        if batch_num + 1 < (unknown.len() + BATCH_SIZE - 1) / BATCH_SIZE {
-            println!("\n⏸️  Pausing 5 seconds before next batch...");
-            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
-        }
-    }
-
-    println!("\n📊 Discovery Summary:");
-    println!("  ✅ Successfully discovered: {}", total_discovered);
-    println!("  ❌ Failed to discover: {}", total_failed);
-    println!("  ⏭️  Skipped (recent attempts): {}", total_skipped);
-    println!(
-        "  ⏳ Remaining to process: {}",
-        total_count.saturating_sub(total_discovered + total_failed + total_skipped)
-    );
-
-    if total_discovered > 0 {
-        println!("\n💡 Tip: Run the tool normally to see the newly discovered routes in action!");
-    }
-
-    Ok(())
-}
-
-fn record_race_result(input: &str) -> Result<()> {
-    // Parse format: "route_id,minutes,event_name[,zwift_score]"
-    let parts: Vec<&str> = input.split(',').collect();
-    if parts.len() < 3 {
-        anyhow::bail!("Format: --record-result 'route_id,minutes,event_name[,zwift_score]'");
-    }
-
-    let route_id: u32 = parts[0]
-        .trim()
-        .parse()
-        .map_err(|_| anyhow::anyhow!("Invalid route_id"))?;
-    let minutes: u32 = parts[1]
-        .trim()
-        .parse()
-        .map_err(|_| anyhow::anyhow!("Invalid minutes"))?;
-
-    // Check if zwift_score is provided at position 3 (before event name)
-    let (event_name, zwift_score_override) =
-        if parts.len() >= 4 && parts[3].trim().parse::<u32>().is_ok() {
-            // Format: route_id,minutes,event_name,zwift_score
-            let event_name = parts[2].trim().to_string();
-            let zwift_score = parts[3].trim().parse::<u32>().unwrap();
-            (event_name, Some(zwift_score))
-        } else {
-            // Format: route_id,minutes,event_name (may contain commas)
-            let event_name = parts[2..].join(",").trim().to_string();
-            (event_name, None)
-        };
-
-    let db = Database::new()?;
-
-    // Ensure route exists so race_result FK is satisfied
-    if db.get_route(route_id)?.is_none() {
-        println!(
-            "{}: Route {} not found in database — creating stub entry",
-            "Warning".yellow(),
-            route_id
-        );
-        let stub = database::RouteData {
-            route_id,
-            distance_km: 0.0,
-            elevation_m: 0,
-            name: event_name.clone(),
-            world: "Unknown".to_string(),
-            surface: "road".to_string(),
-            lead_in_distance_km: 0.0,
-            lead_in_elevation_m: 0,
-            lead_in_distance_free_ride_km: None,
-            lead_in_elevation_free_ride_m: None,
-            lead_in_distance_meetups_km: None,
-            lead_in_elevation_meetups_m: None,
-            slug: None,
-        };
-        db.add_route(&stub)?;
-        db.record_unknown_route(route_id, &event_name, "RACE")?;
-    }
-
-    // Get zwift_score from override or default
-    let zwift_score = zwift_score_override.unwrap_or(195);
-
-    let result = database::RaceResult {
-        id: None,
-        route_id,
-        event_name: event_name.clone(),
-        actual_minutes: minutes,
-        zwift_score,
-        race_date: Utc::now().format("%Y-%m-%d").to_string(),
-        notes: None,
-    };
-
-    db.add_race_result(&result)?;
-
-    println!(
-        "\n✅ {} recorded successfully!",
-        "Race result".green().bold()
-    );
-    println!("  Route ID: {}", route_id);
-    println!("  Event: {}", event_name);
-    println!("  Time: {}", format_duration(minutes));
-    println!("  Zwift Score: {}", zwift_score);
-
-    // Show comparison with estimate if route is known
-    if let Some(estimated) = estimate_duration_from_route_id(route_id, zwift_score) {
-        let diff = (estimated as i32 - minutes as i32).abs();
-        let accuracy = PERCENT_MULTIPLIER - (diff as f64 / minutes as f64 * PERCENT_MULTIPLIER);
-        println!(
-            "\n  Estimated: {} ({}% accurate)",
-            format_duration(estimated),
-            accuracy.round() as i32
-        );
-    }
-
-    Ok(())
-}
-
-async fn analyze_event_descriptions() -> Result<()> {
-    println!(
-        "\n{}",
-        "Analyzing Event Descriptions for Route Names..."
-            .yellow()
-            .bold()
-    );
-
-    // Fetch current events (reuse same endpoint as main event fetch)
-    let events = fetch_events().await?;
-
-    let mut route_patterns: std::collections::HashMap<String, Vec<String>> =
-        std::collections::HashMap::new();
-    let mut unknown_routes = 0;
-    let mut parsed_count = 0;
-
-    for event in &events {
-        // Skip if we already know this route
-        if let Some(route_id) = event.route_id {
-            if get_route_data(route_id).is_some() {
-                continue;
-            }
-        }
-
-        unknown_routes += 1;
-
-        // Try to parse description
-        if let Some(description) = &event.description {
-            if let Some(parsed) = route_discovery::parse_route_from_description(description) {
-                parsed_count += 1;
-                let key = format!("{} ({} laps)", parsed.route_name, parsed.laps);
-                route_patterns
-                    .entry(key)
-                    .or_insert_with(Vec::new)
-                    .push(event.name.clone());
-            }
-        }
-    }
-
-    println!(
-        "\n{}: {} unknown routes, {} descriptions parsed",
-        "Summary".bright_blue(),
-        unknown_routes,
-        parsed_count
-    );
-
-    if !route_patterns.is_empty() {
-        println!("\n{}", "Discovered Route Patterns:".green().bold());
-        println!("{}", "=".repeat(80));
-
-        // Sort by frequency
-        let mut patterns: Vec<_> = route_patterns.iter().collect();
-        patterns.sort_by(|a, b| b.1.len().cmp(&a.1.len()));
-
-        for (route_info, events) in patterns.iter().take(20) {
-            println!("\n{} ({} events)", route_info.yellow(), events.len());
-            for event in events.iter().take(3) {
-                println!("  - {}", event.dimmed());
-            }
-            if events.len() > 3 {
-                println!("  ... and {} more", events.len() - 3);
-            }
-        }
-
-        if patterns.len() > 20 {
-            println!("\n... and {} more route patterns", patterns.len() - 20);
-        }
-    }
-
-    println!(
-        "\n{}: Use this information to create route mappings",
-        "Next Step".yellow()
-    );
-    println!("Look up the actual route names on Zwift Insider or ZwiftHacks");
-
-    Ok(())
-}
-
-fn mark_route_complete(route_id: u32) -> Result<()> {
-    let db = Database::new()?;
-
-    // Check if route exists
-    if let Some(route) = db.get_route(route_id)? {
-        // Mark as complete
-        db.mark_route_complete(route_id, None, None)?;
-        println!(
-            "✅ Marked route {} ({}) as completed!",
-            route.name, route.world
-        );
-
-        // Show updated progress
-        let (completed, total) = db.get_completion_stats()?;
-        println!(
-            "Progress: {}/{} routes completed ({}%)",
-            completed,
-            total,
-            (completed * PERCENT_MULTIPLIER as u32) / total
-        );
-    } else {
-        eprintln!("Error: Route {} not found in database", route_id);
-    }
-
-    Ok(())
-}
-
-fn show_route_progress() -> Result<()> {
-    let db = Database::new()?;
-
-    // Overall stats
-    let (completed, total) = db.get_completion_stats()?;
-    let percentage = if total > 0 {
-        (completed * PERCENT_MULTIPLIER as u32) / total
-    } else {
-        0
-    };
-
-    println!(
-        "🏆 {} {}",
-        "Route Completion Progress".bold(),
-        format!("v0.1.0").dimmed()
-    );
-    println!();
-    println!("Overall: {}/{} routes ({}%)", completed, total, percentage);
-
-    // Progress bar
-    let bar_width: usize = 30;
-    let filled = bar_width * completed as usize / total.max(1) as usize;
-    let bar = "█".repeat(filled) + &"░".repeat(bar_width - filled);
-    println!("{}", bar.bright_green());
-    println!();
-
-    // World stats
-    println!("By World:");
-    let world_stats = db.get_world_completion_stats()?;
-    for (world, world_completed, world_total) in world_stats {
-        let world_percentage = if world_total > 0 {
-            (world_completed * PERCENT_MULTIPLIER as u32) / world_total
-        } else {
-            0
-        };
-        let world_filled = 10 * world_completed as usize / world_total.max(1) as usize;
-        let world_bar = "▓".repeat(world_filled) + &"░".repeat(10 - world_filled);
-        println!(
-            "  {:<15} {}/{} {} {}%",
-            world, world_completed, world_total, world_bar, world_percentage
-        );
-    }
-
-    Ok(())
-}
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -905,32 +311,32 @@ async fn main() -> Result<()> {
 
     // Handle special commands first
     if args.show_unknown_routes {
-        show_unknown_routes()?;
+        commands::show_unknown_routes()?;
         return Ok(());
     }
 
     if args.analyze_descriptions {
-        analyze_event_descriptions().await?;
+        commands::analyze_event_descriptions().await?;
         return Ok(());
     }
 
     if let Some(result_str) = args.record_result {
-        record_race_result(&result_str)?;
+        commands::record_race_result(&result_str)?;
         return Ok(());
     }
 
     if args.discover_routes {
-        discover_unknown_routes().await?;
+        commands::discover_unknown_routes().await?;
         return Ok(());
     }
 
     if let Some(route_id) = args.mark_complete {
-        mark_route_complete(route_id)?;
+        commands::mark_route_complete(route_id)?;
         return Ok(());
     }
 
     if args.show_progress {
-        show_route_progress()?;
+        commands::show_route_progress()?;
         return Ok(());
     }
 
@@ -976,7 +382,7 @@ async fn main() -> Result<()> {
     };
 
     // Get user stats (auto-detected or from command line)
-    let user_stats = get_user_stats(&config).await?;
+    let user_stats = zwiftpower::get_user_stats(&config).await?;
     let zwift_score = args.zwift_score.unwrap_or(user_stats.zwift_score);
 
     // Validate Zwift score
@@ -1017,7 +423,7 @@ async fn main() -> Result<()> {
         format_duration(max_duration).yellow()
     );
 
-    let events = fetch_events().await?;
+    let events = api::fetch_events().await?;
 
     if events.is_empty() {
         no_events_in_time_range(1).display();
