@@ -32,7 +32,7 @@ for single-file review. Files are grouped by category.
 21. [./docs/reference/REFACTORING_RULES.md] — Refactoring Rules for Claude
 22. [./docs/reference/REQUIREMENTS.md] — REQUIREMENTS.md
 23. [./docs/reference/ROUTE_DATA_EXTRACTION.md] — Zwift Route Data Extraction Documentation
-24. [./docs/reference/RUST_REFACTORING.md] — Rust Refactoring Reference
+24. ~~REMOVED: ./docs/reference/RUST_REFACTORING.md — merged into REFACTORING_RULES.md~~
 25. [./docs/reference/SECURITY_AUDIT.md] — Security Audit Report - Zwift Race Finder
 26. [./docs/reference/SIMULATION_TOOLS.md] — Zwift Simulation Tools for Automated Testing
 27. [./docs/reference/TEST_SUITE_SUMMARY.md] — Zwift Race Finder Test Suite Summary
@@ -364,8 +364,7 @@ Facts, specs, and lookup tables. No step-by-step instructions.
 - [Security audit](reference/SECURITY_AUDIT.md) — credential handling review
 - [Route data extraction](reference/ROUTE_DATA_EXTRACTION.md) — how route data is sourced
 - [Simulation tools](reference/SIMULATION_TOOLS.md) — power simulation and testing
-- [Refactoring rules](reference/REFACTORING_RULES.md) — contract for behaviour-preserving changes
-- [Rust refactoring](reference/RUST_REFACTORING.md) — tools, mechanics, and patterns
+- [Refactoring rules](reference/REFACTORING_RULES.md) — contract, mechanics, and Rust patterns for behaviour-preserving changes
 - [Physical stats](reference/PHYSICAL_STATS.md) — height, weight, aerodynamics
 - [Zwift quick reference](reference/ZWIFT_QUICK_REFERENCE.md) — group size, power, gap decision tables
 
@@ -381,7 +380,7 @@ Background, rationale, and deep dives. Read away from the keyboard.
 ### Development
 - [AI-assisted development](explanation/AI_DEVELOPMENT.md) — building software with Claude Code
 - [Testing philosophy](explanation/TESTING_PHILOSOPHY.md) — why we test this way, the 0% mutation lesson
-- [Refactoring explained](explanation/REFACTORING_EXPLAINED.md) — why AI struggles with refactoring
+- [Refactoring explained](explanation/REFACTORING_EXPLAINED.md) — LLM refactoring research, competence boundaries, and prompting strategies
 
 ## Project history
 

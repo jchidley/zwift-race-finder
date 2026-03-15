@@ -1,110 +1,59 @@
-# Understanding Refactoring: A Human's Guide
+# Understanding LLM-Driven Refactoring
 
-This document explains the full scope of refactoring, why AI assistants struggle with it, and how the REFACTORING_RULES.md addresses these challenges.
+Why AI assistants struggle with refactoring, what recent research reveals about when they excel, and how the [Refactoring Rules](../reference/REFACTORING_RULES.md) address these challenges. Updated March 2026 with findings from ICSE 2025 IDE workshop, Emergent Mind survey (Jan 2026), and empirical studies on StarCoder2/GPT-4o refactoring performance.
 
 ## What Refactoring Really Is
 
-According to Martin Fowler (refactoring.com), refactoring is "a disciplined technique for restructuring an existing body of code, altering its internal structure without changing its external behavior."
+Martin Fowler defines refactoring as "a disciplined technique for restructuring an existing body of code, altering its internal structure without changing its external behavior."
 
-The key phrase: **"without changing its external behavior"**
+The key phrase: **"without changing its external behavior."**
 
-## The Refactoring Catalog
+Fowler's catalog includes over 60 refactoring types across categories: extracting/inlining functions and variables, moving features between modules, organising data, simplifying conditionals, and restructuring inheritance. The scope is far broader than "moving code between files."
 
-Refactoring isn't just moving functions between files. Fowler's catalog includes over 60 different refactorings, grouped into categories:
+## The Improvement Bias Problem
 
-### Basic Refactorings
-- **Extract Function**: Pull code into a new function
-- **Inline Function**: Replace function calls with the function body
-- **Extract Variable**: Name a complex expression
-- **Inline Variable**: Replace variable references with the expression
-- **Rename Function/Variable**: Change names for clarity
+When an LLM encounters code to refactor, multiple trained behaviours activate simultaneously:
 
-### Moving Features
-- **Move Function**: Relocate to a better module/class
-- **Move Field**: Relocate data to a better structure
-- **Move Statements into Function**: Consolidate related code
-- **Move Statements to Callers**: Push code up to callers
+1. **Code review mode**: "Is this code good? How can I improve it?"
+2. **Problem solving mode**: "What issues can I fix?"
+3. **Modernisation mode**: "Is this using current best practices?"
+4. **Efficiency mode**: "Can this be optimised?"
 
-### Organizing Data
-- **Replace Primitive with Object**: int age → Age class
-- **Replace Array with Object**: data[0] → data.name
-- **Encapsulate Variable**: Direct access → getter/setter
+These are helpful 95% of the time, but catastrophic during refactoring. Research quantifies this: **6–8% of unfiltered LLM refactoring outputs introduce semantic changes** — modifications that compile and look correct but alter behaviour (Liu et al., 2024; Cordeiro et al., 2024).
 
-### Simplifying Conditionals
-- **Decompose Conditional**: Complex if → multiple functions
-- **Consolidate Conditional Expression**: Multiple ifs → single if
-- **Replace Nested Conditional with Guard Clauses**: Deep nesting → early returns
+### Real Examples of Behaviour Change
 
-### Dealing with Inheritance
-- **Pull Up Method/Field**: Move to parent class
-- **Push Down Method/Field**: Move to subclasses
-- **Replace Subclass with Delegate**: Inheritance → composition
-
-## Why AI Assistants Fail at Refactoring
-
-### The Core Problem: Improvement Bias
-
-When an AI sees code to refactor, multiple trained behaviors activate:
-
-1. **Code Review Mode**: "Is this code good? How can I improve it?"
-2. **Problem Solving Mode**: "What issues can I fix?"
-3. **Modernization Mode**: "Is this using current best practices?"
-4. **Efficiency Mode**: "Can this be optimized?"
-
-These are helpful 95% of the time, but catastrophic during refactoring.
-
-### Real Examples of AI Refactoring Failures
-
-#### Example 1: Lost Functionality During Move
+**Lost functionality during move:**
 ```rust
 // Original (handles multiple formats)
-fn parse_distance_from_description(description: &Option<String>) -> Option<f64> {
-    if let Some(desc) = description {
-        // Parse "Distance: 10 km" format
-        let distance_re = Regex::new(r"Distance:\s*(\d+(?:\.\d+)?)\s*(km|miles?)").unwrap();
-        if let Some(captures) = distance_re.captures(desc) {
-            let value = captures[1].parse::<f64>().ok()?;
-            let unit = &captures[2];
-            return Some(if unit.starts_with("mile") {
-                value * 1.60934  // Convert miles to km
-            } else {
-                value
-            });
-        }
-        // Fallback to simple parsing
-        parse_distance_from_name(desc)
-    } else {
-        None
+fn parse_distance(desc: &str) -> Option<f64> {
+    let re = Regex::new(r"Distance:\s*(\d+(?:\.\d+)?)\s*(km|miles?)").unwrap();
+    if let Some(caps) = re.captures(desc) {
+        let value = caps[1].parse::<f64>().ok()?;
+        return Some(if caps[2].starts_with("mile") { value * 1.60934 } else { value });
     }
+    parse_distance_from_name(desc)  // fallback
 }
 
 // AI's "refactored" version (lost regex parsing and miles conversion)
-fn parse_distance_from_description(description: &Option<String>) -> Option<f64> {
-    description.as_ref().and_then(|desc| parse_distance_from_name(desc))
+fn parse_distance(desc: &str) -> Option<f64> {
+    parse_distance_from_name(desc)
 }
 ```
 
-#### Example 2: Added Features During Extract
+**Added features during extract:**
 ```rust
 // Task: Extract the validation logic
-fn process_age(age: i32) {
-    if age >= 0 && age <= 150 {
-        self.age = age;
-    }
-}
+fn process_age(age: i32) { if age >= 0 && age <= 150 { self.age = age; } }
 
 // AI's extraction (added new validation!)
-fn validate_age(age: i32) -> bool {
-    age >= 0 && age <= 150 && age != 13  // Added "unlucky number" check!
-}
+fn validate_age(age: i32) -> bool { age >= 0 && age <= 150 && age != 13 }
 ```
 
-#### Example 3: "Fixed" Edge Cases During Rename
+**"Fixed" edge cases during rename:**
 ```rust
-// Task: Rename 'get_value' to 'fetch_value'
-fn get_value(key: &str) -> Option<String> {
-    self.map.get(key).cloned()
-}
+// Task: Rename get_value → fetch_value
+fn get_value(key: &str) -> Option<String> { self.map.get(key).cloned() }
 
 // AI's version (added "helpful" default)
 fn fetch_value(key: &str) -> Option<String> {
@@ -112,166 +61,158 @@ fn fetch_value(key: &str) -> Option<String> {
 }
 ```
 
-## How Different Refactorings Challenge AI
+## What the Research Actually Shows (2024–2026)
 
-### Move Function (Easiest)
+The narrative that "LLMs can't refactor" is outdated. The reality is nuanced — LLMs have a precise competence boundary.
+
+### LLMs outperform developers on systematic refactorings
+
+The largest empirical study (Cordeiro et al., 2024 — 30 open-source Java projects, StarCoder2) found:
+
+- **Code smell reduction rate**: LLM 44.4% vs developers 24.3% — a 20pp advantage
+- LLMs excel at: Magic Number elimination, Long Statement splitting, Empty Catch Clause fixing, mechanical Extract Method
+- Developers excel at: Broken Modularisation, Deficient Encapsulation, Multifaceted Abstraction — anything requiring architectural reasoning
+
+### Prompt engineering has massive impact
+
+Liu et al. (2024) on ChatGPT with Java:
+- **Without specifying refactoring type**: 15.6% success
+- **With explicit refactoring type in prompt**: 86.7% success — a 71pp improvement
+
+This single finding justifies the entire prompt discipline in our [Refactoring Rules](../reference/REFACTORING_RULES.md). Saying "Perform an Extract Function refactoring" instead of "clean this up" is not pedantry — it's a 5× improvement.
+
+Additional findings:
+- One-shot prompting improves test pass rate by 6.15% over zero-shot (Cordeiro et al., 2024)
+- Sampling 5 generations (pass@5) raises unit test pass rate by 28.8% over single generation
+- Chain-of-thought prompting increases both smell reduction and functional correctness
+
+### Multi-agent architectures dramatically improve safety
+
+Multi-agent refactoring systems (RefAgent, MANTRA) decompose refactoring into pipelined stages — planning, generation, compilation, testing, and self-reflection — handled by specialised agents:
+
+- **Self-reflection loops** (iterative re-prompting on compile/test errors) raise functional correctness by **40–65 percentage points** over naive single-shot output (Oueslati et al., 2025)
+- RefAgent achieves 90% unit test pass rate with 52.5% smell reduction
+- Multi-agent RAG systems achieve 82.8% compile+pass rate vs 8.7% baseline (Xu et al., 2025)
+
+This maps directly to our recovery protocol: revert and retry with smaller scope is the manual equivalent of what multi-agent systems do automatically.
+
+### The overrefactoring problem is real
+
+LLMs don't just fail by breaking behaviour — they also fail by modifying code that doesn't need modification (Shirafuji et al., 2023; Midolo et al., Jan 2026):
+
+- Rewriting already-clean expressions in "more modern" style
+- Dropping comments and documentation during transformations
+- Renaming variables to non-idiomatic alternatives
+- Reducing readability while "improving" structure
+
+This is why our STOP signals exist. "While I'm here..." is the thought pattern that produces overrefactoring.
+
+## The Competence Boundary
+
+| Domain | LLM Capability | Human Oversight |
+|--------|---------------|-----------------|
+| Rename Variable/Function | ✅ Excellent | Low — mechanical |
+| Extract Function (localised) | ✅ Very good | Low — verify scope |
+| Magic Number → Constant | ✅ Excellent | Low |
+| Long Statement splitting | ✅ Very good | Low |
+| Move Function between files | ⚠️ Good with discipline | Medium — watch for "improvements" |
+| Change Function Declaration | ⚠️ Moderate | Medium — migration method required |
+| Cross-module restructuring | ❌ Poor | High — architectural reasoning needed |
+| Replace Algorithm | ❌ Dangerous | Very high — behaviour change likely |
+| Replace Conditional with Polymorphism | ❌ Unreliable | Very high — complete restructuring |
+
+## How Different Refactorings Challenge LLMs
+
+### Move Function (Moderate risk)
 - **Challenge**: Temptation to "clean up" while moving
-- **Solution**: Mechanical copy-delete process
+- **Solution**: Mechanical copy-delete process — no rewriting
+- **Research note**: LLMs succeed when context is restricted to source and target files only
 
-### Extract Function (Moderate)
+### Extract Function (Moderate risk)
 - **Challenge**: Deciding what's "better" extraction
 - **Solution**: Copy exact code, no rewrites
+- **Research note**: LLM+IDE hybrid approaches (embedding RAG) achieve 53.4% recall vs 39.4% for static analysis alone (Pomian et al., 2024)
 
-### Rename (Moderate)
-- **Challenge**: Fixing "related issues" during rename
+### Rename (Low risk)
+- **Challenge**: "Fixing related issues" during rename
 - **Solution**: Change names ONLY, nothing else
 
-### Extract Variable (Moderate)
-- **Challenge**: Simplifying the expression
-- **Solution**: Extract exactly as-is
+### Change Function Declaration (High risk)
+- **Challenge**: "Improving" the API while changing it
+- **Solution**: Migration method — old calls new, update callers one by one
 
-### Change Function Declaration (Hard)
-- **Challenge**: "Improving" the API
-- **Solution**: Migration method with old calling new
+### Replace Conditional with Polymorphism (Very high risk)
+- **Challenge**: Complete structural rewrite
+- **Solution**: Refuse or require human review at each step
 
-### Replace Conditional with Polymorphism (Very Hard)
-- **Challenge**: Complete restructuring
-- **Solution**: Often better refused by AI
+## Practical Agentic Workflow
 
-## The Mechanical Process Solution
+Armin Ronacher (June 2025) observes that agentic coding alters refactoring timing:
 
-For each refactoring type, we define mechanical steps that remove decision points:
+> "Agents handle tasks effectively until project complexity surpasses some manageable threshold... You don't want to refactor too early and you definitely do not want to do it too late."
 
-1. **No Rewriting**: Copy code exactly, character for character
-2. **No Decisions**: Follow steps mechanically
-3. **No Improvements**: Even obvious ones
-4. **Test Driven**: Tests pass or refactoring fails
+In practice with Claude Code or similar agents:
+1. **Don't refactor speculatively** — wait until complexity blocks progress
+2. **Keep refactorings small and testable** — agents work best on localised changes
+3. **Run the full test suite after each refactoring** — not after a batch
+4. **Use `cargo clippy` and `cargo mutants`** as automated verification gates
+5. **If a refactoring fails tests, revert entirely** — don't debug forward
 
-## Understanding the Rules Document
+## How to Activate the Rules
 
-### Critical Contract
-Creates psychological commitment - this isn't normal coding, it's a special mode.
+### When giving instructions to an LLM:
 
-### Specific Mechanics
-Each refactoring type has exact steps, like a recipe. No improvisation allowed.
-
-### STOP Signals
-Catches dangerous thoughts before they become code:
-- "While I'm here..." → STOP
-- "This would be better..." → STOP
-- "Modern style..." → STOP
-
-### Failure Examples
-Real examples of how refactoring goes wrong, making the danger concrete.
-
-### Recovery Protocol
-When tests fail, no debugging allowed. Only revert. This prevents "fixing forward" which often changes more behavior.
-
-## When to Use These Rules
-
-### Good for AI-Assisted Refactoring:
-- Move Function/Method
-- Extract Function/Method
-- Extract Variable
-- Rename (with care)
-- Simple inlines
-
-### Require Human Oversight:
-- Change Function Declaration
-- Introduce Parameter Object
-- Pull Up/Push Down Method
-- Encapsulate Variable
-
-### Better Done by Humans:
-- Replace Conditional with Polymorphism
-- Replace Algorithm
-- Split Phase
-- Any refactoring touching core logic
-
-## How to Activate the Refactoring Rules
-
-To ensure Claude follows the refactoring rules instead of modifying code:
-
-### Option 1: Direct Reference (Most Reliable)
-Simply mention the rules when asking for refactoring:
+**Most effective** (research-validated):
 ```
-"Please refactor this code following REFACTORING_RULES.md"
+"Perform an Extract Function refactoring to move validation logic into 
+validate_items(). Follow REFACTORING_RULES.md mechanics."
 ```
 
-### Option 2: Use the Magic Word with Context
-When you say "refactor", Claude should recognize it as entering the contract, but you can reinforce:
-```
-"I need you to refactor (not rewrite) these functions to a new module"
-```
+**Why it works**: Naming the specific refactoring type (Extract Function) raises success from 15.6% → 86.7%. Referencing the rules file activates the contract.
 
-### Option 3: Quote the Contract
-Start your request with the contract to activate the mindset:
-```
-"Remember: preserve behavior EXACTLY. Now refactor..."
-```
+**Also effective:**
+- "I need you to refactor (not rewrite) these functions to a new module"
+- "Remember: preserve behaviour EXACTLY. Now refactor..."
+- Use specific catalog names: Move Function, Extract Variable, Rename
 
-### Option 4: Specify the Refactoring Type
-Use the specific names from the catalog:
+**If the LLM starts modifying behaviour:**
 ```
-"Perform a Move Function refactoring to move parse_* functions to parsing.rs"
-"Do an Extract Function refactoring on this validation logic"
+"STOP — you're changing behaviour. Follow REFACTORING_RULES.md"
 ```
-
-### Option 5: Add to Project's CLAUDE.md
-For permanent activation in a project, add to CLAUDE.md:
-```markdown
-## Refactoring Discipline
-When asked to refactor, ALWAYS follow REFACTORING_RULES.md.
-See REFACTORING_EXPLAINED.md for why this matters.
-```
-
-### What Triggers the Rules
-
-The rules should activate when Claude sees:
-- The word "refactor" (vs "rewrite", "improve", "fix")
-- References to the rules file
-- Specific refactoring type names
-- The contract language
-
-### If Claude Starts Modifying Code
-
-Interrupt immediately:
-```
-"STOP - you're changing behavior. Follow REFACTORING_RULES.md"
-```
-
-### Example of a Good Refactoring Request
-```
-"Please perform a Move Function refactoring to move parse_distance_from_description 
-and its tests from main.rs to a new parsing.rs module. Use the mechanical 
-copy-delete method from REFACTORING_RULES.md"
-```
-
-The key is being explicit that you want refactoring (structure change only) not rewriting (behavior change).
 
 ## The Paradox of AI Refactoring
 
-AI excels at:
-- Understanding code intent
-- Suggesting improvements
-- Finding bugs
-- Modernizing patterns
+LLMs excel at understanding code intent, suggesting improvements, finding bugs, and modernising patterns. These strengths become weaknesses during refactoring, where the goal is to change **nothing** about behaviour.
 
-But these strengths become weaknesses during refactoring, where the goal is to change NOTHING about behavior.
+The research resolution is not to make LLMs "understand" refactoring better. It's to:
+1. **Constrain via prompting** — explicit refactoring types, restricted context, STOP signals
+2. **Verify mechanically** — test suites, static analysis, mutation testing
+3. **Use the right tool** — LLMs for systematic/localised refactorings, humans for architectural ones
+4. **Deploy pipeline architecture** — generate, compile, test, reflect, retry
 
-The solution isn't to make AI "understand" refactoring better. It's to create mechanical processes that prevent the AI from using its "intelligence" in ways that break the refactoring contract.
+Our [Refactoring Rules](../reference/REFACTORING_RULES.md) implement this approach as a manual contract. The mechanical processes prevent the LLM from using its "intelligence" in ways that break the refactoring contract.
 
 ## Key Takeaways
 
-1. **Refactoring is about structure, not behavior**
-2. **AI's helpful nature is harmful during refactoring**
-3. **Mechanical processes prevent thinking/improving**
-4. **Tests are the only source of truth**
-5. **Different refactorings need different mechanics**
-6. **Some refactorings are too complex for AI**
+1. **Refactoring is about structure, not behaviour** — the Fowler definition is non-negotiable
+2. **LLMs are excellent at systematic refactorings** — 20pp better than developers on smell reduction
+3. **LLMs are dangerous at architectural refactorings** — 6–8% hallucination rate without controls
+4. **Prompt specificity is the single biggest lever** — naming the refactoring type = 5× improvement
+5. **Verification is mandatory** — tests, clippy, mutation testing after every change
+6. **Revert, don't fix forward** — matches multi-agent self-reflection loops
+7. **Refactor at the right time** — when complexity blocks progress, not speculatively
 
-## Final Thought
+## References
 
-The irony: We're using AI's intelligence to create processes that prevent it from being intelligent. But that's exactly what safe refactoring requires - mechanical transformation without creative interpretation.
-
-Remember Martin Fowler's wisdom: First refactor to make the change easy (this might be hard), then make the easy change. Never mix refactoring with feature changes.
+- Cordeiro, Noei & Zou (2024). "An Empirical Study on the Code Refactoring Capability of Large Language Models." ICSE 2025.
+- Liu et al. (2024). "LLM-Driven Code Refactoring: Opportunities and Limitations." IDE Workshop, ICSE 2025.
+- Shirafuji et al. (2023). "Refactoring programs using large language models with few-shot examples." APSEC 2023.
+- Oueslati et al. (Nov 2025). "RefAgent: Multi-agent refactoring with planning, tool-calls, and self-reflection."
+- Xu et al. (Mar 2025). "Multi-agent RAG for method-level refactoring."
+- Pomian et al. (2024). "Extract Method via LLM+IDE plugin." 
+- Midolo et al. (Jan 2026). "Class-level refactoring with GPT-4o."
+- Batole et al. (Mar 2025). "IDE-native foundation model agents for Move Method."
+- Robredo et al. (Sep 2025). "LLM-driven study of refactoring motivations in open-source projects."
+- Fulcini et al. (2026). "Enhancing Software Maintainability Through LLM-Assisted Code Refactoring." PROFES 2025.
+- Ronacher, Armin (Jun 2025). "Agentic Coding Recommendations." lucumr.pocoo.org.
+- Emergent Mind (Jan 2026). "LLM-Driven Code Refactoring" topic survey. emergentmind.com.
