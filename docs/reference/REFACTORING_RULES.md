@@ -71,6 +71,13 @@ Step 3: DELETE moved functions from original, add module + imports
 Step 4: Run tests — must pass unchanged
 ```
 
+**Rust-specific notes (learned from applying these rules):**
+
+- **Import resolution is the hard part.** In a binary crate that depends on its own library crate, you must distinguish `crate::` paths (binary-private modules) from `your_crate_name::` paths (library public modules). This is where most cognitive effort goes — not the copy-delete itself.
+- **Visibility changes are mandatory.** Changing `fn` to `pub fn` on moved functions is technically an API surface change, but it's required for the move to compile. This is an accepted exception to "no behaviour changes."
+- **Decide what moves together before starting.** Group functions by cohesion (shared data, shared callers, shared domain concept). The mechanical method covers *how* to move but not *what* belongs together — that's a judgment call you make up front.
+- **Tests that use `super::*` can't follow.** If tests call private functions via `super::*`, they must stay in the original file. Moving them would require making functions public, which changes the API — a separate refactoring step.
+
 ### 2. Extract Function
 
 ```

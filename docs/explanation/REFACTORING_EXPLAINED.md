@@ -192,6 +192,18 @@ The research resolution is not to make LLMs "understand" refactoring better. It'
 
 Our [Refactoring Rules](../reference/REFACTORING_RULES.md) implement this approach as a manual contract. The mechanical processes prevent the LLM from using its "intelligence" in ways that break the refactoring contract.
 
+## Lessons from Applying the Rules (March 2026)
+
+We applied the Move Function refactoring to this codebase, extracting 3 modules from a 2111-line `main.rs`. What we observed:
+
+1. **The mechanical method works.** Zero test failures, zero behaviour changes. The STOP signals prevented several "while I'm here" improvements.
+2. **Import resolution is where the effort is.** The copy-delete is trivial. Figuring out Rust's `crate::` vs library paths consumed most of the time. The rules originally glossed over this as "add imports."
+3. **The research oversells LLM capabilities for structural moves.** The Emergent Mind data is about localised smell reduction (rename, magic numbers). A 600-line cross-file reorganisation is closer to the "LLMs fail at" category. It only succeeded because we kept it purely mechanical.
+4. **Tests constrain what you can move.** 888 lines of tests in `main.rs` use `super::*` to access private functions. They can't move without making functions public — a separate refactoring. This is a real architectural constraint the rules didn't address.
+5. **Visibility changes are unavoidable.** `fn` → `pub fn` is technically a behaviour change but mandatory for compilation. The rules now explicitly acknowledge this exception.
+
+These observations have been folded back into the [Refactoring Rules](../reference/REFACTORING_RULES.md).
+
 ## Key Takeaways
 
 1. **Refactoring is about structure, not behaviour** — the Fowler definition is non-negotiable
