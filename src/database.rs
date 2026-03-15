@@ -66,6 +66,7 @@ pub struct RaceResult {
 
 /// Rider physical stats for physics calculations
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct RiderStats {
     /// Height in meters
     #[allow(dead_code)]
@@ -571,6 +572,7 @@ impl Database {
     }
 
     /// Get rider stats from the database
+    #[allow(dead_code)]
     pub fn get_rider_stats(&self) -> Result<Option<RiderStats>> {
         let result = self
             .conn
@@ -591,6 +593,7 @@ impl Database {
     }
 
     /// Get lap count for multi-lap events
+    #[allow(dead_code)]
     pub fn get_multi_lap_info(&self, event_name: &str) -> Result<Option<u32>> {
         // Try exact match first
         let result = self
@@ -717,6 +720,7 @@ impl Database {
     }
 
     /// Check if a route has been completed
+    #[allow(dead_code)]
     pub fn is_route_completed(&self, route_id: u32) -> Result<bool> {
         let count: i64 = self.conn.query_row(
             "SELECT COUNT(*) FROM route_completion WHERE route_id = ?1",
@@ -767,6 +771,7 @@ impl Database {
     }
 
     /// Get all routes with basic info (for validation)
+    #[allow(dead_code)]
     pub fn get_all_routes_basic(&self) -> Result<Vec<(u32, String, f64, u32)>> {
         let mut stmt = self
             .conn
@@ -787,6 +792,7 @@ impl Database {
     }
 
     /// Get race results for validation
+    #[allow(dead_code)]
     pub fn get_race_results_for_validation(&self) -> Result<Vec<(u32, String, u32, u32)>> {
         let mut stmt = self.conn.prepare(
             "SELECT route_id, event_name, actual_minutes, zwift_score 

@@ -1,39 +1,48 @@
 # Zwift Race Finder
 
-Predict Zwift race durations from Racing Score and filter events by target time.
+Predict Zwift race durations from your Racing Score and find events that fit your schedule.
 
 ## Quick Start
 
 ```bash
-./install.sh
+cargo build --release
+cp target/release/zwift-race-finder ~/.local/bin/
 zwift-race-finder --zwift-score 195 --duration 30 --tolerance 15
 ```
 
-Config file example: `config.example.toml` → `~/.config/zwift-race-finder/config.toml`
+Optionally save defaults to `~/.config/zwift-race-finder/config.toml` (see `config.example.toml`).
 
 ## Documentation
 
-- `docs/README.md` - Documentation index
-- `docs/for-racers/` - Racing guides and tactics
-- `docs/for-developers/` - Architecture, testing, contribution notes
-- `docs/guides/` - Setup and operational how-to guides
-- `docs/reference/` - Algorithms, domain concepts, schema
-- `docs/research/` - Deep dives and investigations
-- `docs/project-history/` - Accuracy and development timeline
+| Need | Go to |
+|------|-------|
+| Learn to use it | [Tutorial: Find your first race](docs/tutorial/getting-started.md) |
+| Do a specific task | [How-to guides](docs/howto/) — deployment, data import, config, secrets |
+| Look something up | [Reference](docs/reference/) — algorithms, architecture, database, CLI |
+| Understand why | [Explanation](docs/explanation/) — Zwift physics, racing tactics, testing philosophy |
+
+Other resources:
+- [Project history](docs/project-history/) — accuracy timeline, discoveries
+- [PROJECT_WISDOM.md](PROJECT_WISDOM.md) — learning log
 
 ## Notes
 
 - Follow Zwift's Terms of Service when using or modifying this tool.
-- Run `cargo test --test regression_tests -- --nocapture` before claiming accuracy changes.
+- Run `cargo test regression_test -- --nocapture` before claiming accuracy changes.
 
 ## About This Code
 
-Almost all of this code is AI/LLM-generated. It's best used as a source of inspiration for your own AI/LLM efforts rather than as a traditional library.
+Almost all of this code is AI/LLM-generated. It's best used as a source of
+inspiration for your own AI/LLM efforts rather than as a traditional library.
 
 **This is personal alpha software.** If you want to use it:
 
-- Pin to a specific commit; don't track `main`.
-- Use AI/LLM to adapt it; without AI assistance, this project is hard to use.
-- Treat it as inspiration rather than a dependency.
+- **Pin to a specific commit** — don't track `main`, it changes without warning
+- **Use AI/LLM to adapt** — without AI assistance, this project is hard to use
+- **Treat as inspiration** — build your own version rather than depending on mine
 
-Suggestions are welcome as inspiration for future improvements.
+Suggestions welcome as inspiration for future improvements.
+
+## License
+
+MIT OR Apache-2.0

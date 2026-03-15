@@ -122,7 +122,7 @@ Events modify base routes using three parameters:
 
 ### What We Have
 
-1. **378 routes in database** from third-party imports
+1. **Routes in database** from third-party imports (historically 378; current DB has fewer — re-import needed)
 2. **55 event routes** from zwift-offline integration
 3. **Working import tools** for various sources
 4. **License-compliant integration** via API boundary
@@ -197,7 +197,7 @@ world_to_course = {
 
 ## Recommendations
 
-1. **Continue using current data sources** - 378 routes provide good coverage
+1. **Continue using current data sources** - third-party route imports provide good coverage when populated
 2. **Monitor for tool availability** - Check periodically for wad_unpack.exe
 3. **Document missing routes** - Track which routes need data
 4. **Consider empirical collection** - For critical missing routes only

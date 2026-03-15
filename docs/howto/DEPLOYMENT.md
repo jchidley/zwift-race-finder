@@ -72,11 +72,12 @@ zwift-race-finder
 - **Offline Mode**: Works with cached data when API unavailable
 - **Data Persistence**: All data stored in `~/.local/share/zwift-race-finder/`
 
-### Accuracy (16.1% Mean Error)
+### Accuracy (historical: 16.1% Mean Error with full dataset)
 - **Flat Routes**: ~12% error
 - **Rolling Routes**: ~16% error
 - **Hilly Routes**: ~20% error
 - **Multi-lap Races**: Fixed from 533% to ~16% error
+- **Note**: Accuracy depends on having race results imported via Strava
 
 ## Monitoring & Maintenance
 

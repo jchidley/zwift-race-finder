@@ -18,10 +18,6 @@ struct Args {
     #[arg(short, long)]
     input_dir: PathBuf,
     
-    /// Database file path
-    #[arg(short, long, default_value = "zwift_routes.db")]
-    database: PathBuf,
-    
     /// Update existing routes (otherwise skip duplicates)
     #[arg(short, long)]
     update: bool,

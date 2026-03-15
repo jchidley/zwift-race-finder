@@ -94,3 +94,4 @@ __pycache__/
 # Claude settings (ignore all except settings.local.json)
 .claude/
 !.claude/settings.local.json
+.envrc

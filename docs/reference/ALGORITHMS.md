@@ -16,11 +16,12 @@ Races have two states:
 ```rust
 // 1. Calculate pack speed based on category
 let pack_speed_kmh = match category {
-    "A" => 37.5,
-    "B" => 35.0,
-    "C" => 32.5,
+    "A" | "A+" => 42.0,
+    "B" => 37.0,
+    "C" => 33.0,
     "D" => 30.9,
-    _ => 30.0,
+    "E" => 28.0,
+    _ => 28.0,
 };
 
 // 2. Calculate drop probability based on elevation
@@ -95,13 +96,14 @@ When route data unavailable:
 
 ### Category-Based
 ```rust
-// Base speeds by category (km/h)
+// Base speeds by category (km/h) — empirical from real races, includes draft
 let base_speed = match category {
-    "A" => 35.0,
-    "B" => 32.5,
-    "C" => 30.0,
-    "D" => 27.5,
-    _ => 25.0,
+    "A" | "A+" => 42.0,
+    "B" => 37.0,
+    "C" => 33.0,
+    "D" => 30.9,
+    "E" => 28.0,
+    _ => 28.0,
 };
 ```
 
@@ -118,9 +120,9 @@ let base_speed = match category {
 ## Calibration
 
 ### Regression Testing
-- 151 actual race results from Jack
-- Mean Absolute Error: 23.6%
-- Target: <20% error
+- Historical: 151 actual race results achieved 16.1% MAE
+- Current DB: No real race results imported — regression suite needs Strava data
+- Target: <20% MAE
 
 ### Key Findings
 1. Pure physics models fail (127% error)

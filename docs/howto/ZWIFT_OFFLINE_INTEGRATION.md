@@ -104,7 +104,7 @@ The zwift-offline integration provides **55 event-only routes**. This is a subse
 - Free-ride routes are not included in the export
 - Complete route extraction requires WAD file decompression tools that are not currently available
 
-For comprehensive route coverage, use the existing database of 378 routes imported from third-party sources.
+For comprehensive route coverage, import routes from third-party sources (ZwiftHacks, WhatsOnZwift) or run the zwift-offline import script.
 
 ## Contributing Back
 

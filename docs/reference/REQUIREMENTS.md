@@ -59,10 +59,12 @@ Zwift shows race distances but not expected durations. A 40km race might take 60
 
 #### 2.2 Speed Calculation
 - **FR-2.2.1**: Use category-based average speeds:
-  - Cat D (0-199): 30.9 km/h
+  - Cat E (0-99): 28.0 km/h
+  - Cat D (100-199): 30.9 km/h
   - Cat C (200-299): 33 km/h
   - Cat B (300-399): 37 km/h
-  - Cat A (400+): 42 km/h
+  - Cat A (400-599): 42 km/h
+  - Cat A+ (600+): 42.0 km/h
 - **FR-2.2.2**: Support dual-speed model with pack dynamics (optional):
   - Pack speed: Category-based
   - Solo speed: 77% of pack speed
@@ -339,7 +341,7 @@ Zwift shows race distances but not expected durations. A 40km race might take 60
 
 ### 21. Key Performance Indicators
 
-- **KPI-21.1**: Prediction accuracy <20% MAE ✅ (Currently 16.1%)
+- **KPI-21.1**: Prediction accuracy <20% MAE (historically 16.1%; current DB lacks race results for validation)
 - **KPI-21.2**: Race matching rate >75% ✅ (Currently 80%)
 - **KPI-21.3**: User satisfaction (via feedback)
 - **KPI-21.4**: Route coverage >90% of common races
