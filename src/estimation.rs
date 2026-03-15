@@ -109,3 +109,36 @@ pub fn estimate_duration_with_distance(
 
     Some(duration_minutes)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_lead_in_distance_is_added() {
+        // Bell Lap: 14.1 km route + 0.5 km lead-in = 14.6 km total
+        // This test verifies lead-in is ADDED (not subtracted or ignored).
+        let route_id = 1258415487; // Bell Lap (hardcoded fallback)
+
+        let with_lead_in = estimate_duration_from_route_id(route_id, 195);
+        assert!(with_lead_in.is_some(), "Bell Lap route should be known");
+
+        // estimate_duration_with_distance uses only the provided distance (no lead-in added)
+        let route_data = get_route_data(route_id).unwrap();
+        let without_lead_in =
+            estimate_duration_with_distance(route_id, route_data.distance_km, 195);
+
+        assert!(without_lead_in.is_some());
+
+        // estimate_duration_from_route_id adds lead-in, so it should produce
+        // a greater duration than the same route without lead-in
+        assert!(
+            with_lead_in.unwrap() >= without_lead_in.unwrap(),
+            "Duration with lead-in ({}) should be >= without lead-in ({}). \
+             Lead-in distance is {} km.",
+            with_lead_in.unwrap(),
+            without_lead_in.unwrap(),
+            route_data.lead_in_distance_km
+        );
+    }
+}

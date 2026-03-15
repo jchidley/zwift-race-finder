@@ -791,4 +791,43 @@ mod tests {
         assert_eq!(events.len(), 1); // Only "Open Race" remains
         assert_eq!(events[0].name, "Open Race");
     }
+
+    #[test]
+    fn test_event_matches_duration_exact_tolerance_boundary() {
+        // Exercises the <= boundary in tolerance check.
+        // With duration=60, target=50, tolerance=10: diff=10, should match (<=10).
+        // With duration=60, target=49, tolerance=10: diff=11, should NOT match (>10).
+        let mut event = create_test_event("Boundary Race", "CYCLING", "RACE");
+        event.duration_in_minutes = Some(60);
+
+        // Diff exactly equal to tolerance — must match (<=)
+        assert!(
+            event_matches_duration(&event, 50, 10, 200),
+            "diff=10, tolerance=10: should match (<=)"
+        );
+        assert!(
+            event_matches_duration(&event, 70, 10, 200),
+            "diff=10, tolerance=10: should match (<=)"
+        );
+
+        // Diff one beyond tolerance — must NOT match
+        assert!(
+            !event_matches_duration(&event, 49, 10, 200),
+            "diff=11, tolerance=10: should not match"
+        );
+        assert!(
+            !event_matches_duration(&event, 71, 10, 200),
+            "diff=11, tolerance=10: should not match"
+        );
+
+        // Zero tolerance — only exact match
+        assert!(
+            event_matches_duration(&event, 60, 0, 200),
+            "diff=0, tolerance=0: exact match"
+        );
+        assert!(
+            !event_matches_duration(&event, 61, 0, 200),
+            "diff=1, tolerance=0: should not match"
+        );
+    }
 }
