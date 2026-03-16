@@ -2,6 +2,8 @@
 
 Contract, mechanics, and Rust-specific patterns for behaviour-preserving code changes. For the research and rationale behind these rules, see [Refactoring Explained](../explanation/REFACTORING_EXPLAINED.md).
 
+**Quick invocation:** Use `/refactor <task>` to activate refactoring mode with the global prompt template (`~/.pi/agent/prompts/refactor.md`). These project-level rules provide additional Rust-specific detail.
+
 <critical_contract>
 WHEN YOU SEE THE WORD "REFACTOR" YOU ARE ENTERING A BINDING CONTRACT:
 - You will preserve behavior EXACTLY
