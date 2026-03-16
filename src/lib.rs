@@ -58,12 +58,7 @@ pub mod regression_test;
 /// Route discovery from external sources
 pub mod route_discovery;
 
-/// Secure storage for OAuth tokens and credentials
-pub mod secure_storage;
 
-/// Test utilities (only available in test builds)
-#[cfg(test)]
-pub mod test_utils;
 
 /// OCR constants
 #[cfg(feature = "ocr")]

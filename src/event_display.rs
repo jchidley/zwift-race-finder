@@ -575,7 +575,7 @@ pub fn prepare_event_row(event: &ZwiftEvent, zwift_score: u32) -> EventTableRow 
     } else {
         // No route ID
         if let Some(dist_m) = event.distance_in_meters.filter(|&d| d > 0.0) {
-            let distance_km = dist_m / 1000.0;
+            let distance_km = dist_m / METERS_PER_KILOMETER;
             let route_name = event.route.as_deref().unwrap_or(&event.name);
             let estimated_duration =
                 estimate_duration_for_category(distance_km, route_name, zwift_score);
