@@ -21,10 +21,13 @@ Debian/Ubuntu: `sudo apt-get install -y libssl-dev pkg-config`
 
 ## Project structure
 ```
-src/main.rs                  # CLI entry point (26 unit tests)
+src/main.rs                  # CLI entry point, filter_events, 26 unit tests (629 prod + 888 test)
+src/api.rs                   # Zwift API client — fetch_events()
+src/commands.rs              # CLI subcommand handlers (show-unknown, discover, record-result, etc.)
+src/zwiftpower.rs            # ZwiftPower stats fetching
 src/duration_estimation.rs   # Core prediction: distance / (category_speed * difficulty_multiplier)
-src/event_filtering.rs       # Event matching and filtering
-src/event_display.rs         # Output formatting
+src/event_filtering.rs       # Event matching and filtering (292 prod + 541 test)
+src/event_display.rs         # Output formatting (804 prod + 475 test)
 src/estimation.rs            # Route lookup + duration calculation bridge
 src/category.rs              # Score→category mapping, category speeds
 src/database.rs              # SQLite (path: ~/.local/share/zwift-race-finder/races.db)
@@ -57,7 +60,8 @@ Lead-in distance is added only for multi-lap races in `event_filtering.rs`. Sing
 ## Current metrics
 - MAE: 16.6% on 125 matched races (target: <20%)
 - Routes in DB: 126 (+ 11 route aliases for event-only variants)
-- Total tests: 170 passing (across lib + 7 integration test files)
+- Total tests: 145 passing (86 lib + 36 bin + 12 integration + 11 property)
+- Source: 37 files, ~11,660 LOC
 
 ## Troubleshooting
 | Symptom | Fix |
@@ -75,6 +79,15 @@ Lead-in distance is added only for multi-lap races in `event_filtering.rs`. Sing
 - Time trials use same draft-inclusive category speeds as races (known inaccuracy — TTs have no draft).
 - Route data export has 309 routes but only 126 are imported to DB — gap may contain usable routes.
 - Single-lap estimation does not add lead-in distance (potential accuracy gap).
+
+## Assessed and deliberately deferred (overhaul 2026-03-15)
+These were evaluated during a code-overhaul and deliberately left unchanged:
+- **DRY: route name extraction** — `event.route.as_deref().unwrap_or(&event.name)` repeated 10× across event_display.rs and event_filtering.rs. Extraction would add indirection for a single expression — not worth the risk.
+- **DRY: distance conversion** — `dist_m / METERS_PER_KILOMETER` repeated 10× across same files. Same assessment.
+- **DRY: duration estimation pattern** — `estimate_duration_for_category(distance_km, route_name, zwift_score)` called 13× with similar setup. Each call site has different branching context — extraction would create a complex helper.
+- **Monolith: event_display.rs** (804 prod LOC) — large but cohesive (all display logic). Tests constrain splitting. Not blocking progress.
+- **Monolith: database.rs** (868 prod LOC) — 22 pub methods, all SQLite CRUD. Cohesive single concern. Not blocking progress.
+- **God functions: prepare_event_row, event_matches_duration** — complex but well-tested. Decomposition would increase cross-function context for minimal clarity gain.
 
 ## Unimplemented improvements (from archive review 2026-03-15)
 Verified against current codebase — these are still valid and not yet done:

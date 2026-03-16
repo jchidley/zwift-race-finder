@@ -10,11 +10,11 @@ ZwiftPower → Import → SQLite → Route Data
 
 ## Core Components
 
-### 1. CLI and Orchestration (`main.rs`)
-- Clap-based argument parsing (20+ flags)
-- Fetches events from Zwift public API (`us-or-rly101.zwift.com`)
-- Optionally fetches Racing Score from ZwiftPower (environment variables: `ZWIFTPOWER_PROFILE_ID`, `ZWIFTPOWER_SESSION_ID`)
-- Dispatches to filtering, display, route discovery, or progress tracking
+### 1. CLI and Orchestration (`main.rs`, `api.rs`, `commands.rs`, `zwiftpower.rs`)
+- `main.rs`: Clap-based argument parsing (20+ flags), filter_events, display orchestration (629 prod + 888 test LOC)
+- `api.rs`: Zwift API client — fetch_events() from `us-or-rly101.zwift.com`
+- `commands.rs`: CLI subcommand handlers (show-unknown, discover, record-result, mark-complete, show-progress, analyze-descriptions)
+- `zwiftpower.rs`: ZwiftPower profile scraping, user stats fetching/caching
 
 ### 2. Duration Estimation (`duration_estimation.rs`, `estimation.rs`)
 - `duration_estimation.rs`: Pure functions — category speed lookup, difficulty multipliers (piecewise linear with category-aware climbing penalty), duration math
