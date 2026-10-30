@@ -15,6 +15,7 @@
 - **Dynamic**: Updates based on recent performance
 - **Granular**: No sandbagging, automatic placement
 - **Brackets**: Events use score ranges (e.g., 200-299)
+- **Returning riders**: Follow [How to Return to Zwift Racing](../howto/RETURN_TO_RACING.md) for the currently verified activity requirement and primary sources to re-check it
 
 ## Key Concepts
 

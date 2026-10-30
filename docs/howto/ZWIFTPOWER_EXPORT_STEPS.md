@@ -1,34 +1,103 @@
-# ZwiftPower Export Steps
+# Export and import your ZwiftPower history
 
-## Quick Commands (run from anywhere)
+## Export measured observations
 
-1. **Copy JavaScript to clipboard** (requires xclip):
-   ```bash
-   cat ~/tools/rust/zwift-race-finder/extract_zwiftpower.js | xclip -selection clipboard
-   ```
+Open **your own logged-in profile/results page** on ZwiftPower. Use
+`tools/import/zwiftpower/export_profile_history.js` in the browser console, or
+have an explicitly authorized browser-automation session evaluate it there.
+Only you handle login/verification. No cookie extraction, request-header capture,
+or HAR export is needed.
 
-2. **After running JavaScript in browser, copy the downloaded file**:
-   ```bash
-   ~/tools/rust/zwift-race-finder/copy_results.sh
-   ```
+The script verifies the selected profile ID, complete client-side DataTable and
+owner of every result, then downloads `zwiftpower-history-<timestamp>.json`.
+It includes all loaded rows across pagination, not just the visible page.
+It preserves source fields rather than guessing finish times or Racing Scores.
+If the site's schema/pagination changes, it fails rather than exporting a partial
+history. Keep the downloaded file private and **outside the repository**.
 
-3. **Import the results to database**:
-   ```bash
-   ~/tools/rust/zwift-race-finder/export_zwiftpower_logged_in.sh import
-   ```
+The older profile extractors/import shell scripts are not this workflow. In
+particular, do not use estimated minutes as actual race results or run a script
+that clears existing history. The legacy scripts remain unsupported.
 
-## Full Process
+## Build
 
-1. Log into ZwiftPower: https://zwiftpower.com/profile.php?z=YOUR_PROFILE_ID
-2. Open Developer Tools (F12) → Console tab
-3. Copy and paste the JavaScript from `~/tools/rust/zwift-race-finder/extract_zwiftpower.js`
-4. File downloads to `/mnt/c/Users/YOUR_USERNAME/Downloads/zwiftpower_results.json`
-5. Run the copy script: `~/tools/rust/zwift-race-finder/copy_results.sh`
-6. Import to database: `~/tools/rust/zwift-race-finder/export_zwiftpower_logged_in.sh import`
+From the project root:
 
-## What This Does
+```bash
+cargo build --release --bin zwift-race-finder --bin import_client_routes --bin import_zwiftpower_history
+```
 
-- Extracts all your race results from ZwiftPower
-- Saves them to the SQLite database
-- Allows the race finder to use your actual race times for accurate predictions
-- Enables regression testing based on your real performance data
+## Back up, preview, apply
+
+Transfer the export as bytes if moving between Windows and WSL; verify SHA-256
+at each end. Do not transfer JSON through a console that may recode Unicode.
+
+Back up the existing database with SQLite's backup mechanism before applying a
+schema migration or import. Example for the normal WSL database:
+
+```bash
+umask 077
+state="${XDG_DATA_HOME:-$HOME/.local/share}/zwift-race-finder"
+mkdir -p "$state/backups"
+chmod 600 "$state/races.db"
+backup=$(mktemp "$state/backups/races-before-history-XXXXXXXX.db")
+sqlite3 -readonly "$state/races.db" ".backup '$backup'"
+sqlite3 -readonly "$backup" 'PRAGMA integrity_check;'
+```
+
+Then preview and apply your chosen private input:
+
+```bash
+./target/release/import_zwiftpower_history --input /absolute/path/to/zwiftpower-history.json --dry-run
+./target/release/import_zwiftpower_history --input /absolute/path/to/zwiftpower-history.json
+```
+
+Use `--database /absolute/path/to/races.db` to explicitly select a test copy or
+another target. The default is the application's platform-local database.
+Unlike the older client-route import preview, this history preview clones the
+target into memory: **it does not create, migrate or write the target**.
+The apply command also preflights the complete batch in memory first.
+
+## What is preserved
+
+- Original event dates/UTC timestamps and measured finish seconds.
+- Event distance and supplied laps, independently of base route distance.
+- Source rider/result/event IDs, export hash and original source-row JSON.
+- Existing row IDs, notes, creation timestamps and confirmed historical scores.
+- Existing route metadata, completion state and other application tables.
+
+Unknown historical scores become SQL NULL, not a default or category-derived
+score. Exact seconds remain queryable; `actual_minutes` is retained as a rounded
+compatibility field. Gun time is stored separately and never substituted for
+finish duration. Event type/subgroup ID remain unknown unless independently
+established; source category is only a result label.
+
+Source identity prevents duplicate results. An identical repeat is a no-op;
+missing scores do not erase confirmed scores. Conflicting observations or
+ambiguous legacy matches stop the import, rather than overwrite history.
+Known structured provenance from earlier imports allows safe enrichment of those
+rows. Manual records without source identity may require explicit reconciliation.
+
+Routes must already exist under their numeric IDs; refresh verified client route
+metadata first if any are missing. Do not create guessed mappings. If a legacy
+database contains custom columns, dependent tables/views, or implicit constraints,
+the migration refuses to discard them and requests explicit review.
+
+## Storage is not a new prediction model
+
+Importing history does not automatically change the production duration formula.
+The current score-based regression explicitly reports/excludes unknown-score rows;
+score-independent history queries still retain them all. See
+[the history data model](../explanation/HISTORY_DATA_MODEL.md) for the separate
+history-based prediction phase.
+
+## Validation
+
+```bash
+cargo test --test history_import_tests
+cargo test --lib history::
+node tests/history_export_tests.js
+```
+
+Use isolated HOME/XDG state for the broader suite. Personal exports are never
+committed as fixtures; all checked-in history tests use synthetic data.

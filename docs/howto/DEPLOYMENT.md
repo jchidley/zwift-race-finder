@@ -1,4 +1,4 @@
-# Zwift Race Finder - Deployment Guide
+# How to Deploy Zwift Race Finder
 
 This guide covers deployment and production usage of Zwift Race Finder.
 
@@ -58,26 +58,12 @@ editor ~/.config/zwift-race-finder/config.toml
 zwift-race-finder
 ```
 
-## Production Features
+## Operational characteristics
 
-### Performance
-- **API Calls**: Cached for 5 minutes to reduce load
-- **Database**: SQLite with indexes for fast queries
-- **Binary Size**: ~10MB standalone executable
-- **Memory Usage**: <50MB typical
-- **Response Time**: <2 seconds for most queries
-
-### Reliability
-- **Error Handling**: Graceful degradation on API failures
-- **Offline Mode**: Works with cached data when API unavailable
-- **Data Persistence**: All data stored in `~/.local/share/zwift-race-finder/`
-
-### Accuracy (16.6% Mean Error on 125 races)
-- **Flat Routes**: ~12% error
-- **Rolling Routes**: ~16% error
-- **Hilly Routes**: ~20% error
-- **Multi-lap Races**: Fixed from 533% to ~16% error
-- **Note**: Accuracy depends on having race results imported via Strava
+- The normal search requires the live Zwift public event endpoint; event responses are not cached for offline use.
+- ZwiftPower-derived user stats are cached locally for 24 hours.
+- Route, result, completion, and discovery data are stored in SQLite under `~/.local/share/zwift-race-finder/` on Linux.
+- The latest retained calibration record reports 16.6% MAE on 125 matched races in the owner's local database. Re-run the focused regression before making a current accuracy claim; see [Algorithms](../reference/ALGORITHMS.md).
 
 ## Monitoring & Maintenance
 
@@ -95,10 +81,10 @@ sqlite3 ~/.local/share/zwift-race-finder/races.db "SELECT COUNT(*) FROM routes;"
 
 ### Update Route Data
 ```bash
-# Apply latest route mappings
-cd zwift-race-finder
-git pull
-./apply_route_mappings.sh
+# Verify the selected client archive, export privately, and back up the database.
+# Preview before applying:
+cargo run --release --bin import_client_routes -- --input /path/to/client-routes.json --dry-run
+cargo run --release --bin import_client_routes -- --input /path/to/client-routes.json
 
 # Check for unknown routes
 zwift-race-finder --show-unknown-routes
@@ -122,7 +108,7 @@ cp ~/.config/zwift-race-finder/config.toml ~/zwift-config-backup-$(date +%Y%m%d)
 4. Remember API limit: only ~12 hours of events available
 
 ### Wrong Predictions
-1. Record actual times: `--record-result "route_id,minutes,event_name"`
+1. Import measured history using [the ZwiftPower export/import workflow](ZWIFTPOWER_EXPORT_STEPS.md); manual result entry is removed.
 2. Update rider stats: `./update_rider_stats.sh 86.0`
 3. Check if multi-lap race in `multi_lap_events` table
 4. Report via GitHub if consistently wrong
@@ -149,8 +135,8 @@ alias zrtt='zwift-race-finder -e tt'
 ### Cron Jobs
 Schedule regular updates:
 ```bash
-# Update route mappings weekly
-0 3 * * 0 cd ~/zwift-race-finder && git pull && ./apply_route_mappings.sh
+# Route refresh is manual: verify the selected client archive and preview the import.
+# Do not schedule guessed mappings or unreviewed client imports.
 
 # Backup database monthly
 0 2 1 * * cp ~/.local/share/zwift-race-finder/races.db ~/backups/zwift-races-$(date +\%Y\%m).db

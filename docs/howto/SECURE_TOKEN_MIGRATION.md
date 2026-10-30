@@ -1,4 +1,4 @@
-# Secure Token Storage Migration Guide
+# How to Migrate Strava Tokens to Safer Storage
 
 ## Overview
 

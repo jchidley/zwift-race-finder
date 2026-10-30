@@ -37,16 +37,18 @@ mod tests {
             .take(500)
             .collect();
 
+        println!("Results excluded for unknown Racing Score: {}", test_results.iter().filter(|r| r.zwift_score.is_none()).count());
         for result in test_results.iter() {
+            let Some(zwift_score) = result.zwift_score else { continue; };
             // Estimate duration using route_id and actual distance
             let predicted = if let Some(distance_km) = parse_distance_from_name(&result.event_name)
             {
                 // Use parsed distance for multi-lap races
-                estimate_duration_with_distance(result.route_id, distance_km, result.zwift_score)
+                estimate_duration_with_distance(result.route_id, distance_km, zwift_score)
             } else {
                 // Check for multi-lap events in cache or database
                 let mut base_prediction =
-                    estimate_duration_from_route_id(result.route_id, result.zwift_score);
+                    estimate_duration_from_route_id(result.route_id, zwift_score);
 
                 // Apply multi-lap multiplier if known
                 let lap_count = multi_lap_cache
@@ -153,7 +155,9 @@ mod tests {
         );
         println!("{}", "-".repeat(80));
 
+        println!("Results excluded for unknown Racing Score: {}", results.iter().filter(|r| r.zwift_score.is_none()).count());
         for result in results.iter() {
+            let Some(zwift_score) = result.zwift_score else { continue; };
             // Skip placeholder routes for now
             if result.route_id == 9999 {
                 continue;
@@ -163,11 +167,11 @@ mod tests {
             let predicted = if let Some(distance_km) = parse_distance_from_name(&result.event_name)
             {
                 // Use parsed distance for multi-lap races
-                estimate_duration_with_distance(result.route_id, distance_km, result.zwift_score)
+                estimate_duration_with_distance(result.route_id, distance_km, zwift_score)
             } else {
                 // Check for multi-lap events in cache or database
                 let mut base_prediction =
-                    estimate_duration_from_route_id(result.route_id, result.zwift_score);
+                    estimate_duration_from_route_id(result.route_id, zwift_score);
 
                 // Apply multi-lap multiplier if known
                 let lap_count = multi_lap_cache
@@ -252,32 +256,8 @@ mod tests {
     }
 
     #[test]
-    fn test_specific_route_accuracy() {
-        // Test specific routes we've mapped
-        let test_cases = vec![
-            // (route_id, zwift_score, expected_minutes_range)
-            (3369744027, 195, (20, 25)), // Volcano Flat for Cat D (12.3km, 45m elevation)
-            (1258415487, 195, (22, 28)), // Bell Lap for Cat D (14.1km flat)
-            (3742187716, 195, (45, 60)), // Castle to Castle for Cat D
-        ];
-
-        for (route_id, zwift_score, (min_expected, max_expected)) in test_cases {
-            let predicted = estimate_duration_from_route_id(route_id, zwift_score);
-
-            if let Some(predicted_minutes) = predicted {
-                let route_name = get_route_data(route_id)
-                    .map(|r| r.name.to_string())
-                    .unwrap_or_else(|| format!("Route {}", route_id));
-                assert!(
-                    predicted_minutes >= min_expected && predicted_minutes <= max_expected,
-                    "Route {} prediction {} minutes outside expected range {}-{} minutes",
-                    route_name,
-                    predicted_minutes,
-                    min_expected,
-                    max_expected
-                );
-            }
-        }
+    fn unknown_route_has_no_invented_estimate() {
+        assert!(estimate_duration_from_route_id(u32::MAX, 195).is_none());
     }
 
     #[test]

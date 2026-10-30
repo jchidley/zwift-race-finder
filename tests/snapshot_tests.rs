@@ -1,5 +1,6 @@
 //! Snapshot tests for zwift-race-finder
-//! These tests capture and verify exact behavior for known routes
+//! Historical synthetic fixtures capture arithmetic output, NOT current route facts.
+//! Their legacy labels/IDs are retained solely to avoid rewriting snapshot baselines.
 
 use insta::assert_yaml_snapshot;
 use zwift_race_finder::database::RouteData;
@@ -13,7 +14,8 @@ fn estimate_duration(route: &RouteData, zwift_score: u32) -> f64 {
         _ => 39.0,         // Cat A
     };
 
-    let elevation_factor = 1.0 - (route.elevation_m as f64 / route.distance_km / 100.0).min(0.3);
+    let elevation_factor =
+        1.0 - (route.elevation_m.unwrap() as f64 / route.distance_km / 100.0).min(0.3);
     let effective_speed = base_speed * elevation_factor;
     route.distance_km / effective_speed * 60.0
 }
@@ -27,12 +29,12 @@ fn test_known_flat_routes() {
             RouteData {
                 route_id: 1258415487,
                 distance_km: 14.1,
-                elevation_m: 59,
+                elevation_m: Some(59.0),
                 name: "Bell Lap".to_string(),
                 world: "Crit City".to_string(),
                 surface: "tarmac".to_string(),
-                lead_in_distance_km: 0.0,
-                lead_in_elevation_m: 0,
+                lead_in_distance_km: Some(0.0),
+                lead_in_elevation_m: Some(0.0),
                 lead_in_distance_free_ride_km: None,
                 lead_in_elevation_free_ride_m: None,
                 lead_in_distance_meetups_km: None,
@@ -45,12 +47,12 @@ fn test_known_flat_routes() {
             RouteData {
                 route_id: 2698009951,
                 distance_km: 22.9,
-                elevation_m: 80,
+                elevation_m: Some(80.0),
                 name: "Downtown Dolphin".to_string(),
                 world: "Crit City".to_string(),
                 surface: "tarmac".to_string(),
-                lead_in_distance_km: 0.0,
-                lead_in_elevation_m: 0,
+                lead_in_distance_km: Some(0.0),
+                lead_in_elevation_m: Some(0.0),
                 lead_in_distance_free_ride_km: None,
                 lead_in_elevation_free_ride_m: None,
                 lead_in_distance_meetups_km: None,
@@ -63,12 +65,12 @@ fn test_known_flat_routes() {
             RouteData {
                 route_id: 3379779247,
                 distance_km: 10.6,
-                elevation_m: 93,
+                elevation_m: Some(93.0),
                 name: "Three Village Loop".to_string(),
                 world: "Makuri Islands".to_string(),
                 surface: "tarmac".to_string(),
-                lead_in_distance_km: 0.0,
-                lead_in_elevation_m: 0,
+                lead_in_distance_km: Some(0.0),
+                lead_in_elevation_m: Some(0.0),
                 lead_in_distance_free_ride_km: None,
                 lead_in_elevation_free_ride_m: None,
                 lead_in_distance_meetups_km: None,
@@ -89,7 +91,7 @@ fn test_known_flat_routes() {
             serde_yaml::to_value(&[
                 ("route_name", name),
                 ("distance_km", &route.distance_km.to_string()),
-                ("elevation_m", &route.elevation_m.to_string()),
+                ("elevation_m", &route.elevation_m.unwrap().to_string()),
                 ("cat_d_minutes", &format!("{:.1}", cat_d_duration)),
                 ("cat_c_minutes", &format!("{:.1}", cat_c_duration)),
                 ("cat_b_minutes", &format!("{:.1}", cat_b_duration)),
@@ -109,12 +111,12 @@ fn test_known_hilly_routes() {
             RouteData {
                 route_id: 3742187716,
                 distance_km: 24.5,
-                elevation_m: 168,
+                elevation_m: Some(168.0),
                 name: "Castle to Castle".to_string(),
                 world: "Makuri Islands".to_string(),
                 surface: "tarmac".to_string(),
-                lead_in_distance_km: 0.0,
-                lead_in_elevation_m: 0,
+                lead_in_distance_km: Some(0.0),
+                lead_in_elevation_m: Some(0.0),
                 lead_in_distance_free_ride_km: None,
                 lead_in_elevation_free_ride_m: None,
                 lead_in_distance_meetups_km: None,
@@ -127,12 +129,12 @@ fn test_known_hilly_routes() {
             RouteData {
                 route_id: 3961473046,
                 distance_km: 15.4,
-                elevation_m: 292,
+                elevation_m: Some(292.0),
                 name: "Hilltop Hustle".to_string(),
                 world: "Makuri Islands".to_string(),
                 surface: "tarmac".to_string(),
-                lead_in_distance_km: 0.0,
-                lead_in_elevation_m: 0,
+                lead_in_distance_km: Some(0.0),
+                lead_in_elevation_m: Some(0.0),
                 lead_in_distance_free_ride_km: None,
                 lead_in_elevation_free_ride_m: None,
                 lead_in_distance_meetups_km: None,
@@ -145,12 +147,12 @@ fn test_known_hilly_routes() {
             RouteData {
                 route_id: 3368626651,
                 distance_km: 27.4,
-                elevation_m: 223,
+                elevation_m: Some(223.0),
                 name: "eRacing Course".to_string(),
                 world: "Various".to_string(),
                 surface: "tarmac".to_string(),
-                lead_in_distance_km: 0.0,
-                lead_in_elevation_m: 0,
+                lead_in_distance_km: Some(0.0),
+                lead_in_elevation_m: Some(0.0),
                 lead_in_distance_free_ride_km: None,
                 lead_in_elevation_free_ride_m: None,
                 lead_in_distance_meetups_km: None,
@@ -171,7 +173,7 @@ fn test_known_hilly_routes() {
             serde_yaml::to_value(&[
                 ("route_name", name),
                 ("distance_km", &route.distance_km.to_string()),
-                ("elevation_m", &route.elevation_m.to_string()),
+                ("elevation_m", &route.elevation_m.unwrap().to_string()),
                 ("cat_d_minutes", &format!("{:.1}", cat_d_duration)),
                 ("cat_c_minutes", &format!("{:.1}", cat_c_duration)),
                 ("cat_b_minutes", &format!("{:.1}", cat_b_duration)),
@@ -191,12 +193,12 @@ fn test_known_mountain_routes() {
             RouteData {
                 route_id: 2663908549,
                 distance_km: 20.3,
-                elevation_m: 1159,
+                elevation_m: Some(1159.0),
                 name: "Mt. Fuji".to_string(),
                 world: "Makuri Islands".to_string(),
                 surface: "tarmac".to_string(),
-                lead_in_distance_km: 0.0,
-                lead_in_elevation_m: 0,
+                lead_in_distance_km: Some(0.0),
+                lead_in_elevation_m: Some(0.0),
                 lead_in_distance_free_ride_km: None,
                 lead_in_elevation_free_ride_m: None,
                 lead_in_distance_meetups_km: None,
@@ -209,12 +211,12 @@ fn test_known_mountain_routes() {
             RouteData {
                 route_id: 1917017591,
                 distance_km: 5.7,
-                elevation_m: 335,
+                elevation_m: Some(335.0),
                 name: "Mountain Mash".to_string(),
                 world: "Watopia".to_string(),
                 surface: "tarmac".to_string(),
-                lead_in_distance_km: 0.0,
-                lead_in_elevation_m: 0,
+                lead_in_distance_km: Some(0.0),
+                lead_in_elevation_m: Some(0.0),
                 lead_in_distance_free_ride_km: None,
                 lead_in_elevation_free_ride_m: None,
                 lead_in_distance_meetups_km: None,
@@ -227,12 +229,12 @@ fn test_known_mountain_routes() {
             RouteData {
                 route_id: 2474227587,
                 distance_km: 35.0,
-                elevation_m: 892,
+                elevation_m: Some(892.0),
                 name: "KISS 100".to_string(),
                 world: "Watopia".to_string(),
                 surface: "tarmac".to_string(),
-                lead_in_distance_km: 0.0,
-                lead_in_elevation_m: 0,
+                lead_in_distance_km: Some(0.0),
+                lead_in_elevation_m: Some(0.0),
                 lead_in_distance_free_ride_km: None,
                 lead_in_elevation_free_ride_m: None,
                 lead_in_distance_meetups_km: None,
@@ -253,7 +255,7 @@ fn test_known_mountain_routes() {
             serde_yaml::to_value(&[
                 ("route_name", name),
                 ("distance_km", &route.distance_km.to_string()),
-                ("elevation_m", &route.elevation_m.to_string()),
+                ("elevation_m", &route.elevation_m.unwrap().to_string()),
                 ("cat_d_minutes", &format!("{:.1}", cat_d_duration)),
                 ("cat_c_minutes", &format!("{:.1}", cat_c_duration)),
                 ("cat_b_minutes", &format!("{:.1}", cat_b_duration)),
@@ -270,12 +272,12 @@ fn test_short_crit_race() {
     let route = RouteData {
         route_id: 3765339356,
         distance_km: 3.0,
-        elevation_m: 34,
+        elevation_m: Some(34.0),
         name: "Glasgow Crit Circuit".to_string(),
         world: "Scotland".to_string(),
         surface: "tarmac".to_string(),
-        lead_in_distance_km: 0.0,
-        lead_in_elevation_m: 0,
+        lead_in_distance_km: Some(0.0),
+        lead_in_elevation_m: Some(0.0),
         lead_in_distance_free_ride_km: None,
         lead_in_elevation_free_ride_m: None,
         lead_in_distance_meetups_km: None,

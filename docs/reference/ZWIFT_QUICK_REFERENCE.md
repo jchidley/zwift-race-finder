@@ -1,6 +1,6 @@
 # Zwift Racing Quick Reference
 
-Lookup tables for in-race decisions. For the reasoning behind these numbers, see [Zwift Racing Tactics](ZWIFT_RACING_TACTICS.md) and [Zwift Physics](ZWIFT_PHYSICS.md).
+Lookup tables for in-race decisions. For the reasoning behind these numbers, see [Zwift Racing Tactics](../explanation/ZWIFT_RACING_TACTICS.md) and [Zwift Physics](../explanation/ZWIFT_PHYSICS.md).
 
 ## Group Size Decision
 

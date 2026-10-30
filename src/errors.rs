@@ -140,15 +140,6 @@ pub fn no_events_in_time_range(days: u8) -> UserError {
     .with_suggestion("Check if Zwift is undergoing maintenance")
 }
 
-pub fn parse_record_result_error() -> UserError {
-    UserError::new(
-        "Invalid race result format",
-        "Could not parse the provided race result",
-    )
-    .with_suggestion("Use format: --record-result 'route_id,minutes,event_name'")
-    .with_suggestion("Example: --record-result '9999,32,3R Volcano Flat Race'")
-    .with_suggestion("Optional: add your zwift score as 4th parameter")
-}
 
 /// Helper to wrap anyhow errors with context
 pub fn with_user_context<T>(result: anyhow::Result<T>, context: UserError) -> anyhow::Result<T> {

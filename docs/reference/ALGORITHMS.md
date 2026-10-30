@@ -77,11 +77,13 @@ The final multiplier on a climb is `base_multiplier × category_factor`. For exa
 | `estimate_duration_from_route_id` | Elevation + category | Route known, no distance override |
 | `estimate_duration_with_distance` | Elevation + category | Route known, distance provided (multi-lap) |
 | `estimate_duration_for_category` | Name-based only | No route lookup possible (fallback) |
-| `event_display` (verbose) | Elevation + category | Displaying detailed predictions |
+| `event_filtering::estimate_event` | Resolves the ordered fallback below | Shared by duration filtering, compact rows, and verbose duration output |
 
 ### Estimation Priority
 
-`event_filtering.rs` tries these methods in order, returning on first match:
+`event_filtering::estimate_event()` resolves one `EventEstimate` (minutes, available distance/elevation, and fixed-versus-estimated status). `event_matches_duration()` compares those minutes to the target with an inclusive tolerance. Both compact and verbose display use the same resolver; display does not add a separate surface multiplier or extra lead-in. An unestimable event is not a match.
+
+The resolver tries these methods in order, returning the first available estimate:
 
 1. **Fixed duration**: If event has `duration_in_minutes` or `duration_in_seconds`, use directly
 2. **Multi-lap with known route**: Subgroup has lap count → `lead_in + (route_distance × laps)` → estimate
@@ -92,12 +94,27 @@ The final multiplier on a climb is `base_multiplier × category_factor`. For exa
 7. **Fallback: event distance**: `distance_in_meters > 0` → `estimate_duration_for_category`
 8. **Fallback: Racing Score description**: Parse distance from description text
 9. **Fallback: name guess**: `estimate_distance_from_name` heuristic
+10. **Selected subgroup fallback**: fixed minutes or positive distance from the first subgroup selected by `find_user_subgroup`; it is not an any-subgroup match.
+
+Fixed event minutes take precedence over event seconds and subgroup lap/distance metadata. For example, an API event declaring 2,700 seconds displays 45 minutes even if its lap-based estimate would differ. Available fixed-event distance/lap metadata is retained without overriding that duration.
+
+Description and name fallbacks are estimates, not verified route facts. In particular, the existing description parser takes the first matching distance and does not select the relevant stage from multi-stage text; shared display makes this visible but does not resolve that data-quality issue.
 
 ### Lead-in Distance Handling
 
-- **Multi-lap (step 2)**: Lead-in added by caller in `event_filtering.rs`
+- **Multi-lap (step 2)**: Lead-in added once by the shared resolver in `event_filtering.rs`
 - **Route-only (step 5)**: Lead-in added inside `estimate_duration_from_route_id` in `estimation.rs`
-- **All other paths**: Lead-in is **not** added — potential accuracy gap
+- **Explicit event/subgroup distance**: Treated as total distance; no extra lead-in is added by filtering or display.
+- **Other fallbacks**: Lead-in is not added. Historical DB multi-lap metadata uses lap distance × laps plus one lead-in, then estimates that total, rather than multiplying a single-lap time and repeating its lead-in.
+
+### Elevation knowledge and totals
+
+Route and event lead-in climbing are optional: unknown is not zero. SQLite knowledge flags preserve legacy positive values while treating legacy zeros as unknown. Explicitly stored zero is known flat. The primary source is selected installed-client route metadata, then previously extracted client XML for missing IDs. These are the only supported route metadata inputs; see [client-only import](../howto/CLIENT_ROUTE_DATA.md). Client imports reconcile legacy metadata by numeric ID, atomically preserve history, and persist source provenance. Community imports and website scraping are retired; existing database rows remain available until explicitly updated. No route dataset is bundled.
+
+- **Lap-based totals:** fractional lap elevation × laps + fractional event lead-in elevation once, rounded only for display. Both must be known; otherwise the total displays as unknown. Missing lead-in distance is also preserved as unknown rather than assumed zero. Route-only/lap distance estimates require a known lead-in distance.
+- **Distance-limited totals:** proportional lap climbing for (total distance − lead-in distance), plus known lead-in climbing. Without a full elevation profile this is approximate and displays with a `~` prefix. Distances shorter than the lead-in do not get invented climbing.
+- **Duration inputs:** when event climbing is available, apply the existing category/elevation multiplier to total gain over total distance. If lead-in gain is unknown, retain the known lap gradient; if lap gain is also unknown, use the existing name-based fallback. Category speeds and difficulty breakpoints are unchanged.
+- **Fixed durations:** climbing/distance metadata never overrides declared time.
 
 ### Route ID Alias Resolution
 
@@ -105,10 +122,12 @@ Zwift uses different internal route IDs for the same physical route depending on
 
 ## Calibration
 
-- **Current MAE**: 16.6% on 125 matched races
-- **Target**: < 20% MAE
-- **Threshold**: Regression test asserts < 30% MAE
-- Run: `cargo test --lib test_race_predictions_accuracy -- --nocapture`
+- **Latest recorded MAE**: 16.6% on 125 matched races in the owner's local dataset
+- **Product target**: < 20% MAE
+- **Test threshold**: the focused regression asserts < 30% MAE
+- **Run**: `cargo test --lib test_race_predictions_accuracy -- --nocapture`
+
+The result depends on the local `race_results` database and was not reproduced by this documentation pass.
 
 ### Error by Terrain Type
 

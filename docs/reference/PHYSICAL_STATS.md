@@ -1,45 +1,29 @@
-# Physical Stats and Their Impact on Zwift Performance
+# Physical Stats and Duration Estimation
 
-## Why Physical Attributes Matter
+This reference distinguishes Zwift physics inputs from the inputs currently used by Zwift Race Finder. It intentionally contains no personal rider measurements.
 
-### Weight (kg)
-- **Power-to-weight ratio (w/kg)** is the primary determinant of climbing speed
-- Heavier riders have an advantage on flats due to higher absolute power
-- Lighter riders excel on climbs where w/kg matters most
-- Affects drafting dynamics - heavier riders provide better draft
+## Zwift physics
 
-### Height (meters)
-- **Aerodynamic drag** increases with frontal area (taller = more drag)
-- **Drafting effectiveness** - taller riders get less benefit from the draft
-- **CdA (drag coefficient × area)** calculations in Zwift physics engine
-- Affects speed on flats and descents more than climbs
+Weight, height, power, equipment, gradient, rolling resistance, and drafting can all affect speed in Zwift. Weight is especially important on climbs; height contributes to aerodynamic drag; absolute power matters more on flatter terrain.
 
-## Jack's Stats
-- Height: 1.82m (6'0")
-- Weight: ~86kg (from race data)
-- Zwift Racing Score: 195 (Cat D)
+For domain background rather than application behaviour, see [Zwift Physics](../explanation/ZWIFT_PHYSICS.md) and [Zwift Physics Equations](../explanation/ZWIFT_PHYSICS_EQUATIONS.md).
 
-## Performance Implications
+## Current estimator inputs
 
-### On Flats
-- Taller riders (like Jack at 1.82m) face more air resistance
-- Need higher absolute power to maintain same speed as shorter riders
-- Benefit less from pack dynamics
+The production duration estimator does **not** directly use rider weight, height, or FTP. It uses:
 
-### On Climbs
-- Weight becomes the dominant factor
-- At 86kg, need strong w/kg to compete on climbs
-- Height penalty is minimal on steep gradients
+- Zwift Racing Score → empirical category speed;
+- route or event distance;
+- route elevation gain per kilometre;
+- a category-specific climbing penalty on steeper routes;
+- route-name difficulty only when elevation data is unavailable.
 
-### Optimal Race Types
-Given Jack's profile (1.82m, 86kg):
-- Better suited to rolling/flat courses than pure climbing races
-- Can leverage higher absolute power on flats
-- Should focus on races with good draft opportunities
-- Time trials may be challenging due to height/drag penalty
+The category/elevation interaction is an aggregate proxy for climbing differences between rider groups. It is not an individual physics simulation.
 
-## Future Enhancements
-- Use height/weight for more accurate speed predictions
-- Adjust draft benefit calculations based on height
-- Factor in CdA estimates for different positions
-- Consider bike choice effects (TT vs road bike aerodynamics)
+## Stored but unused values
+
+`src/config.rs` can load weight, height, and FTP defaults, and the SQLite `rider_stats` table can store physical data. The production estimation path does not read those values. Adding them to the formula would be a model change and requires new calibration evidence plus the accuracy regression described in [Algorithms](ALGORITHMS.md).
+
+## Consequence for changes
+
+Do not describe raw weight, height, or FTP as current prediction inputs. A future personalized model must establish that those inputs improve held-out predictions rather than duplicating effects already represented by Racing Score category and elevation.

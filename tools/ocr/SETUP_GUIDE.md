@@ -75,7 +75,7 @@ wget https://ocrs-models.s3-accelerate.amazonaws.com/text-recognition.rten
 
 ### 1. Navigate to OCR Tools Directory
 ```bash
-cd /home/jack/tools/rust/zwift-race-finder/tools/ocr/
+cd tools/ocr/
 ```
 
 ### 2. Install Python Dependencies
@@ -277,8 +277,8 @@ Some UI elements (speed, distance, altitude, time) may be read as one string:
 
 ### ImportError: No module named 'paddleocr'
 ```bash
-# Ensure you're in the OCR directory
-cd /home/jack/tools/rust/zwift-race-finder/tools/ocr/
+# From the repository root
+cd tools/ocr/
 
 # Reinstall dependencies
 uv sync

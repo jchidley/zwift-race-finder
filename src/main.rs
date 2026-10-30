@@ -10,7 +10,7 @@ mod api;
 mod commands;
 mod config;
 mod database;
-mod route_discovery;
+use zwift_race_finder::history;
 mod zwiftpower;
 
 use anyhow::Result;
@@ -19,7 +19,6 @@ use clap::Parser;
 use colored::*;
 use config::FullConfig;
 use zwift_race_finder::category::*;
-use zwift_race_finder::constants::*;
 use zwift_race_finder::errors::*;
 use zwift_race_finder::estimation::*;
 use zwift_race_finder::event_analysis::*;
@@ -57,21 +56,9 @@ struct Args {
     #[arg(long)]
     debug: bool,
 
-    /// Show unknown routes that need mapping
+    /// Show event route IDs missing from the local route catalogue
     #[arg(long)]
     show_unknown_routes: bool,
-
-    /// Analyze event descriptions to find route names
-    #[arg(long)]
-    analyze_descriptions: bool,
-
-    /// Record a race result (format: "route_id,minutes,event_name[,zwift_score]")
-    #[arg(long)]
-    record_result: Option<String>,
-
-    /// Discover unknown routes from web sources
-    #[arg(long)]
-    discover_routes: bool,
 
     /// Filter by event tags (e.g., "ranked", "zracing", "jerseyunlock")
     #[arg(long, value_delimiter = ',')]
@@ -80,18 +67,6 @@ struct Args {
     /// Exclude events with specific tags
     #[arg(long, value_delimiter = ',')]
     exclude_tags: Vec<String>,
-
-    /// Mark a route as completed (by route ID)
-    #[arg(long)]
-    mark_complete: Option<u32>,
-
-    /// Show route completion progress
-    #[arg(long)]
-    show_progress: bool,
-
-    /// Only show events with routes you haven't completed
-    #[arg(long)]
-    new_routes_only: bool,
 
     /// Use verbose output format (default: compact table)
     #[arg(short = 'v', long)]
@@ -219,10 +194,6 @@ fn generate_filter_description(args: &Args, min_duration: u32, max_duration: u32
         parts.push(format!("excluding: {}", exclude_str));
     }
 
-    // New routes only
-    if args.new_routes_only {
-        parts.push("new routes only".to_string());
-    }
 
     parts.join(" | ")
 }
@@ -272,13 +243,6 @@ fn filter_events(
         eprintln!("Debug: {} events after exclude tag filter", events.len());
     }
 
-    // New routes only filter
-    if args.new_routes_only {
-        stats.completed_routes_filtered = filter_new_routes_only(&mut events);
-        if args.debug {
-            eprintln!("Debug: {} events after new routes filter", events.len());
-        }
-    }
 
     // Duration filter
     let pre_duration = events.len();
@@ -307,7 +271,7 @@ fn filter_events(
 async fn main() -> Result<()> {
     let args = Args::parse();
 
-    println!("🚴 {} {}", "Zwift Race Finder".bold(), "v0.1.0".dimmed());
+    println!("🚴 {} {}", "Zwift Race Finder".bold(), concat!("v", env!("CARGO_PKG_VERSION")).dimmed());
 
     // Handle special commands first
     if args.show_unknown_routes {
@@ -315,29 +279,13 @@ async fn main() -> Result<()> {
         return Ok(());
     }
 
-    if args.analyze_descriptions {
-        commands::analyze_event_descriptions().await?;
-        return Ok(());
-    }
 
-    if let Some(result_str) = args.record_result {
-        commands::record_race_result(&result_str)?;
-        return Ok(());
-    }
 
-    if args.discover_routes {
-        commands::discover_unknown_routes().await?;
-        return Ok(());
-    }
 
-    if let Some(route_id) = args.mark_complete {
-        commands::mark_route_complete(route_id)?;
-        return Ok(());
-    }
 
-    if args.show_progress {
-        commands::show_route_progress()?;
-        return Ok(());
+
+    if !database::Database::new()?.has_routes()? {
+        eprintln!("No route metadata is installed. Export client routes with scripts/export_client_routes.ps1, then run import_client_routes --input /path/to/client-routes.json. Only event-provided or heuristic estimates are available until import.");
     }
 
     // Load configuration
@@ -559,7 +507,7 @@ async fn main() -> Result<()> {
         println!("Found {} cycling races", race_count);
     }
 
-    // Log unknown routes (discovery will be done separately)
+    // Record missing route IDs for a future client-metadata refresh.
     for event in &events {
         if event.sport.to_uppercase() == "CYCLING" && event.event_type == "RACE" {
             log_unknown_route(event);
@@ -630,6 +578,7 @@ async fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use zwift_race_finder::constants::{METERS_PER_KILOMETER, PERCENT_MULTIPLIER};
 
     impl Default for Args {
         fn default() -> Self {
@@ -641,14 +590,8 @@ mod tests {
                 days: 1,
                 debug: false,
                 show_unknown_routes: false,
-                analyze_descriptions: false,
-                record_result: None,
-                discover_routes: false,
                 tags: vec![],
                 exclude_tags: vec![],
-                mark_complete: None,
-                show_progress: false,
-                new_routes_only: false,
                 verbose: false,
             }
         }
@@ -689,14 +632,8 @@ mod tests {
             days: 1,
             debug: false,
             show_unknown_routes: false,
-            analyze_descriptions: false,
-            record_result: None,
-            discover_routes: false,
             tags: vec![],
             exclude_tags: vec![],
-            mark_complete: None,
-            show_progress: false,
-            new_routes_only: false,
             verbose: false,
         };
 
@@ -723,14 +660,8 @@ mod tests {
             days: 1,
             debug: false,
             show_unknown_routes: false,
-            analyze_descriptions: false,
-            record_result: None,
-            discover_routes: false,
             tags: vec![],
             exclude_tags: vec![],
-            mark_complete: None,
-            show_progress: false,
-            new_routes_only: false,
             verbose: false,
         };
 
@@ -788,20 +719,6 @@ mod tests {
         assert_eq!(filtered.len(), 1);
     }
 
-    #[test]
-    fn test_show_route_progress_percentage() {
-        // Test percentage calculation in progress display
-        // percentage = (completed * 100) / total
-        // Targets: replace * with /, replace / with *
-
-        let completed = 25u32;
-        let total = 100u32;
-        let percentage = (completed * PERCENT_MULTIPLIER as u32) / total;
-
-        assert_eq!(percentage, 25);
-        assert_ne!(percentage, 0); // Would be if * became /
-        assert_ne!(percentage, 2500); // Would be if / became *
-    }
 
     #[test]
     fn test_boolean_operators_in_filtering() {
@@ -943,14 +860,8 @@ mod tests {
             days: 1,
             debug: false,
             show_unknown_routes: false,
-            analyze_descriptions: false,
-            record_result: None,
-            discover_routes: false,
             tags: vec![],
             exclude_tags: vec![],
-            mark_complete: None,
-            show_progress: false,
-            new_routes_only: false,
             verbose: false,
         };
 
@@ -1044,14 +955,8 @@ mod tests {
             days: 1,
             debug: false,
             show_unknown_routes: false,
-            analyze_descriptions: false,
-            record_result: None,
-            discover_routes: false,
             tags: vec![],
             exclude_tags: vec![],
-            mark_complete: None,
-            show_progress: false,
-            new_routes_only: false,
             verbose: false,
         };
 
@@ -1121,14 +1026,8 @@ mod tests {
             days: 1,
             debug: false,
             show_unknown_routes: false,
-            analyze_descriptions: false,
-            record_result: None,
-            discover_routes: false,
             tags: vec![],
             exclude_tags: vec![],
-            mark_complete: None,
-            show_progress: false,
-            new_routes_only: false,
             verbose: false,
         };
 
@@ -1151,14 +1050,8 @@ mod tests {
             days: 1,
             debug: false,
             show_unknown_routes: false,
-            analyze_descriptions: false,
-            record_result: None,
-            discover_routes: false,
             tags: vec![],
             exclude_tags: vec![],
-            mark_complete: None,
-            show_progress: false,
-            new_routes_only: false,
             verbose: false,
         };
 
@@ -1202,14 +1095,8 @@ mod tests {
             days: 1,
             debug: false,
             show_unknown_routes: false,
-            analyze_descriptions: false,
-            record_result: None,
-            discover_routes: false,
             tags: vec![],
             exclude_tags: vec![],
-            mark_complete: None,
-            show_progress: false,
-            new_routes_only: false,
             verbose: false,
         };
 
@@ -1233,14 +1120,8 @@ mod tests {
             days: 1,
             debug: false,
             show_unknown_routes: false,
-            analyze_descriptions: false,
-            record_result: None,
-            discover_routes: false,
             tags: vec![],
             exclude_tags: vec![],
-            mark_complete: None,
-            show_progress: false,
-            new_routes_only: false,
             verbose: false,
         };
 
@@ -1263,14 +1144,8 @@ mod tests {
             days: 1,
             debug: false,
             show_unknown_routes: false,
-            analyze_descriptions: false,
-            record_result: None,
-            discover_routes: false,
             tags: vec![],
             exclude_tags: vec![],
-            mark_complete: None,
-            show_progress: false,
-            new_routes_only: false,
             verbose: false,
         };
 
@@ -1295,12 +1170,6 @@ mod tests {
             tags: vec![],
             exclude_tags: vec![],
             show_unknown_routes: false,
-            analyze_descriptions: false,
-            record_result: None,
-            discover_routes: false,
-            mark_complete: None,
-            show_progress: false,
-            new_routes_only: false,
             verbose: false,
             debug: false,
         };
@@ -1319,12 +1188,6 @@ mod tests {
             tags: vec![],
             exclude_tags: vec![],
             show_unknown_routes: false,
-            analyze_descriptions: false,
-            record_result: None,
-            discover_routes: false,
-            mark_complete: None,
-            show_progress: false,
-            new_routes_only: false,
             verbose: false,
             debug: false,
         };
@@ -1342,12 +1205,6 @@ mod tests {
             tags: vec![],
             exclude_tags: vec![],
             show_unknown_routes: false,
-            analyze_descriptions: false,
-            record_result: None,
-            discover_routes: false,
-            mark_complete: None,
-            show_progress: false,
-            new_routes_only: false,
             verbose: false,
             debug: false,
         };
@@ -1484,34 +1341,4 @@ mod tests {
         assert_eq!(result, 0);
     }
 
-    #[test]
-    fn test_analyze_event_descriptions_counter() {
-        // Test mutation: unknown_routes += 1 (line 748)
-        // Ensures += is used for counting, not -= or *=
-
-        let mut counter = 0u32;
-
-        // Simulate counting 5 unknown routes
-        for _ in 0..5 {
-            counter += 1;
-        }
-
-        assert_eq!(counter, 5);
-
-        // If += was replaced with -=, counter would be -5 (or underflow)
-        // If += was replaced with *=, counter would be 0 (0 * 1 = 0)
-        assert_ne!(counter, 0);
-        assert!(counter > 0);
-
-        // Test accumulator pattern
-        let mut total = 0;
-        let values = vec![10, 20, 30];
-        for value in values {
-            total += value;
-        }
-        assert_eq!(total, 60);
-
-        // If += became *= : 0 * 10 * 20 * 30 = 0
-        assert_ne!(total, 0);
-    }
 }

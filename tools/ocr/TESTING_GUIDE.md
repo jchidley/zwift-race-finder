@@ -23,7 +23,7 @@ Key properties tested:
 
 **Running**:
 ```bash
-cargo test ocr_property_tests
+cargo test --features ocr --test ocr_property_tests
 ```
 
 ### 2. Snapshot Tests
@@ -37,7 +37,7 @@ Coverage:
 
 **Running**:
 ```bash
-cargo test ocr_snapshot_tests
+cargo test --features ocr --test ocr_snapshot_tests
 
 # Review snapshot changes
 cargo insta review
@@ -54,22 +54,17 @@ Features:
 
 **Running**:
 ```bash
-cargo test ocr_integration_tests
+cargo test --features ocr --test ocr_integration_tests
 
-# Generate new golden data
-cargo test --features generate-golden
+# Explicit opt-in: writes new golden data, not a validation run
+cargo test --features ocr --test ocr_integration_tests generate_golden_data -- --ignored
 ```
 
-### 4. Performance Benchmarks
-**File**: `benches/ocr_benchmarks.rs`
-**Purpose**: Establish and monitor performance baselines
+### 4. Performance Measurement
+The empty Cargo benchmark targets have been removed; there is no Criterion baseline suite. The separate OCR executable compares sequential and parallel extraction and requires native OCR dependencies, models, and an input image:
 
-**Running**:
 ```bash
-cargo bench ocr
-
-# Compare with baseline
-cargo bench ocr -- --baseline main
+cargo run --release --features ocr --bin zwift_ocr_benchmark -- <image_path> --iterations 5
 ```
 
 ### 5. Fuzz Tests
@@ -84,15 +79,15 @@ Coverage:
 
 **Running**:
 ```bash
-cargo test ocr_fuzz_tests
+cargo test --features ocr --test ocr_fuzz_tests
 
 # Run with more iterations
-PROPTEST_CASES=10000 cargo test ocr_fuzz_tests
+PROPTEST_CASES=10000 cargo test --features ocr --test ocr_fuzz_tests
 ```
 
 ## Performance Baselines
 
-Current performance benchmarks (as of 2025-01-09):
+Historical measurements recorded as of 2025-01-09, not reproduced by the current checkout:
 
 | Operation | Performance | Description |
 |-----------|-------------|-------------|
@@ -133,11 +128,10 @@ These are documented but not fixed as they're unlikely to occur in practice (70%
 # Quick test suite (unit + integration)
 cargo test
 
-# Full test suite including slow tests
+# Include feature-gated OCR tests; ignored tests still require explicit opt-in
 cargo test --all-features
 
-# Benchmarks
-cargo bench ocr
+# No Cargo benchmark suite is implemented; see Performance Measurement above.
 
 # Mutation testing (if time permits)
 cargo mutants --file src/ocr_compact.rs --timeout 180
@@ -174,11 +168,10 @@ Recommended CI pipeline:
 ```yaml
 test:
   - cargo test
-  - cargo bench -- --quick
   
 nightly:
   - cargo test --all-features
-  - PROPTEST_CASES=10000 cargo test ocr_fuzz_tests
+  - PROPTEST_CASES=10000 cargo test --features ocr --test ocr_fuzz_tests
   - cargo mutants --file src/ocr_compact.rs
 ```
 
@@ -199,17 +192,11 @@ cargo insta accept
 - Consider OCR engine variations
 
 ### Performance Regressions
-```bash
-# Compare with saved baseline
-cargo bench ocr -- --baseline main
+Use the OCR measurement executable above with the same image, models, build profile, and iteration count. Save outputs explicitly; there is no automated Criterion baseline comparison.
 
-# Profile specific benchmark
-cargo bench --bench ocr_benchmarks -- --profile-time=10
-```
+## Historical Test Quality Metrics
 
-## Test Quality Metrics
-
-Current state (as of 2025-01-09):
+Recorded on 2025-01-09; rerun the relevant tests and benchmarks before making a current claim:
 - **Mutation Score**: High for parsing functions (manual verification)
 - **Fuzz Test Results**: 13/14 passing, 1 known edge case
 - **Benchmark Stability**: < 5% variance between runs
@@ -217,6 +204,6 @@ Current state (as of 2025-01-09):
 
 ## Further Reading
 
-- Project testing philosophy: `docs/development/MODERN_TESTING_STRATEGY.md`
-- Mutation testing guide: `docs/development/MUTATION_TESTING_GUIDE.md`
-- OCR implementation details: `tools/ocr/README.md`
+- [Project testing philosophy](../../docs/explanation/TESTING_PHILOSOPHY.md)
+- [Current testing how-to](../../docs/howto/TESTING_GUIDE.md)
+- [OCR implementation overview](README.md)

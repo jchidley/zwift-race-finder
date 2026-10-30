@@ -2,20 +2,14 @@
 //!
 //! This module contains functions for displaying event information in a formatted way.
 
-use crate::category::{
-    get_category_from_score, get_category_speed, get_detailed_category_from_score,
-};
+use crate::category::{get_category_from_score, get_detailed_category_from_score};
 use crate::constants::METERS_PER_KILOMETER;
 use crate::database::Database;
-use crate::duration_estimation::estimate_duration_for_category;
-use crate::duration_estimation::get_route_difficulty_multiplier_from_elevation_and_category;
 use crate::estimation::{get_route_data, get_route_data_from_db};
-use crate::event_analysis::find_user_subgroup;
-use crate::event_filtering::FilterStats;
+use crate::event_filtering::{estimate_event, FilterStats};
 use crate::formatting::format_duration;
-use crate::models::{EventSubGroup, ZwiftEvent};
-use crate::parsing::{estimate_distance_from_name, parse_description_data};
-use crate::route_discovery;
+use crate::models::ZwiftEvent;
+use crate::parsing::parse_description_data;
 use chrono::{DateTime, Local};
 use colored::Colorize;
 
@@ -41,27 +35,17 @@ pub fn display_event_header(event: &ZwiftEvent) {
     }
 }
 
-/// Display route information including completion status
+/// Display route metadata
 pub fn display_route_info(event: &ZwiftEvent) {
     if let Some(route_id) = event.route_id {
-        // Check completion status
-        let completion_marker = if let Ok(db) = Database::new() {
-            if db.is_route_completed(route_id).unwrap_or(false) {
-                " ✓".green().to_string()
-            } else {
-                "".to_string()
-            }
-        } else {
-            "".to_string()
-        };
-
         if let Some(route_data) = get_route_data(route_id) {
             println!(
-                "{}: {} ({}m elevation){}",
+                "{}: {} ({} elevation per lap)",
                 "Route ID".bright_blue().dimmed(),
                 route_id.to_string().dimmed(),
-                route_data.elevation_m,
-                completion_marker
+                route_data
+                    .elevation_m
+                    .map_or_else(|| "unknown".to_string(), |m| format!("{m:.1}m"))
             );
         } else {
             println!(
@@ -74,30 +58,10 @@ pub fn display_route_info(event: &ZwiftEvent) {
     }
 }
 
-/// Log unknown route for future mapping
+/// Record missing route IDs for a future client-metadata refresh.
 pub fn log_unknown_route(event: &ZwiftEvent) {
     if let Some(route_id) = event.route_id {
         if get_route_data(route_id).is_none() {
-            // First try to parse route name from description
-            if let Some(description) = &event.description {
-                if let Some(parsed) = route_discovery::parse_route_from_description(description) {
-                    // Log with parsed route info for manual mapping later
-                    if let Ok(db) = Database::new() {
-                        let event_name_with_route = format!(
-                            "{} -> {} ({} laps)",
-                            event.name, parsed.route_name, parsed.laps
-                        );
-                        let _ = db.record_unknown_route(
-                            route_id,
-                            &event_name_with_route,
-                            &event.event_type,
-                        );
-                        return;
-                    }
-                }
-            }
-
-            // If description parsing failed, log normally
             if let Ok(db) = Database::new() {
                 let _ = db.record_unknown_route(route_id, &event.name, &event.event_type);
             }
@@ -105,236 +69,50 @@ pub fn log_unknown_route(event: &ZwiftEvent) {
     }
 }
 
-/// Display duration and distance information with estimation
+/// Format the same resolved estimate used for filtering and the compact table.
+pub fn format_duration_info(event: &ZwiftEvent, zwift_score: u32) -> String {
+    if let Some(estimate) = estimate_event(event, zwift_score) {
+        let distance = estimate.distance_km.map_or_else(String::new, |distance| {
+            format!("{}: {:.1} km\n", "Distance".bright_blue(), distance)
+        });
+        let elevation = estimate.elevation_m.map_or_else(
+            || "Elevation: unknown\n".to_string(),
+            |m| {
+                format!(
+                    "Elevation: {}{} m\n",
+                    if estimate.elevation_is_estimate {
+                        "~"
+                    } else {
+                        ""
+                    },
+                    m
+                )
+            },
+        );
+        let basis = if estimate.is_fixed {
+            "fixed duration".to_string()
+        } else {
+            format!(
+                "estimated for Cat {} rider",
+                get_detailed_category_from_score(zwift_score)
+            )
+        };
+        format!(
+            "{}{}{}: {} ({})",
+            distance,
+            elevation,
+            "Duration".bright_blue(),
+            format_duration(estimate.duration_minutes).green(),
+            basis
+        )
+    } else {
+        format!("{}: unknown", "Duration".bright_blue())
+    }
+}
+
+/// Display duration information without another calculation path.
 pub fn display_duration_info(event: &ZwiftEvent, zwift_score: u32) {
-    let user_subgroup = find_user_subgroup(event, zwift_score);
-
-    // Try to get duration/distance from user's category subgroup first
-    let duration_minutes = user_subgroup
-        .and_then(|sg| sg.duration_in_minutes)
-        .or(event.duration_in_minutes)
-        .or_else(|| event.duration_in_seconds.map(|s| s / 60));
-
-    let distance_meters = user_subgroup
-        .and_then(|sg| sg.distance_in_meters)
-        .or(event.distance_in_meters);
-
-    if let Some(duration) = duration_minutes.filter(|&d| d > 0) {
-        println!(
-            "{}: {} (fixed duration)",
-            "Duration".bright_blue(),
-            format_duration(duration)
-        );
-    } else if let Some(route_id) = event.route_id {
-        display_route_based_duration(event, route_id, user_subgroup, distance_meters, zwift_score);
-    } else if let Some(distance) = distance_meters.filter(|&d| d > 0.0) {
-        display_distance_based_duration(event, distance, zwift_score);
-    } else {
-        display_estimated_duration(event, zwift_score);
-    }
-}
-
-/// Display duration based on route information
-fn display_route_based_duration(
-    event: &ZwiftEvent,
-    route_id: u32,
-    user_subgroup: Option<&EventSubGroup>,
-    distance_meters: Option<f64>,
-    zwift_score: u32,
-) {
-    if let Some(route_data) = get_route_data(route_id) {
-        let (actual_distance_km, lap_count) =
-            calculate_actual_distance(&route_data, user_subgroup, distance_meters, event);
-
-        // Display distance and laps
-        if lap_count > 1 {
-            println!(
-                "{}: {:.1} km ({} laps of {:.1} km)",
-                "Distance".bright_blue(),
-                actual_distance_km,
-                lap_count,
-                route_data.distance_km
-            );
-        } else {
-            println!("{}: {:.1} km", "Distance".bright_blue(), actual_distance_km);
-        }
-
-        // Show lead-in distance if significant
-        if route_data.lead_in_distance_km > 0.1 {
-            println!(
-                "{}: {:.1} km",
-                "Lead-in".bright_blue(),
-                route_data.lead_in_distance_km
-            );
-        }
-
-        // Calculate and display estimated duration
-        display_calculated_duration(&route_data, actual_distance_km, zwift_score);
-    } else {
-        display_unknown_route_duration(
-            event,
-            user_subgroup,
-            distance_meters,
-            route_id,
-            zwift_score,
-        );
-    }
-}
-
-/// Calculate actual distance considering laps
-fn calculate_actual_distance(
-    route_data: &crate::models::RouteData,
-    user_subgroup: Option<&EventSubGroup>,
-    distance_meters: Option<f64>,
-    event: &ZwiftEvent,
-) -> (f64, u32) {
-    let mut lap_count = 1;
-    let actual_distance_km;
-
-    // Check if subgroup has lap information (for Racing Score events)
-    if let Some(sg) = user_subgroup {
-        if let Some(laps) = sg.laps {
-            lap_count = laps;
-            actual_distance_km = route_data.distance_km * laps as f64;
-        } else if let Some(dist_m) = sg.distance_in_meters.filter(|&d| d > 0.0) {
-            // Subgroup has explicit distance
-            actual_distance_km = dist_m / METERS_PER_KILOMETER;
-            lap_count = (actual_distance_km / route_data.distance_km).round() as u32;
-        } else {
-            // No lap info in subgroup, use event distance or route distance
-            actual_distance_km = distance_meters
-                .map(|d| d / METERS_PER_KILOMETER)
-                .unwrap_or(route_data.distance_km);
-        }
-    } else {
-        // No subgroup - use event distance or check database for multi-lap info
-        if let Some(dist_m) = distance_meters.filter(|&d| d > 0.0) {
-            actual_distance_km = dist_m / METERS_PER_KILOMETER;
-            lap_count = (actual_distance_km / route_data.distance_km).round() as u32;
-        } else {
-            // Check if this is a known multi-lap event
-            if let Ok(db) = Database::new() {
-                if let Ok(Some(laps)) = db.get_multi_lap_info(&event.name) {
-                    lap_count = laps;
-                }
-            }
-            actual_distance_km = route_data.distance_km * lap_count as f64;
-        }
-    }
-
-    (actual_distance_km, lap_count)
-}
-
-/// Display calculated duration based on route data
-fn display_calculated_duration(
-    route_data: &crate::models::RouteData,
-    actual_distance_km: f64,
-    zwift_score: u32,
-) {
-    let category = get_category_from_score(zwift_score);
-    let effective_speed = get_category_speed(category);
-
-    let difficulty_multiplier = get_route_difficulty_multiplier_from_elevation_and_category(
-        route_data.distance_km, // Use base route for elevation calculation
-        route_data.elevation_m,
-        category,
-    );
-
-    let surface_multiplier = match route_data.surface {
-        "road" => 1.0,
-        "gravel" => 0.85,
-        "mixed" => 0.92,
-        _ => 1.0,
-    };
-
-    let adjusted_speed = effective_speed * difficulty_multiplier * surface_multiplier;
-    // Include lead-in distance in total duration calculation
-    let total_distance = actual_distance_km + route_data.lead_in_distance_km;
-    let estimated_duration = ((total_distance / adjusted_speed) * 60.0) as u32;
-
-    let cat_string = get_detailed_category_from_score(zwift_score);
-    println!(
-        "{}: {} (estimated for Cat {} rider)",
-        "Duration".bright_blue(),
-        format_duration(estimated_duration).green(),
-        cat_string
-    );
-}
-
-/// Display duration for unknown routes
-fn display_unknown_route_duration(
-    event: &ZwiftEvent,
-    user_subgroup: Option<&EventSubGroup>,
-    distance_meters: Option<f64>,
-    route_id: u32,
-    zwift_score: u32,
-) {
-    let distance_meters = user_subgroup
-        .and_then(|sg| sg.distance_in_meters)
-        .or(distance_meters)
-        .filter(|&d| d > 0.0); // Ignore 0.0 distances
-
-    if let Some(dist_m) = distance_meters {
-        let distance_km = dist_m / METERS_PER_KILOMETER;
-        let route_name = event.route.as_deref().unwrap_or(&event.name);
-        let estimated_duration =
-            estimate_duration_for_category(distance_km, route_name, zwift_score);
-
-        println!("{}: {:.1} km", "Distance".bright_blue(), distance_km);
-        let cat_string = get_detailed_category_from_score(zwift_score);
-        println!(
-            "{}: {} (estimated for Cat {} rider, unknown route)",
-            "Duration".bright_blue(),
-            format_duration(estimated_duration).green(),
-            cat_string
-        );
-    } else {
-        println!(
-            "{}: Route ID {} needs mapping",
-            "Info".yellow(),
-            route_id.to_string().yellow()
-        );
-    }
-}
-
-/// Display distance-based duration when no route ID
-fn display_distance_based_duration(event: &ZwiftEvent, distance_meters: f64, zwift_score: u32) {
-    let distance_km = distance_meters / METERS_PER_KILOMETER;
-    let route_name = event.route.as_deref().unwrap_or(&event.name);
-    let estimated_duration = estimate_duration_for_category(distance_km, route_name, zwift_score);
-
-    println!("{}: {:.1} km", "Distance".bright_blue(), distance_km);
-    let cat_string = get_detailed_category_from_score(zwift_score);
-    println!(
-        "{}: {} (estimated for Cat {} rider)",
-        "Duration".bright_blue(),
-        format_duration(estimated_duration).green(),
-        cat_string
-    );
-}
-
-/// Display estimated duration from event name
-fn display_estimated_duration(event: &ZwiftEvent, zwift_score: u32) {
-    let estimated_distance = estimate_distance_from_name(&event.name);
-
-    if let Some(distance_km) = estimated_distance {
-        let route_name = event.route.as_deref().unwrap_or(&event.name);
-        let estimated_duration =
-            estimate_duration_for_category(distance_km, route_name, zwift_score);
-
-        println!(
-            "{}: ~{:.1} km (estimated from route)",
-            "Distance".bright_blue(),
-            distance_km
-        );
-        let cat_string = get_detailed_category_from_score(zwift_score);
-        println!(
-            "{}: {} (estimated for Cat {} rider)",
-            "Duration".bright_blue(),
-            format_duration(estimated_duration).green(),
-            cat_string
-        );
-    }
+    println!("{}", format_duration_info(event, zwift_score));
 }
 
 /// Display category enforcement status
@@ -382,13 +160,17 @@ pub fn display_subgroups(event: &ZwiftEvent, zwift_score: u32) {
 
             // Show estimated duration for user's category
             if is_user_category {
-                let route_name = event.route.as_deref().unwrap_or(&event.name);
-                let estimated_duration =
-                    estimate_duration_for_category(dist_km, route_name, zwift_score);
-                print!(
-                    " → {} estimated",
-                    format_duration(estimated_duration).green()
-                );
+                if let Some(estimate) = estimate_event(event, zwift_score) {
+                    print!(
+                        " → {} ({})",
+                        format_duration(estimate.duration_minutes).green(),
+                        if estimate.is_fixed {
+                            "fixed duration"
+                        } else {
+                            "estimated"
+                        }
+                    );
+                }
             }
         }
 
@@ -497,97 +279,24 @@ pub fn prepare_event_row(event: &ZwiftEvent, zwift_score: u32) -> EventTableRow 
     let local_time: DateTime<Local> = event.event_start.into();
     let time_str = local_time.format("%H:%M").to_string();
 
-    // Get route data and calculate total distance and elevation
-    let (distance_str, elevation_str, duration_str) = if let Some(route_id) = event.route_id {
-        if let Some(route_data) = get_route_data(route_id) {
-            // Calculate total distance including lead-in
-            let user_subgroup = find_user_subgroup(event, zwift_score);
-            let distance_meters = user_subgroup
-                .and_then(|sg| sg.distance_in_meters)
-                .or(event.distance_in_meters);
-
-            let mut actual_distance_km = route_data.distance_km;
-            let mut lap_count = 1;
-
-            // Calculate actual distance including laps
-            if let Some(sg) = user_subgroup {
-                if let Some(laps) = sg.laps {
-                    lap_count = laps;
-                    actual_distance_km = route_data.distance_km * laps as f64;
-                } else if let Some(dist_m) = sg.distance_in_meters.filter(|&d| d > 0.0) {
-                    actual_distance_km = dist_m / METERS_PER_KILOMETER;
-                    lap_count = (actual_distance_km / route_data.distance_km).round() as u32;
-                }
-            } else if let Some(dist_m) = distance_meters.filter(|&d| d > 0.0) {
-                actual_distance_km = dist_m / METERS_PER_KILOMETER;
-                lap_count = (actual_distance_km / route_data.distance_km).round() as u32;
-            }
-
-            // Total distance including lead-in (no lap indicator)
-            let total_distance = actual_distance_km + route_data.lead_in_distance_km;
-            let distance_str = format!("{:.1} km", total_distance);
-
-            // Calculate total elevation (multiply by laps if multi-lap)
-            let total_elevation = route_data.elevation_m * lap_count;
-            let elevation_str = format!("{}m", total_elevation);
-
-            // Calculate duration
-            let category = get_category_from_score(zwift_score);
-            let effective_speed = get_category_speed(category);
-
-            let difficulty_multiplier = get_route_difficulty_multiplier_from_elevation_and_category(
-                route_data.distance_km,
-                route_data.elevation_m,
-                category,
-            );
-
-            let surface_multiplier = match route_data.surface {
-                "road" => 1.0,
-                "gravel" => 0.85,
-                "mixed" => 0.92,
-                _ => 1.0,
-            };
-
-            let adjusted_speed = effective_speed * difficulty_multiplier * surface_multiplier;
-            let estimated_duration = ((total_distance / adjusted_speed) * 60.0) as u32;
-
-            (
-                distance_str,
-                elevation_str,
-                format_duration(estimated_duration),
+    let estimate = estimate_event(event, zwift_score);
+    let distance_str = estimate
+        .as_ref()
+        .and_then(|e| e.distance_km)
+        .map_or_else(|| "? km".to_string(), |km| format!("{:.1} km", km));
+    let elevation_str = estimate.as_ref().map_or_else(
+        || "?m".to_string(),
+        |e| {
+            e.elevation_m.map_or_else(
+                || "?m".to_string(),
+                |m| format!("{}{}m", if e.elevation_is_estimate { "~" } else { "" }, m),
             )
-        } else {
-            // Unknown route
-            if let Some(dist_m) = event.distance_in_meters.filter(|&d| d > 0.0) {
-                let distance_km = dist_m / METERS_PER_KILOMETER;
-                let route_name = event.route.as_deref().unwrap_or(&event.name);
-                let estimated_duration =
-                    estimate_duration_for_category(distance_km, route_name, zwift_score);
-                (
-                    format!("{:.1} km", distance_km),
-                    "?m".to_string(),
-                    format_duration(estimated_duration),
-                )
-            } else {
-                ("? km".to_string(), "?m".to_string(), "? min".to_string())
-            }
-        }
-    } else {
-        // No route ID
-        if let Some(dist_m) = event.distance_in_meters.filter(|&d| d > 0.0) {
-            let distance_km = dist_m / METERS_PER_KILOMETER;
-            let route_name = event.route.as_deref().unwrap_or(&event.name);
-            let estimated_duration =
-                estimate_duration_for_category(distance_km, route_name, zwift_score);
-            (
-                format!("{:.1} km", distance_km),
-                "?m".to_string(),
-                format_duration(estimated_duration),
-            )
-        } else {
-            ("? km".to_string(), "?m".to_string(), "? min".to_string())
-        }
-    };
+        },
+    );
+    let duration_str = estimate.as_ref().map_or_else(
+        || "? min".to_string(),
+        |e| format_duration(e.duration_minutes),
+    );
 
     EventTableRow {
         name: event.name.clone(),
@@ -713,7 +422,6 @@ pub fn display_filter_stats(stats: &FilterStats, _total_fetched: usize) {
         + stats.time_filtered
         + stats.type_filtered
         + stats.tag_filtered
-        + stats.completed_routes_filtered
         + stats.duration_filtered;
 
     if total_filtered == 0 && stats.unknown_routes == 0 && stats.missing_distance == 0 {
@@ -743,12 +451,6 @@ pub fn display_filter_stats(stats: &FilterStats, _total_fetched: usize) {
         println!("  • {} events filtered by tags", stats.tag_filtered);
     }
 
-    if stats.completed_routes_filtered > 0 {
-        println!(
-            "  • {} events on completed routes",
-            stats.completed_routes_filtered
-        );
-    }
 
     if stats.duration_filtered > 0 {
         println!(
@@ -767,14 +469,9 @@ pub fn display_filter_stats(stats: &FilterStats, _total_fetched: usize) {
         if stats.unknown_routes > 0 {
             println!("  • {} events with unknown routes", stats.unknown_routes);
             println!(
-                "    {} Run {} to help map these routes",
+                "    {} Refresh client metadata; see {}",
                 "Fix:".green(),
-                "cargo run --bin zwift-race-finder -- --discover-routes".cyan()
-            );
-            println!(
-                "    {} Check {} for manual mapping",
-                "Or:".green(),
-                "sql/mappings/manual_route_mappings.sql".cyan()
+                "docs/howto/CLIENT_ROUTE_DATA.md".cyan()
             );
         }
 
@@ -1008,7 +705,6 @@ mod tests {
             time_filtered: 3,
             type_filtered: 2,
             tag_filtered: 1,
-            completed_routes_filtered: 0,
             duration_filtered: 4,
             unknown_routes: 2,
             missing_distance: 1,
@@ -1043,51 +739,13 @@ mod tests {
     }
 
     #[test]
-    fn test_calculate_actual_distance_arithmetic() {
-        // Test division operations in calculate_actual_distance
-        // Mutations: replace / with *, replace / with %
-        let route_data = crate::models::RouteData {
-            distance_km: 10.0,
-            elevation_m: 100,
-            name: "Test Route",
-            world: "Watopia",
-            surface: "road",
-            lead_in_distance_km: 0.5,
-        };
-
+    fn test_display_uses_estimated_distance_without_extra_lead_in() {
         let event = create_test_event("Test Race", 30.0, "Test Route", "CYCLING");
-
-        // Test with explicit distance in meters
-        let (distance, laps) = calculate_actual_distance(
-            &route_data,
-            None,
-            Some(30000.0), // 30 km
-            &event,
-        );
-
-        assert_eq!(distance, 30.0); // 30000 / 1000 = 30
-        assert_eq!(laps, 3); // 30 / 10 = 3
-
-        // If / became *, we'd get 30000000.0
-        assert!(distance < 100.0);
-
-        // Test with subgroup distance
-        let subgroup = EventSubGroup {
-            id: 1,
-            name: "Cat D".to_string(),
-            route_id: None,
-            distance_in_meters: Some(20000.0),
-            duration_in_minutes: None,
-            category_enforcement: None,
-            range_access_label: None,
-            laps: None,
-        };
-
-        let (distance2, laps2) =
-            calculate_actual_distance(&route_data, Some(&subgroup), None, &event);
-
-        assert_eq!(distance2, 20.0); // 20000 / 1000 = 20
-        assert_eq!(laps2, 2); // 20 / 10 = 2
+        let estimate = estimate_event(&event, 195).unwrap();
+        let row = prepare_event_row(&event, 195);
+        assert_eq!(estimate.distance_km, Some(30.0));
+        assert_eq!(row.distance, "30.0 km");
+        assert_eq!(row.duration, format_duration(estimate.duration_minutes));
     }
 
     #[test]
@@ -1134,7 +792,6 @@ mod tests {
             type_filtered: 3,
             duration_filtered: 8,
             tag_filtered: 2,
-            completed_routes_filtered: 1,
             unknown_routes: 4,
             missing_distance: 2,
         };
@@ -1144,7 +801,7 @@ mod tests {
 
         // Test that FilterStats::total_filtered works correctly
         let total = stats.total_filtered();
-        assert_eq!(total, 29); // 10 + 5 + 3 + 8 + 2 + 1 = 29
+        assert_eq!(total, 28); // 10 + 5 + 3 + 8 + 2 = 28
 
         // Test duration_no_match calculation
         let duration_no_match = stats.duration_no_match();
@@ -1165,7 +822,6 @@ mod tests {
             + empty_stats.time_filtered
             + empty_stats.type_filtered
             + empty_stats.tag_filtered
-            + empty_stats.completed_routes_filtered
             + empty_stats.duration_filtered;
 
         assert_eq!(total_filtered, 0);
@@ -1182,7 +838,14 @@ mod tests {
         // Ensures multiplication is used, not addition
 
         let mut event = create_test_event("Multi-Lap Race", 10.0, "Test Route", "CYCLING");
-        event.route_id = Some(1258415487); // Bell Lap - a known route
+        let route_id = 4_000_001_102;
+        let route = serde_json::from_value(serde_json::json!({
+            "route_id": route_id, "name": "Synthetic lap circuit", "world": "Test",
+            "distance_km": 10.0, "elevation_m": 50.0, "surface": "road",
+            "lead_in_distance_km": 0.5, "lead_in_elevation_m": 0.0
+        })).unwrap();
+        crate::database::Database::new().unwrap().add_route(&route).unwrap();
+        event.route_id = Some(route_id);
 
         // Add subgroup with 3 laps
         event.event_sub_groups = vec![EventSubGroup {
@@ -1234,7 +897,7 @@ mod tests {
 
         // Call the function directly would require making it public
         // Instead, test through the public interface
-        display_distance_based_duration(&event, distance_meters, zwift_score);
+        display_duration_info(&event, zwift_score);
 
         // Verify the conversion logic
         let distance_km = distance_meters / METERS_PER_KILOMETER;

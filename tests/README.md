@@ -1,38 +1,35 @@
 # Test Suite
 
-## Running tests
+Use this page as a quick command index. The maintained description of test boundaries and limitations is in [`docs/reference/TEST_SUITE_SUMMARY.md`](../docs/reference/TEST_SUITE_SUMMARY.md).
+
+## Common commands
 
 | Purpose | Command |
-|---------|---------|
-| All tests | `cargo test` |
-| Regression accuracy | `cargo test --lib test_race_predictions_accuracy -- --nocapture` |
-| API tests | `cargo test --test api_tests` |
-| Integration tests | `cargo test --test integration_tests` |
+|---|---|
+| All default-feature tests | `cargo test` |
+| Library tests | `cargo test --lib` |
+| Main binary tests | `cargo test --bin zwift-race-finder` |
+| Accuracy regression | `cargo test --lib test_race_predictions_accuracy -- --nocapture` |
+| Mock HTTP tests | `cargo test --test api_tests` |
+| CLI integration tests | `cargo test --test integration_tests` |
+| Client route import tests (private databases) | `cargo test --test client_route_import_tests` |
 | Config tests | `cargo test --test config_tests` |
 | Property tests | `cargo test --test property_tests` |
 | Snapshot tests | `cargo test --test snapshot_tests` |
-| Benchmarks | `cargo bench` |
-| Unit tests only | `cargo test --lib` |
+| OCR tests | `cargo test --features ocr` |
 
-## Current state (2026-03-15)
+Route metadata inputs are now [client-only](../docs/howto/CLIENT_ROUTE_DATA.md).
+Community route-import tests are retired with their importers; existing route rows
+and history are not deleted, and fresh databases contain no seeded routes.
 
-- **170 tests passing** (91 lib + 79 integration/property/snapshot)
-- **Regression accuracy**: 16.6% MAE on 125 matched races
-- **6 tests ignored** (golden tests, full regression on 7500+ races)
+## Before running
 
-## Test locations
+Debian/Ubuntu needs `libssl-dev` and `pkg-config`. OCR tests have additional native and model/image prerequisites.
 
-| Location | Tests | Purpose |
-|----------|-------|---------|
-| `src/main.rs` | 26 | CLI logic, event filtering, URL parsing |
-| `src/duration_estimation.rs` | 12 | Duration math, difficulty multipliers, category-aware climbing |
-| `src/event_filtering.rs` | 25 | Filter logic, category matching |
-| `src/event_display.rs` | 18 | Output formatting |
-| `src/regression_test.rs` | 4 | Accuracy vs real race data |
-| `src/category.rs` | 4 | Score→category, speeds |
-| `tests/api_tests.rs` | 6 | API interaction with mocks |
-| `tests/config_tests.rs` | 6 | Config loading, precedence |
-| `tests/integration_tests.rs` | 12 | CLI end-to-end workflows |
-| `tests/property_tests.rs` | 7 | Property-based edge cases |
-| `tests/properties_tests.rs` | 9 | Additional properties |
-| `tests/snapshot_tests.rs` | 4 | Output format stability |
+The accuracy regression reads the normal application database. The CLI integration target launches the application through Cargo and some cases use the live Zwift API or normal user database. Review those tests before running them in an isolated or production-like environment.
+
+## Performance history
+
+- `cargo test --lib history::`: synthetic export parsing and missingness/precision checks.
+- `cargo test --test history_import_tests`: private-database migration, unknown/zero scores, preserved rows/objects/sequence, provenance uniqueness, repeat import, conflicts, rollback and non-writing preview.
+- `node tests/history_export_tests.js`: synthetic browser export checks; no browser or personal data.

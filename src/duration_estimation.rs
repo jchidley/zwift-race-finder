@@ -23,19 +23,33 @@ pub fn get_route_difficulty_multiplier_from_elevation_and_category(
     elevation_m: u32,
     category: &str,
 ) -> f64 {
-    let meters_per_km = elevation_m as f64 / distance_km;
+    get_route_difficulty_multiplier_from_gain_and_category(
+        distance_km,
+        f64::from(elevation_m),
+        category,
+    )
+}
+
+/// Fractional-metre variant used by client-derived route data. Keep precision
+/// through aggregation and difficulty interpolation; round only for presentation.
+pub fn get_route_difficulty_multiplier_from_gain_and_category(
+    distance_km: f64,
+    elevation_m: f64,
+    category: &str,
+) -> f64 {
+    let meters_per_km = elevation_m / distance_km;
 
     // Piecewise linear interpolation breakpoints: (m/km, multiplier)
     // Calibrated against 125 real race results across all terrain types
     let breakpoints: &[(f64, f64)] = &[
-        (0.0, 1.1),   // Very flat (Tempus Fugit ~1 m/km)
-        (5.0, 1.05),  // Flat (most Watopia routes)
-        (10.0, 1.0),  // Rolling (transition zone)
-        (15.0, 0.93), // Rolling hills
-        (20.0, 0.85), // Hilly (Mountain 8 ~21 m/km)
-        (30.0, 0.70), // Very hilly
-        (40.0, 0.55), // Mountain (approaching Alpe territory)
-        (60.0, 0.45), // Extreme climb (Road to Sky ~60 m/km)
+        (0.0, 1.1),    // Very flat (Tempus Fugit ~1 m/km)
+        (5.0, 1.05),   // Flat (most Watopia routes)
+        (10.0, 1.0),   // Rolling (transition zone)
+        (15.0, 0.93),  // Rolling hills
+        (20.0, 0.85),  // Hilly (Mountain 8 ~21 m/km)
+        (30.0, 0.70),  // Very hilly
+        (40.0, 0.55),  // Mountain (approaching Alpe territory)
+        (60.0, 0.45),  // Extreme climb (Road to Sky ~60 m/km)
         (100.0, 0.30), // Theoretical maximum
     ];
 
@@ -107,19 +121,35 @@ mod tests {
         // The default (no category) uses Cat C as baseline
         // Test very flat routes (< 5m/km) — interpolated between 1.1 and 1.05
         let flat = get_route_difficulty_multiplier_from_elevation(40.0, 100); // 2.5 m/km
-        assert!(flat > 1.07 && flat < 1.1, "Very flat should be ~1.08, got {}", flat);
+        assert!(
+            flat > 1.07 && flat < 1.1,
+            "Very flat should be ~1.08, got {}",
+            flat
+        );
 
         // Test flat to rolling (5-10m/km) — interpolated between 1.05 and 1.0
         let rolling = get_route_difficulty_multiplier_from_elevation(40.0, 300); // 7.5 m/km
-        assert!(rolling > 0.97 && rolling < 1.03, "Rolling should be ~1.025, got {}", rolling);
+        assert!(
+            rolling > 0.97 && rolling < 1.03,
+            "Rolling should be ~1.025, got {}",
+            rolling
+        );
 
         // Test rolling hills (10-20m/km) — interpolated between 1.0 and 0.85
         let hilly = get_route_difficulty_multiplier_from_elevation(40.0, 600); // 15 m/km
-        assert!(hilly > 0.88 && hilly < 0.96, "Hilly should be ~0.93, got {}", hilly);
+        assert!(
+            hilly > 0.88 && hilly < 0.96,
+            "Hilly should be ~0.93, got {}",
+            hilly
+        );
 
         // Test very hilly (>40m/km) — with Cat C penalty
         let mountain = get_route_difficulty_multiplier_from_elevation(12.2, 1035); // 84.8 m/km
-        assert!(mountain > 0.25 && mountain < 0.40, "Mountain should be ~0.33, got {}", mountain);
+        assert!(
+            mountain > 0.25 && mountain < 0.40,
+            "Mountain should be ~0.33, got {}",
+            mountain
+        );
     }
 
     #[test]
@@ -262,33 +292,57 @@ mod tests {
 
         // Flat to rolling (5-10 m/km): between 1.05 and 1.0
         let m3 = get_route_difficulty_multiplier_from_elevation(20.0, 150); // 7.5 m/km
-        assert!(m3 > 1.0 && m3 < 1.05, "7.5 m/km should be ~1.025, got {}", m3);
+        assert!(
+            m3 > 1.0 && m3 < 1.05,
+            "7.5 m/km should be ~1.025, got {}",
+            m3
+        );
 
         let m4 = get_route_difficulty_multiplier_from_elevation(30.0, 270); // 9 m/km
         assert!(m4 > 0.99 && m4 < 1.03, "9 m/km should be ~1.01, got {}", m4);
 
         // Rolling hills (10-15 m/km): between 1.0 and 0.93
         let m5 = get_route_difficulty_multiplier_from_elevation(20.0, 300); // 15 m/km
-        assert!(m5 > 0.90 && m5 < 0.95, "15 m/km should be ~0.93, got {}", m5);
+        assert!(
+            m5 > 0.90 && m5 < 0.95,
+            "15 m/km should be ~0.93, got {}",
+            m5
+        );
 
         // Hilly (15-20 m/km, Cat C penalty applies): ~0.89 * 0.93 = ~0.83
         let m6 = get_route_difficulty_multiplier_from_elevation(40.0, 760); // 19 m/km
-        assert!(m6 > 0.78 && m6 < 0.88, "19 m/km Cat C should be ~0.83, got {}", m6);
+        assert!(
+            m6 > 0.78 && m6 < 0.88,
+            "19 m/km Cat C should be ~0.83, got {}",
+            m6
+        );
 
         // Very hilly (25 m/km): with Cat C penalty
         let m7 = get_route_difficulty_multiplier_from_elevation(20.0, 500); // 25 m/km
-        assert!(m7 > 0.65 && m7 < 0.78, "25 m/km Cat C should be ~0.72, got {}", m7);
+        assert!(
+            m7 > 0.65 && m7 < 0.78,
+            "25 m/km Cat C should be ~0.72, got {}",
+            m7
+        );
 
         // Mountain (50 m/km): with Cat C penalty
         let m8 = get_route_difficulty_multiplier_from_elevation(10.0, 500); // 50 m/km
-        assert!(m8 > 0.40 && m8 < 0.52, "50 m/km Cat C should be ~0.47, got {}", m8);
+        assert!(
+            m8 > 0.40 && m8 < 0.52,
+            "50 m/km Cat C should be ~0.47, got {}",
+            m8
+        );
 
         // Edge cases
         let m9 = get_route_difficulty_multiplier_from_elevation(0.1, 1); // 10 m/km
         assert!(m9 > 0.98 && m9 < 1.02, "10 m/km should be ~1.0, got {}", m9);
 
         let m10 = get_route_difficulty_multiplier_from_elevation(1000.0, 5000); // 5 m/km
-        assert!((m10 - 1.05).abs() < 0.01, "5 m/km should be 1.05, got {}", m10);
+        assert!(
+            (m10 - 1.05).abs() < 0.01,
+            "5 m/km should be 1.05, got {}",
+            m10
+        );
     }
 
     #[test]
@@ -296,7 +350,10 @@ mod tests {
         // On flat terrain, category shouldn't matter
         let flat_c = get_route_difficulty_multiplier_from_elevation_and_category(40.0, 100, "C");
         let flat_d = get_route_difficulty_multiplier_from_elevation_and_category(40.0, 100, "D");
-        assert_eq!(flat_c, flat_d, "On flat terrain, category shouldn't affect multiplier");
+        assert_eq!(
+            flat_c, flat_d,
+            "On flat terrain, category shouldn't affect multiplier"
+        );
 
         // On steep climbs, lower categories should get a lower multiplier
         let climb_a = get_route_difficulty_multiplier_from_elevation_and_category(10.0, 600, "A"); // 60 m/km
@@ -304,20 +361,35 @@ mod tests {
         let climb_d = get_route_difficulty_multiplier_from_elevation_and_category(10.0, 600, "D");
         let climb_e = get_route_difficulty_multiplier_from_elevation_and_category(10.0, 600, "E");
 
-        assert!(climb_a > climb_c, "Cat A should have higher multiplier than C on climbs");
-        assert!(climb_c > climb_d, "Cat C should have higher multiplier than D on climbs");
-        assert!(climb_d > climb_e, "Cat D should have higher multiplier than E on climbs");
+        assert!(
+            climb_a > climb_c,
+            "Cat A should have higher multiplier than C on climbs"
+        );
+        assert!(
+            climb_c > climb_d,
+            "Cat C should have higher multiplier than D on climbs"
+        );
+        assert!(
+            climb_d > climb_e,
+            "Cat D should have higher multiplier than E on climbs"
+        );
 
         // Road to Sky test: 17.6km, 1047m = 59.5 m/km
         // Cat D actual: 110 min → speed 9.6 km/h → multiplier = 9.6/30.9 = 0.31
         let rts_d = get_route_difficulty_multiplier_from_elevation_and_category(17.6, 1047, "D");
-        assert!(rts_d > 0.25 && rts_d < 0.45,
-            "Road to Sky Cat D multiplier should be ~0.35, got {}", rts_d);
+        assert!(
+            rts_d > 0.25 && rts_d < 0.45,
+            "Road to Sky Cat D multiplier should be ~0.35, got {}",
+            rts_d
+        );
 
         // Cat C actual: 66 min → speed 16.0 km/h → multiplier = 16.0/33.0 = 0.48
         let rts_c = get_route_difficulty_multiplier_from_elevation_and_category(17.6, 1047, "C");
-        assert!(rts_c > 0.35 && rts_c < 0.55,
-            "Road to Sky Cat C multiplier should be ~0.42, got {}", rts_c);
+        assert!(
+            rts_c > 0.35 && rts_c < 0.55,
+            "Road to Sky Cat C multiplier should be ~0.42, got {}",
+            rts_c
+        );
     }
 
     // NOTE: test_weighted_average_calculation, test_drop_probability_match_guards,

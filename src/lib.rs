@@ -3,7 +3,7 @@
 //! This library provides functionality to:
 //! - Fetch and filter Zwift events based on duration and fitness level
 //! - Store and retrieve route data and race results
-//! - Discover route information from external sources
+//! - Import route metadata from explicit installed-client exports
 //! - Manage configuration and secure credential storage
 
 /// A/B testing framework for comparing implementations
@@ -30,6 +30,9 @@ pub mod config;
 /// Database operations for routes and race results
 pub mod database;
 
+/// Source-qualified personal performance history.
+pub mod history;
+
 /// Duration estimation utilities
 pub mod duration_estimation;
 
@@ -55,8 +58,6 @@ pub mod formatting;
 #[cfg(test)]
 pub mod regression_test;
 
-/// Route discovery from external sources
-pub mod route_discovery;
 
 
 
@@ -86,7 +87,3 @@ pub mod ocr_ocrs;
 /// Parallel OCR implementation for high performance
 #[cfg(feature = "ocr")]
 pub mod ocr_parallel;
-
-/// Client for importing route data from zwift-offline
-pub mod zwift_offline_client;
-

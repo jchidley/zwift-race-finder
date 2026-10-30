@@ -2,13 +2,17 @@
 //!
 //! Stores route information and actual race completion times
 
-use anyhow::Result;
+use anyhow::{ensure, Result};
 use colored::Colorize;
 use rusqlite::{params, Connection, OptionalExtension};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
+#[path = "database_history.rs"]
+mod history_storage;
+pub use history_storage::{HistoryImportSummary, HistoryObservation};
 
 /// Route data including distance, elevation, and lead-in information
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct RouteData {
     /// Unique route identifier
     #[allow(dead_code)]
@@ -16,7 +20,7 @@ pub struct RouteData {
     /// Route distance in kilometers
     pub distance_km: f64,
     /// Total elevation gain in meters
-    pub elevation_m: u32,
+    pub elevation_m: Option<f64>,
     /// Route name
     pub name: String,
     /// Zwift world (Watopia, London, etc.)
@@ -24,24 +28,115 @@ pub struct RouteData {
     /// Surface type (road, gravel, mixed)
     pub surface: String,
     /// Lead-in distance in kilometers
-    pub lead_in_distance_km: f64,
+    pub lead_in_distance_km: Option<f64>,
     /// Lead-in elevation in meters
     #[allow(dead_code)]
-    pub lead_in_elevation_m: u32,
+    pub lead_in_elevation_m: Option<f64>,
     /// Lead-in distance for free ride mode
     #[allow(dead_code)]
     pub lead_in_distance_free_ride_km: Option<f64>,
     /// Lead-in elevation for free ride mode
     #[allow(dead_code)]
-    pub lead_in_elevation_free_ride_m: Option<u32>,
+    pub lead_in_elevation_free_ride_m: Option<f64>,
     /// Lead-in distance for meetups
     #[allow(dead_code)]
     pub lead_in_distance_meetups_km: Option<f64>,
     /// Lead-in elevation for meetups
     #[allow(dead_code)]
-    pub lead_in_elevation_meetups_m: Option<u32>,
+    pub lead_in_elevation_meetups_m: Option<f64>,
     /// URL slug for WhatsOnZwift
     pub slug: Option<String>,
+}
+
+/// Local client provenance. Lower rank is more authoritative.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "kebab-case")]
+#[allow(dead_code)] // Used by the importer; this module also builds privately in the CLI.
+pub enum ClientSourceKind {
+    ClientCache,
+    ExtractedClient,
+}
+
+#[allow(dead_code)] // Used by the importer; this module also builds privately in the CLI.
+impl ClientSourceKind {
+    fn rank(self) -> u8 {
+        match self {
+            Self::ClientCache => 0,
+            Self::ExtractedClient => 1,
+        }
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[allow(dead_code)] // Used by the importer; this module also builds privately in the CLI.
+pub struct ClientRouteSource {
+    pub kind: ClientSourceKind,
+    pub path: String,
+    pub sha256: String,
+    pub entry: String,
+}
+
+/// Normalized metadata plus original source identity and availability flags.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[allow(dead_code)] // Used by the importer; this module also builds privately in the CLI.
+pub struct ClientRouteRecord {
+    #[serde(flatten)]
+    pub route: RouteData,
+    pub source: ClientRouteSource,
+    pub event_only: Option<String>,
+    pub sport_type: Option<String>,
+    pub supported_laps: Option<String>,
+}
+
+#[derive(Debug, Default)]
+#[allow(dead_code)] // Used by the importer; this module also builds privately in the CLI.
+pub struct ClientImportSummary {
+    pub written: usize,
+    pub skipped: usize,
+}
+
+#[allow(dead_code)] // Used by the importer; this module also builds privately in the CLI.
+impl ClientRouteRecord {
+    pub fn validate(&self) -> Result<()> {
+        let route = &self.route;
+        ensure!(
+            !route.name.trim().is_empty() && !route.world.trim().is_empty(),
+            "Route {} has no name/world",
+            route.route_id
+        );
+        ensure!(
+            route.distance_km.is_finite() && route.distance_km > 0.0,
+            "Invalid distance for route {}",
+            route.route_id
+        );
+        for value in [
+            route.lead_in_distance_km,
+            route.lead_in_distance_free_ride_km,
+            route.lead_in_distance_meetups_km,
+            route.elevation_m,
+            route.lead_in_elevation_m,
+            route.lead_in_elevation_free_ride_m,
+            route.lead_in_elevation_meetups_m,
+        ]
+        .into_iter()
+        .flatten()
+        {
+            ensure!(
+                value.is_finite() && value >= 0.0 && value <= f64::from(u32::MAX),
+                "Invalid route/lead-in measurement for {}",
+                route.route_id
+            );
+        }
+        ensure!(
+            !self.source.path.is_empty()
+                && !self.source.entry.is_empty()
+                && self.source.sha256.len() == 64
+                && self.source.sha256.bytes().all(|b| b.is_ascii_hexdigit()),
+            "Missing or invalid source provenance for route {}",
+            route.route_id
+        );
+        Ok(())
+    }
 }
 
 /// Race result with actual completion time
@@ -57,7 +152,7 @@ pub struct RaceResult {
     /// Actual race duration in minutes
     pub actual_minutes: u32,
     /// Zwift Racing Score at time of race
-    pub zwift_score: u32,
+    pub zwift_score: Option<u32>,
     /// Race date (YYYY-MM-DD format)
     pub race_date: String,
     /// Optional notes
@@ -85,8 +180,12 @@ pub struct Database {
 
 impl Database {
     /// Create a new database connection
-    pub fn new() -> Result<Self> {
-        let db_path = get_database_path()?;
+    pub fn new() -> Result<Self> { Self::open(&get_database_path()?) }
+
+    pub fn default_path() -> Result<PathBuf> { get_database_path() }
+
+    pub fn open(db_path: &Path) -> Result<Self> {
+        if let Some(parent) = db_path.parent().filter(|p| !p.as_os_str().is_empty()) { std::fs::create_dir_all(parent)?; }
         let conn = Connection::open(&db_path).map_err(|e| {
             eprintln!("\n{} Failed to open database", "❌ Error:".red().bold());
             eprintln!("   Path: {}", db_path.display());
@@ -101,10 +200,31 @@ impl Database {
             e
         })?;
 
-        let db = Database { conn };
-        db.create_tables()?;
-        db.seed_initial_data()?;
+        Self::from_connection(conn)
+    }
 
+    /// Clone existing state in memory; preview never initializes or migrates the target.
+    pub fn preview(path: &Path) -> Result<Self> {
+        let mut conn = Connection::open_in_memory()?;
+        if path.exists() {
+            let source = Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+            rusqlite::backup::Backup::new(&source, &mut conn)?.run_to_completion(100, std::time::Duration::from_millis(10), None)?;
+        }
+        Self::from_connection(conn)
+    }
+
+    fn from_connection(conn: Connection) -> Result<Self> {
+        conn.execute_batch("PRAGMA foreign_keys=ON")?;
+        let db = Database { conn };
+        {
+            let tx = db.conn.unchecked_transaction()?;
+            db.create_tables()?;
+            db.migrate_elevation_knowledge()?;
+            if history_storage::migrate(&db.conn)? {
+                ensure!(db.conn.prepare("PRAGMA foreign_key_check")?.query([])?.next()?.is_none(), "Foreign-key violations prevent migration; inspect a backup before proceeding");
+            }
+            tx.commit()?;
+        }
         Ok(db)
     }
 
@@ -114,12 +234,12 @@ impl Database {
             "CREATE TABLE IF NOT EXISTS routes (
                 route_id INTEGER PRIMARY KEY,
                 distance_km REAL NOT NULL,
-                elevation_m INTEGER NOT NULL,
+                elevation_m REAL NOT NULL,
                 name TEXT NOT NULL,
                 world TEXT NOT NULL,
                 surface TEXT NOT NULL DEFAULT 'road',
                 lead_in_distance_km REAL DEFAULT 0.0,
-                lead_in_elevation_m INTEGER DEFAULT 0,
+                lead_in_elevation_m REAL DEFAULT 0,
                 lead_in_distance_free_ride_km REAL,
                 lead_in_elevation_free_ride_m INTEGER,
                 lead_in_distance_meetups_km REAL,
@@ -131,33 +251,7 @@ impl Database {
             [],
         )?;
 
-        // Race results table for regression testing
-        self.conn.execute(
-            "CREATE TABLE IF NOT EXISTS race_results (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                route_id INTEGER NOT NULL,
-                event_name TEXT NOT NULL,
-                actual_minutes INTEGER NOT NULL,
-                zwift_score INTEGER NOT NULL,
-                race_date TIMESTAMP NOT NULL,
-                notes TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (route_id) REFERENCES routes(route_id)
-            )",
-            [],
-        )?;
-
-        // Route completion tracking
-        self.conn.execute(
-            "CREATE TABLE IF NOT EXISTS route_completion (
-                route_id INTEGER PRIMARY KEY,
-                completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                actual_time_minutes INTEGER,
-                notes TEXT,
-                FOREIGN KEY (route_id) REFERENCES routes(route_id)
-            )",
-            [],
-        )?;
+        history_storage::create_table(&self.conn, "race_results")?;
 
         // Unknown routes table for data collection
         self.conn.execute(
@@ -183,22 +277,6 @@ impl Database {
             [],
         )?;
 
-        // Route discovery attempts table to avoid repeated searches
-        self.conn.execute(
-            "CREATE TABLE IF NOT EXISTS route_discovery_attempts (
-                route_id INTEGER PRIMARY KEY,
-                event_name TEXT NOT NULL,
-                last_attempt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                found BOOLEAN DEFAULT 0,
-                distance_km REAL,
-                elevation_m INTEGER,
-                world TEXT,
-                surface TEXT,
-                route_name TEXT
-            )",
-            [],
-        )?;
-
         // Route aliases: maps alternative route IDs (used by Zwift API for
         // event-only variants) to canonical route IDs in our routes table.
         // Zwift often uses different internal route IDs for the same physical
@@ -216,89 +294,37 @@ impl Database {
         Ok(())
     }
 
-    fn seed_initial_data(&self) -> Result<()> {
-        // Check if we already have data
-        let count: i64 = self
-            .conn
-            .query_row("SELECT COUNT(*) FROM routes", [], |row| row.get(0))?;
-
-        if count > 0 {
-            return Ok(()); // Already seeded
+    /// Add knowledge flags without rebuilding tables or altering rider history.
+    /// NULL flags preserve legacy positive values; legacy zero means unknown.
+    /// Initialization owns the surrounding transaction.
+    fn migrate_elevation_knowledge(&self) -> Result<()> {
+        let columns: Vec<String> = self.conn
+            .prepare("PRAGMA table_info(routes)")?
+            .query_map([], |row| row.get(1))?
+            .collect::<Result<_, _>>()?;
+        for column in ["elevation_known", "lead_in_elevation_known"] {
+            if !columns.iter().any(|name| name == column) {
+                self.conn.execute(
+                    &format!(
+                        "ALTER TABLE routes ADD COLUMN {column} INTEGER CHECK ({column} IN (0, 1))"
+                    ),
+                    [],
+                )?;
+            }
         }
-
-        // Seed with known routes
-        let routes: Vec<(u32, f64, u32, &str, &str, &str)> = vec![
-            (1_258_415_487, 14.1, 59, "Bell Lap", "Crit City", "road"),
-            (
-                2_143_464_829,
-                33.4,
-                170,
-                "Watopia Flat Route",
-                "Watopia",
-                "road",
-            ),
-            (
-                2_927_651_296,
-                67.5,
-                654,
-                "Makuri Pretzel",
-                "Makuri Islands",
-                "road",
-            ),
-            (
-                3_742_187_716,
-                24.5,
-                168,
-                "Castle to Castle",
-                "Makuri Islands",
-                "road",
-            ),
-            (
-                2_698_009_951,
-                22.9,
-                80,
-                "Downtown Dolphin",
-                "Crit City",
-                "road",
-            ),
-            (
-                2_663_908_549,
-                20.3,
-                1159,
-                "Mt. Fuji",
-                "Makuri Islands",
-                "road",
-            ),
-            (
-                3_368_626_651,
-                27.4,
-                223,
-                "eRacing Course",
-                "Various",
-                "road",
-            ),
-            (
-                1_656_629_976,
-                19.8,
-                142,
-                "Ottawa TopSpeed",
-                "Various",
-                "road",
-            ),
-            (2_474_227_587, 100.0, 892, "KISS 100", "Watopia", "road"),
-            (3_395_698_268, 60.0, 543, "R3R 60km", "Various", "road"),
-        ];
-
-        for (id, dist, elev, name, world, surface) in routes {
-            self.conn.execute(
-                "INSERT OR IGNORE INTO routes (route_id, distance_km, elevation_m, name, world, surface,
-                                              lead_in_distance_km, lead_in_elevation_m) 
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-                params![id, dist, elev, name, world, surface, 0.3, 0],
-            )?;
-        }
-
+        self.conn.execute(
+            "CREATE TABLE IF NOT EXISTS route_sources (
+                route_id INTEGER PRIMARY KEY REFERENCES routes(route_id),
+                metadata TEXT NOT NULL
+            )",
+            [],
+        )?;
         Ok(())
+    }
+
+    /// Whether any route metadata has been explicitly imported or retained.
+    pub fn has_routes(&self) -> Result<bool> {
+        Ok(self.conn.query_row("SELECT EXISTS(SELECT 1 FROM routes)", [], |row| row.get(0))?)
     }
 
     /// Get route data by ID, falling back to alias lookup
@@ -331,10 +357,14 @@ impl Database {
     }
 
     /// Get route data by direct ID (no alias fallback)
-    fn get_route_direct(&self, route_id: u32) -> Result<Option<RouteData>> {
+    pub fn get_route_direct(&self, route_id: u32) -> Result<Option<RouteData>> {
         let mut stmt = self.conn.prepare(
-            "SELECT route_id, distance_km, elevation_m, name, world, surface,
-                    lead_in_distance_km, lead_in_elevation_m,
+            "SELECT route_id, distance_km,
+                    CASE WHEN elevation_known = 1 OR (elevation_known IS NULL AND elevation_m > 0)
+                         THEN elevation_m END, name, world, surface,
+                    lead_in_distance_km,
+                    CASE WHEN lead_in_elevation_known = 1 OR (lead_in_elevation_known IS NULL AND lead_in_elevation_m > 0)
+                         THEN lead_in_elevation_m END,
                     lead_in_distance_free_ride_km, lead_in_elevation_free_ride_m,
                     lead_in_distance_meetups_km, lead_in_elevation_meetups_m, slug
              FROM routes WHERE route_id = ?1",
@@ -349,8 +379,8 @@ impl Database {
                     name: row.get(3)?,
                     world: row.get(4)?,
                     surface: row.get(5)?,
-                    lead_in_distance_km: row.get(6).unwrap_or(0.0),
-                    lead_in_elevation_m: row.get(7).unwrap_or(0),
+                    lead_in_distance_km: row.get(6)?,
+                    lead_in_elevation_m: row.get(7)?,
                     lead_in_distance_free_ride_km: row.get(8).ok(),
                     lead_in_elevation_free_ride_m: row.get(9).ok(),
                     lead_in_distance_meetups_km: row.get(10).ok(),
@@ -365,27 +395,113 @@ impl Database {
 
     /// Add a new route to the database
     #[allow(dead_code)]
+    pub fn has_client_route(&self, route_id: u32) -> Result<bool> {
+        Ok(self.conn.query_row(
+            "SELECT EXISTS(SELECT 1 FROM route_sources WHERE route_id=?1)",
+            params![route_id],
+            |row| row.get(0),
+        )?)
+    }
+
+    /// Import all records atomically. Client cache beats extracted XML; either
+    /// replaces legacy/community metadata. Identical imports do not rewrite rows.
+    #[allow(dead_code)] // Called by the separate import_client_routes binary through the library.
+    pub fn import_client_routes(
+        &self,
+        records: &[ClientRouteRecord],
+        dry_run: bool,
+    ) -> Result<ClientImportSummary> {
+        let mut ids = std::collections::HashSet::new();
+        for record in records {
+            record.validate()?;
+            ensure!(
+                ids.insert(record.route.route_id),
+                "Duplicate client route ID {}",
+                record.route.route_id
+            );
+        }
+        let tx = self.conn.unchecked_transaction()?;
+        let mut summary = ClientImportSummary::default();
+        for record in records {
+            let metadata = serde_json::to_string(record)?;
+            let previous: Option<String> = self
+                .conn
+                .query_row(
+                    "SELECT metadata FROM route_sources WHERE route_id=?1",
+                    params![record.route.route_id],
+                    |row| row.get(0),
+                )
+                .optional()?;
+            if let Some(previous) = previous {
+                let previous_record: ClientRouteRecord = serde_json::from_str(&previous)?;
+                if previous == metadata
+                    || previous_record.source.kind.rank() < record.source.kind.rank()
+                {
+                    summary.skipped += 1;
+                    continue;
+                }
+            }
+            if !dry_run {
+                self.write_route(&record.route)?;
+                self.conn.execute(
+                    "INSERT INTO route_sources (route_id, metadata) VALUES (?1, ?2)
+                    ON CONFLICT(route_id) DO UPDATE SET metadata=excluded.metadata",
+                    params![record.route.route_id, metadata],
+                )?;
+            }
+            summary.written += 1;
+        }
+        tx.commit()?;
+        Ok(summary)
+    }
+
+    /// Insert explicit legacy/test metadata; never overwrite client provenance.
+    /// Production route ingestion uses `import_client_routes`, not this helper.
     pub fn add_route(&self, route: &RouteData) -> Result<()> {
+        ensure!(
+            !self.has_client_route(route.route_id)?,
+            "Route {} is client-derived; refresh it with import_client_routes",
+            route.route_id
+        );
+        self.write_route(route)
+    }
+
+    fn write_route(&self, route: &RouteData) -> Result<()> {
         self.conn.execute(
-            "INSERT OR REPLACE INTO routes (route_id, distance_km, elevation_m, name, world, surface,
+            "INSERT INTO routes (route_id, distance_km, elevation_m, name, world, surface,
                                            lead_in_distance_km, lead_in_elevation_m,
                                            lead_in_distance_free_ride_km, lead_in_elevation_free_ride_m,
-                                           lead_in_distance_meetups_km, lead_in_elevation_meetups_m, slug) 
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+                                           lead_in_distance_meetups_km, lead_in_elevation_meetups_m, slug,
+                                           elevation_known, lead_in_elevation_known)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)
+             ON CONFLICT(route_id) DO UPDATE SET
+                distance_km=excluded.distance_km, elevation_m=excluded.elevation_m,
+                name=excluded.name, world=excluded.world, surface=excluded.surface,
+                lead_in_distance_km=excluded.lead_in_distance_km,
+                lead_in_elevation_m=excluded.lead_in_elevation_m,
+                lead_in_distance_free_ride_km=excluded.lead_in_distance_free_ride_km,
+                lead_in_elevation_free_ride_m=excluded.lead_in_elevation_free_ride_m,
+                lead_in_distance_meetups_km=excluded.lead_in_distance_meetups_km,
+                lead_in_elevation_meetups_m=excluded.lead_in_elevation_meetups_m,
+                slug=excluded.slug, elevation_known=excluded.elevation_known,
+                lead_in_elevation_known=excluded.lead_in_elevation_known,
+                updated_at=CURRENT_TIMESTAMP",
             params![
                 route.route_id,
                 route.distance_km,
-                route.elevation_m,
+                route.elevation_m.unwrap_or(0.0),
                 route.name,
                 route.world,
                 route.surface,
                 route.lead_in_distance_km,
-                route.lead_in_elevation_m,
+                route.lead_in_elevation_m.unwrap_or(0.0),
                 route.lead_in_distance_free_ride_km,
                 route.lead_in_elevation_free_ride_m,
                 route.lead_in_distance_meetups_km,
                 route.lead_in_elevation_meetups_m,
-                route.slug
+                route.slug,
+                route.elevation_m.is_some(),
+                route.lead_in_elevation_m.is_some()
             ],
         )?;
         Ok(())
@@ -395,8 +511,12 @@ impl Database {
     #[allow(dead_code)]
     pub fn get_route_by_name(&self, name: &str) -> Result<Option<RouteData>> {
         let mut stmt = self.conn.prepare(
-            "SELECT route_id, distance_km, elevation_m, name, world, surface,
-                    lead_in_distance_km, lead_in_elevation_m,
+            "SELECT route_id, distance_km,
+                    CASE WHEN elevation_known = 1 OR (elevation_known IS NULL AND elevation_m > 0)
+                         THEN elevation_m END, name, world, surface,
+                    lead_in_distance_km,
+                    CASE WHEN lead_in_elevation_known = 1 OR (lead_in_elevation_known IS NULL AND lead_in_elevation_m > 0)
+                         THEN lead_in_elevation_m END,
                     lead_in_distance_free_ride_km, lead_in_elevation_free_ride_m,
                     lead_in_distance_meetups_km, lead_in_elevation_meetups_m, slug
              FROM routes 
@@ -413,8 +533,8 @@ impl Database {
                     name: row.get(3)?,
                     world: row.get(4)?,
                     surface: row.get(5)?,
-                    lead_in_distance_km: row.get(6).unwrap_or(0.0),
-                    lead_in_elevation_m: row.get(7).unwrap_or(0),
+                    lead_in_distance_km: row.get(6)?,
+                    lead_in_elevation_m: row.get(7)?,
                     lead_in_distance_free_ride_km: row.get(8).ok(),
                     lead_in_elevation_free_ride_m: row.get(9).ok(),
                     lead_in_distance_meetups_km: row.get(10).ok(),
@@ -445,22 +565,6 @@ impl Database {
         Ok(())
     }
 
-    /// Add a race result
-    pub fn add_race_result(&self, result: &RaceResult) -> Result<()> {
-        self.conn.execute(
-            "INSERT INTO race_results (route_id, event_name, actual_minutes, zwift_score, race_date, notes) 
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            params![
-                result.route_id,
-                result.event_name,
-                result.actual_minutes,
-                result.zwift_score,
-                result.race_date,
-                result.notes
-            ],
-        )?;
-        Ok(())
-    }
 
     /// Get race results for a specific route
     #[allow(dead_code)]
@@ -532,8 +636,12 @@ impl Database {
     #[allow(dead_code)]
     pub fn get_all_routes(&self) -> Result<Vec<RouteData>> {
         let mut stmt = self.conn.prepare(
-            "SELECT route_id, distance_km, elevation_m, name, world, surface,
-                    lead_in_distance_km, lead_in_elevation_m,
+            "SELECT route_id, distance_km,
+                    CASE WHEN elevation_known = 1 OR (elevation_known IS NULL AND elevation_m > 0)
+                         THEN elevation_m END, name, world, surface,
+                    lead_in_distance_km,
+                    CASE WHEN lead_in_elevation_known = 1 OR (lead_in_elevation_known IS NULL AND lead_in_elevation_m > 0)
+                         THEN lead_in_elevation_m END,
                     lead_in_distance_free_ride_km, lead_in_elevation_free_ride_m,
                     lead_in_distance_meetups_km, lead_in_elevation_meetups_m, slug
              FROM routes",
@@ -548,8 +656,8 @@ impl Database {
                     name: row.get(3)?,
                     world: row.get(4)?,
                     surface: row.get(5)?,
-                    lead_in_distance_km: row.get(6).unwrap_or(0.0),
-                    lead_in_elevation_m: row.get(7).unwrap_or(0),
+                    lead_in_distance_km: row.get(6)?,
+                    lead_in_elevation_m: row.get(7)?,
                     lead_in_distance_free_ride_km: row.get(8).ok(),
                     lead_in_elevation_free_ride_m: row.get(9).ok(),
                     lead_in_distance_meetups_km: row.get(10).ok(),
@@ -563,7 +671,6 @@ impl Database {
     }
 
     /// Get all race results
-    #[cfg(test)]
     pub fn get_all_race_results(&self) -> Result<Vec<RaceResult>> {
         let mut stmt = self.conn.prepare(
             "SELECT id, route_id, event_name, actual_minutes, zwift_score, race_date, notes 
@@ -573,16 +680,7 @@ impl Database {
 
         let results = stmt
             .query_map([], |row| {
-                // Handle zwift_score as either integer or real
-                let zwift_score_raw: Result<u32, _> = row.get(4);
-                let zwift_score = match zwift_score_raw {
-                    Ok(val) => val,
-                    Err(_) => {
-                        // Try as f64 and convert
-                        let val: f64 = row.get(4)?;
-                        val.round() as u32
-                    }
-                };
+                let zwift_score = row.get::<_, Option<f64>>(4)?.map(|v| v.round() as u32);
 
                 Ok(RaceResult {
                     id: row.get(0)?,
@@ -667,167 +765,20 @@ impl Database {
         Ok(result)
     }
 
-    /// Check if we've already tried to discover this route recently
-    pub fn should_attempt_discovery(&self, route_id: u32) -> Result<bool> {
-        let result: Option<i64> = self
-            .conn
-            .query_row(
-                "SELECT COUNT(*) FROM route_discovery_attempts 
-             WHERE route_id = ?1 
-             AND datetime(last_attempt) > datetime('now', '-10 minutes')",
-                params![route_id],
-                |row| row.get(0),
-            )
-            .optional()?;
 
-        // If no recent attempt found, we should try
-        Ok(result.unwrap_or(0) == 0)
-    }
 
-    /// Record a discovery attempt
-    pub fn record_discovery_attempt(&self, route_id: u32, event_name: &str) -> Result<()> {
-        self.conn.execute(
-            "INSERT INTO route_discovery_attempts (route_id, event_name, found) 
-             VALUES (?1, ?2, 0)
-             ON CONFLICT(route_id) DO UPDATE SET 
-                last_attempt = CURRENT_TIMESTAMP,
-                event_name = ?2",
-            params![route_id, event_name],
-        )?;
-        Ok(())
-    }
 
-    /// Save discovered route data
-    pub fn save_discovered_route(
-        &self,
-        route_id: u32,
-        distance_km: f64,
-        elevation_m: u32,
-        world: &str,
-        surface: &str,
-        route_name: &str,
-    ) -> Result<()> {
-        // Update discovery attempts table
-        self.conn.execute(
-            "UPDATE route_discovery_attempts 
-             SET found = 1, distance_km = ?2, elevation_m = ?3, 
-                 world = ?4, surface = ?5, route_name = ?6
-             WHERE route_id = ?1",
-            params![
-                route_id,
-                distance_km,
-                elevation_m,
-                world,
-                surface,
-                route_name
-            ],
-        )?;
-
-        // Insert into routes table
-        self.conn.execute(
-            "INSERT INTO routes (route_id, distance_km, elevation_m, name, world, surface) 
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)
-             ON CONFLICT(route_id) DO UPDATE SET
-                distance_km = ?2,
-                elevation_m = ?3,
-                name = ?4,
-                world = ?5,
-                surface = ?6",
-            params![
-                route_id,
-                distance_km,
-                elevation_m,
-                route_name,
-                world,
-                surface
-            ],
-        )?;
-
-        Ok(())
-    }
-
-    // Route completion tracking methods
-    /// Mark a route as completed
-    pub fn mark_route_complete(
-        &self,
-        route_id: u32,
-        time_minutes: Option<u32>,
-        notes: Option<&str>,
-    ) -> Result<()> {
-        self.conn.execute(
-            "INSERT OR REPLACE INTO route_completion (route_id, actual_time_minutes, notes, completed_at) 
-             VALUES (?1, ?2, ?3, CURRENT_TIMESTAMP)",
-            params![route_id, time_minutes, notes],
-        )?;
-        Ok(())
-    }
-
-    /// Check if a route has been completed
-    #[allow(dead_code)]
-    pub fn is_route_completed(&self, route_id: u32) -> Result<bool> {
-        let count: i64 = self.conn.query_row(
-            "SELECT COUNT(*) FROM route_completion WHERE route_id = ?1",
-            params![route_id],
-            |row| row.get(0),
-        )?;
-        Ok(count > 0)
-    }
-
-    /// Get route completion statistics (completed, total)
-    pub fn get_completion_stats(&self) -> Result<(u32, u32)> {
-        let total: u32 = self
-            .conn
-            .query_row("SELECT COUNT(*) FROM routes", [], |row| row.get(0))?;
-
-        let completed: u32 =
-            self.conn
-                .query_row("SELECT COUNT(*) FROM route_completion", [], |row| {
-                    row.get(0)
-                })?;
-
-        Ok((completed, total))
-    }
-
-    /// Get route completion statistics by world
-    pub fn get_world_completion_stats(&self) -> Result<Vec<(String, u32, u32)>> {
-        let mut stmt = self.conn.prepare(
-            "SELECT r.world, 
-                    COUNT(DISTINCT r.route_id) as total,
-                    COUNT(DISTINCT rc.route_id) as completed
-             FROM routes r
-             LEFT JOIN route_completion rc ON r.route_id = rc.route_id
-             GROUP BY r.world
-             ORDER BY r.world",
-        )?;
-
-        let stats = stmt
-            .query_map([], |row| {
-                Ok((
-                    row.get::<_, String>(0)?,
-                    row.get::<_, u32>(2)?, // completed
-                    row.get::<_, u32>(1)?, // total
-                ))
-            })?
-            .collect::<Result<Vec<_>, _>>()?;
-
-        Ok(stats)
-    }
 
     /// Get all routes with basic info (for validation)
     #[allow(dead_code)]
     pub fn get_all_routes_basic(&self) -> Result<Vec<(u32, String, f64, u32)>> {
-        let mut stmt = self
-            .conn
-            .prepare("SELECT route_id, name, distance_km, elevation_m FROM routes")?;
+        let mut stmt = self.conn.prepare(
+            "SELECT route_id, name, distance_km, CAST(ROUND(elevation_m) AS INTEGER) FROM routes",
+        )?;
 
         let routes = stmt
             .query_map([], |row| {
-                Ok((
-                    row.get(0)?,
-                    row.get(1)?,
-                    row.get(2)?,
-                    row.get(3)?,
-                ))
+                Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
             })?
             .collect::<Result<Vec<_>, _>>()?;
 
@@ -840,17 +791,12 @@ impl Database {
         let mut stmt = self.conn.prepare(
             "SELECT route_id, event_name, actual_minutes, zwift_score 
              FROM race_results 
-             WHERE route_id != 9999"
+             WHERE route_id != 9999 AND zwift_score IS NOT NULL",
         )?;
 
         let results = stmt
             .query_map([], |row| {
-                Ok((
-                    row.get(0)?,
-                    row.get(1)?,
-                    row.get(2)?,
-                    row.get(3)?,
-                ))
+                Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
             })?
             .collect::<Result<Vec<_>, _>>()?;
 
@@ -861,7 +807,6 @@ impl Database {
 fn get_database_path() -> Result<PathBuf> {
     let mut data_dir = dirs::data_local_dir().unwrap_or_else(|| PathBuf::from("."));
     data_dir.push("zwift-race-finder");
-    std::fs::create_dir_all(&data_dir)?;
     data_dir.push("races.db");
     Ok(data_dir)
 }
@@ -869,35 +814,24 @@ fn get_database_path() -> Result<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::Utc;
 
     #[test]
     fn test_database_creation() {
-        let db = Database::new().unwrap();
-
-        // Test getting a known route
-        let route = db.get_route(1258415487).unwrap();
-        assert!(route.is_some());
-        let route = route.unwrap();
-        assert_eq!(route.name, "Bell Lap");
-        assert_eq!(route.distance_km, 14.1);
+        let db = Database { conn: Connection::open_in_memory().unwrap() };
+        db.create_tables().unwrap();
+        db.migrate_elevation_knowledge().unwrap();
+        assert_eq!(db.conn.query_row("SELECT COUNT(*) FROM routes", [], |r| r.get::<_, u32>(0)).unwrap(), 0);
+        assert!(db.get_route(1258415487).unwrap().is_none());
     }
 
     #[test]
-    fn test_race_result_storage() {
-        let db = Database::new().unwrap();
+    fn test_race_result_query() {
+        let db = Database { conn: Connection::open_in_memory().unwrap() };
+        db.create_tables().unwrap();
+        db.migrate_elevation_knowledge().unwrap();
+        db.conn.execute("INSERT INTO routes (route_id, distance_km, elevation_m, name, world, surface) VALUES (1258415487, 10, 50, 'Synthetic storage fixture', 'Test', 'road')", []).unwrap();
 
-        let result = RaceResult {
-            id: None,
-            route_id: 1258415487,
-            event_name: "Test Race".to_string(),
-            actual_minutes: 32,
-            zwift_score: 195,
-            race_date: Utc::now().format("%Y-%m-%d").to_string(),
-            notes: Some("Test result".to_string()),
-        };
-
-        db.add_race_result(&result).unwrap();
+        db.conn.execute("INSERT INTO race_results (route_id,event_name,actual_minutes,zwift_score,race_date,notes) VALUES (1258415487,'Synthetic query fixture',32,195,'2025-02-02','Synthetic note')", []).unwrap();
 
         let results = db.get_race_results_for_route(1258415487, 195).unwrap();
         assert!(!results.is_empty());
@@ -919,7 +853,8 @@ mod tests {
                     );
 
                     // Elevation gain per km should be reasonable
-                    let elevation_per_km = route.elevation_m as f64 / route.distance_km;
+                    let elevation_per_km =
+                        f64::from(route.elevation_m.unwrap_or(0.0)) / route.distance_km;
                     assert!(
                         elevation_per_km < 100.0,
                         "Route {} has unrealistic elevation: {} m/km",
@@ -937,5 +872,75 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn legacy_elevation_migration_is_repeatable_and_preserves_history() {
+        let db = Database {
+            conn: Connection::open_in_memory().unwrap(),
+        };
+        db.create_tables().unwrap();
+        db.conn.execute("PRAGMA foreign_keys = ON", []).unwrap();
+        db.conn.execute("INSERT INTO routes (route_id, distance_km, elevation_m, name, world, surface,
+            lead_in_elevation_m, created_at) VALUES (4000000000, 2, 0, 'Circuit', 'Test', 'road', 0, '2000-01-01')", []).unwrap();
+        db.conn.execute("INSERT INTO race_results (route_id, actual_minutes, zwift_score, event_name, race_date)
+            VALUES (4000000000, 30, 195, 'Test race', '2026-10-29')", []).unwrap();
+        db.migrate_elevation_knowledge().unwrap();
+        db.migrate_elevation_knowledge().unwrap();
+        let mut route = db.get_route_direct(4_000_000_000).unwrap().unwrap();
+        assert_eq!(route.elevation_m, None);
+        assert_eq!(route.lead_in_elevation_m, None);
+        route.elevation_m = Some(0.0);
+        route.lead_in_elevation_m = Some(0.0);
+        db.add_route(&route).unwrap();
+        let flat = db.get_route_direct(route.route_id).unwrap().unwrap();
+        assert_eq!(flat.elevation_m, Some(0.0));
+        assert_eq!(flat.lead_in_elevation_m, Some(0.0));
+        assert_eq!(
+            db.get_route_by_name("Circuit")
+                .unwrap()
+                .unwrap()
+                .elevation_m,
+            Some(0.0)
+        );
+        assert_eq!(db.get_all_routes().unwrap()[0].elevation_m, Some(0.0));
+        route.elevation_m = Some(17.0);
+        db.add_route(&route).unwrap();
+        assert_eq!(
+            db.get_route_direct(route.route_id)
+                .unwrap()
+                .unwrap()
+                .elevation_m,
+            Some(17.0)
+        );
+        let created: String = db
+            .conn
+            .query_row(
+                "SELECT created_at FROM routes WHERE route_id=4000000000",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(created, "2000-01-01");
+        assert_eq!(db.get_all_race_results().unwrap().len(), 1);
+        db.conn.execute("INSERT INTO route_aliases (alias_route_id, canonical_route_id) VALUES (4000000001, 4000000000)", []).unwrap();
+        assert_eq!(
+            db.get_route(4_000_000_001).unwrap().unwrap().elevation_m,
+            Some(17.0)
+        );
+    }
+
+    #[test]
+    fn legacy_positive_elevation_remains_known() {
+        let db = Database {
+            conn: Connection::open_in_memory().unwrap(),
+        };
+        db.create_tables().unwrap();
+        db.conn.execute("INSERT INTO routes (route_id, distance_km, elevation_m, name, world, surface, lead_in_elevation_m)
+            VALUES (1, 2, 17, 'Circuit', 'Test', 'road', 3)", []).unwrap();
+        db.migrate_elevation_knowledge().unwrap();
+        let route = db.get_route_direct(1).unwrap().unwrap();
+        assert_eq!(route.elevation_m, Some(17.0));
+        assert_eq!(route.lead_in_elevation_m, Some(3.0));
     }
 }

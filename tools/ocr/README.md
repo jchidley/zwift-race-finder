@@ -189,7 +189,7 @@ time (cd tools/ocr && uv run python zwift_ocr_compact.py ../../docs/screenshots/
 - Python has 100% accuracy on all fields including leaderboard
 - Parallel mode requires warm-up to achieve best performance
 
-See [OCR_COMPARISON_FINDINGS.md](OCR_COMPARISON_FINDINGS.md) for detailed performance analysis of different OCR approaches.
+These figures are retained as historical measurements; rerun the benchmarks before using them for a current performance claim. Implementation details are in [TECHNICAL_REFERENCE.md](TECHNICAL_REFERENCE.md).
 
 ## Technical Details
 

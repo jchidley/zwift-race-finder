@@ -14,7 +14,6 @@ pub struct FilterStats {
     pub type_filtered: u32,
     pub duration_filtered: u32,
     pub tag_filtered: u32,
-    pub completed_routes_filtered: u32,
     pub unknown_routes: u32,
     pub missing_distance: u32,
 }
@@ -26,7 +25,6 @@ impl FilterStats {
             + self.type_filtered
             + self.duration_filtered
             + self.tag_filtered
-            + self.completed_routes_filtered
     }
 
     pub fn duration_no_match(&self) -> u32 {
@@ -109,34 +107,82 @@ pub fn filter_by_excluded_tags(events: &mut Vec<ZwiftEvent>, exclude_tags: &[Str
     (pre_count - events.len()) as u32
 }
 
-/// Filter to show only new/uncompleted routes
-pub fn filter_new_routes_only(events: &mut Vec<ZwiftEvent>) -> u32 {
-    let db = Database::new().ok();
-    if let Some(db) = db {
-        let pre_count = events.len();
-        events.retain(|event| {
-            if let Some(route_id) = event.route_id {
-                // Keep events with routes we haven't completed
-                !db.is_route_completed(route_id).unwrap_or(false)
-            } else {
-                // Keep events without route IDs (they might be new)
-                true
+
+/// The event estimate shared by duration filtering and both display modes.
+#[derive(Debug, Clone)]
+pub struct EventEstimate {
+    pub duration_minutes: u32,
+    pub distance_km: Option<f64>,
+    pub elevation_m: Option<u32>,
+    pub is_fixed: bool,
+    pub elevation_is_estimate: bool,
+}
+
+impl EventEstimate {
+    fn fixed(duration_minutes: u32, event: &ZwiftEvent, zwift_score: u32) -> Self {
+        let subgroup = crate::event_analysis::find_user_subgroup(event, zwift_score);
+        let distance_km = subgroup
+            .and_then(|sg| sg.distance_in_meters)
+            .filter(|&d| d > 0.0)
+            .or(event.distance_in_meters.filter(|&d| d > 0.0))
+            .map(|meters| meters / crate::constants::METERS_PER_KILOMETER)
+            .or_else(|| {
+                let laps = subgroup?.laps?;
+                let route = crate::estimation::get_route_data(event.route_id?)?;
+                Some(route.distance_km * f64::from(laps) + route.lead_in_distance_km?)
+            });
+        let mut estimate = distance_km.map_or(
+            Self {
+                duration_minutes,
+                distance_km: None,
+                elevation_m: None,
+                is_fixed: true,
+                elevation_is_estimate: false,
+            },
+            |distance| Self::estimated(duration_minutes, distance, event.route_id),
+        );
+        // Laps provide an exact total; a supplied distance only supports a
+        // proportional estimate without the route's full elevation profile.
+        let has_distance = subgroup
+            .and_then(|sg| sg.distance_in_meters)
+            .filter(|&d| d > 0.0)
+            .or(event.distance_in_meters.filter(|&d| d > 0.0))
+            .is_some();
+        if !has_distance {
+            if let (Some(route_id), Some(laps)) = (event.route_id, subgroup.and_then(|sg| sg.laps))
+            {
+                estimate = estimate.with_laps(route_id, laps);
             }
-        });
-        (pre_count - events.len()) as u32
-    } else {
-        0
+        }
+        estimate.is_fixed = true;
+        estimate
+    }
+
+    fn estimated(duration_minutes: u32, distance_km: f64, route_id: Option<u32>) -> Self {
+        let elevation_m = route_id
+            .and_then(crate::estimation::get_route_data)
+            .and_then(|route| crate::estimation::elevation_for_distance(&route, distance_km))
+            .map(|gain| gain.round() as u32);
+        Self {
+            duration_minutes,
+            distance_km: Some(distance_km),
+            elevation_m,
+            is_fixed: false,
+            elevation_is_estimate: true,
+        }
+    }
+    fn with_laps(mut self, route_id: u32, laps: u32) -> Self {
+        self.elevation_m = crate::estimation::get_route_data(route_id)
+            .and_then(|route| crate::estimation::elevation_for_laps(&route, laps))
+            .map(|gain| gain.round() as u32);
+        self.elevation_is_estimate = false;
+        self
     }
 }
 
-/// Check if an event matches the duration criteria
-pub fn event_matches_duration(
-    event: &ZwiftEvent,
-    target_duration: u32,
-    tolerance: u32,
-    zwift_score: u32,
-) -> bool {
-    use crate::category::{category_matches_subgroup, get_category_from_score};
+/// Resolve a duration using the existing filter's ordered fallbacks.
+/// No estimate means the event cannot be claimed as a duration match.
+pub fn estimate_event(event: &ZwiftEvent, zwift_score: u32) -> Option<EventEstimate> {
     use crate::constants::METERS_PER_KILOMETER;
     use crate::duration_estimation::estimate_duration_for_category;
     use crate::estimation::{
@@ -146,148 +192,121 @@ pub fn event_matches_duration(
     use crate::models::is_racing_score_event;
     use crate::parsing::{estimate_distance_from_name, parse_distance_from_description};
 
-    // Fixed duration event
     let duration_minutes = event
         .duration_in_minutes
         .filter(|&d| d > 0)
         .or_else(|| event.duration_in_seconds.map(|s| s / 60).filter(|&d| d > 0));
-
     if let Some(duration) = duration_minutes {
-        let diff = (duration as i32 - target_duration as i32).abs();
-        return diff <= tolerance as i32;
+        return Some(EventEstimate::fixed(duration, event, zwift_score));
     }
 
-    // PRIMARY METHOD: Use route_id with actual distance for most accurate estimation
+    let user_subgroup = find_user_subgroup(event, zwift_score);
     if let Some(route_id) = event.route_id {
-        // Check if user's subgroup has specific info (multi-lap races)
-        let user_subgroup = find_user_subgroup(event, zwift_score);
-
-        // First check if subgroup has laps info (for Racing Score events)
-        if let Some(sg) = user_subgroup {
-            if let Some(laps) = sg.laps {
-                // We have lap count - calculate based on route distance * laps + lead-in
-                if let Some(route_data) = get_route_data(route_id) {
-                    let total_distance_km =
-                        route_data.lead_in_distance_km + (route_data.distance_km * laps as f64);
-                    if let Some(estimated_duration) =
-                        estimate_duration_with_distance(route_id, total_distance_km, zwift_score)
-                    {
-                        let diff = (estimated_duration as i32 - target_duration as i32).abs();
-                        return diff <= tolerance as i32;
-                    }
+        if let Some(laps) = user_subgroup.and_then(|sg| sg.laps) {
+            if let Some((route, lead_in)) = get_route_data(route_id)
+                .and_then(|route| route.lead_in_distance_km.map(|lead| (route, lead)))
+            {
+                let distance = lead_in + route.distance_km * f64::from(laps);
+                if let Some(minutes) =
+                    estimate_duration_with_distance(route_id, distance, zwift_score)
+                {
+                    return Some(
+                        EventEstimate::estimated(minutes, distance, Some(route_id))
+                            .with_laps(route_id, laps),
+                    );
                 }
             }
         }
 
-        // Try to get distance from subgroup or event
         let distance_meters = user_subgroup
             .and_then(|sg| sg.distance_in_meters)
             .or(event.distance_in_meters);
-
-        if let Some(dist_m) = distance_meters.filter(|&d| d > 0.0) {
-            let distance_km = dist_m / METERS_PER_KILOMETER;
-            if let Some(estimated_duration) =
-                estimate_duration_with_distance(route_id, distance_km, zwift_score)
-            {
-                let diff = (estimated_duration as i32 - target_duration as i32).abs();
-                return diff <= tolerance as i32;
-            } else {
-                // Unknown route but we have distance - use fallback estimation
-                let route_name = event.route.as_deref().unwrap_or(&event.name);
-                let estimated_duration =
-                    estimate_duration_for_category(distance_km, route_name, zwift_score);
-                let diff = (estimated_duration as i32 - target_duration as i32).abs();
-                return diff <= tolerance as i32;
-            }
-        } else if let Some(estimated_duration) =
-            estimate_duration_from_route_id(route_id, zwift_score)
-        {
-            // No distance provided, but we know the route - check for multi-lap events
-            let mut actual_duration = estimated_duration;
-
-            // Check if this is a known multi-lap event
-            if let Ok(db) = Database::new() {
-                if let Ok(Some(lap_count)) = db.get_multi_lap_info(&event.name) {
-                    actual_duration = (estimated_duration as f64 * lap_count as f64) as u32;
-                }
-            }
-
-            let diff = (actual_duration as i32 - target_duration as i32).abs();
-            return diff <= tolerance as i32;
-        } else if is_racing_score_event(event) {
-            // Racing Score event with route_id but no distance - try parsing description
-            if let Some(distance_km) = parse_distance_from_description(&event.description) {
-                if let Some(estimated_duration) =
-                    estimate_duration_with_distance(route_id, distance_km, zwift_score)
-                {
-                    let diff = (estimated_duration as i32 - target_duration as i32).abs();
-                    return diff <= tolerance as i32;
-                }
-            }
+        if let Some(distance) = distance_meters.filter(|&d| d > 0.0) {
+            let distance = distance / METERS_PER_KILOMETER;
+            let minutes = estimate_duration_with_distance(route_id, distance, zwift_score)
+                .unwrap_or_else(|| {
+                    estimate_duration_for_category(
+                        distance,
+                        event.route.as_deref().unwrap_or(&event.name),
+                        zwift_score,
+                    )
+                });
+            return Some(EventEstimate::estimated(minutes, distance, Some(route_id)));
         }
-        // If we have a route_id but can't estimate (unknown route with no distance), continue to fallbacks
+        if let Some(minutes) = estimate_duration_from_route_id(route_id, zwift_score) {
+            // Count the lead-in once even for historical multi-lap metadata.
+            let laps = Database::new()
+                .ok()
+                .and_then(|db| db.get_multi_lap_info(&event.name).ok().flatten());
+
+            let route = get_route_data(route_id)?;
+            let lap_count = laps.unwrap_or(1);
+            let distance = route.distance_km * f64::from(lap_count) + route.lead_in_distance_km?;
+            let minutes = if laps.is_some() {
+                estimate_duration_with_distance(route_id, distance, zwift_score)?
+            } else {
+                minutes
+            };
+            return Some(
+                EventEstimate::estimated(minutes, distance, Some(route_id))
+                    .with_laps(route_id, lap_count),
+            );
+        }
     }
 
-    // FALLBACK 1: Use provided distance (but not if it's 0.0)
+    // Unknown/no route: retain the filter's distance, description, and name fallbacks.
+    let route_name = event.route.as_deref().unwrap_or(&event.name);
     if let Some(distance) = event.distance_in_meters.filter(|&d| d > 0.0) {
-        let distance_km = distance / METERS_PER_KILOMETER;
-        let route_name = event.route.as_deref().unwrap_or(&event.name);
-        let estimated_duration =
-            estimate_duration_for_category(distance_km, route_name, zwift_score);
-        let diff = (estimated_duration as i32 - target_duration as i32).abs();
-        return diff <= tolerance as i32;
+        let distance = distance / METERS_PER_KILOMETER;
+        return Some(EventEstimate::estimated(
+            estimate_duration_for_category(distance, route_name, zwift_score),
+            distance,
+            None,
+        ));
     }
-
-    // FALLBACK 2: For Racing Score events with distance=0, try to parse from description
     if is_racing_score_event(event) {
-        if let Some(distance_km) = parse_distance_from_description(&event.description) {
-            let route_name = event.route.as_deref().unwrap_or(&event.name);
-            let estimated_duration =
-                estimate_duration_for_category(distance_km, route_name, zwift_score);
-            let diff = (estimated_duration as i32 - target_duration as i32).abs();
-            return diff <= tolerance as i32;
+        if let Some(distance) = parse_distance_from_description(&event.description) {
+            return Some(EventEstimate::estimated(
+                estimate_duration_for_category(distance, route_name, zwift_score),
+                distance,
+                None,
+            ));
         }
     }
-
-    // FALLBACK 3: Try to guess from event name
-    if let Some(distance_km) = estimate_distance_from_name(&event.name) {
-        let estimated_duration =
-            estimate_duration_for_category(distance_km, &event.name, zwift_score);
-        let diff = (estimated_duration as i32 - target_duration as i32).abs();
-        return diff <= tolerance as i32;
+    if let Some(distance) = estimate_distance_from_name(&event.name) {
+        return Some(EventEstimate::estimated(
+            estimate_duration_for_category(distance, &event.name, zwift_score),
+            distance,
+            None,
+        ));
     }
 
-    // Check subgroups if main event has no distance/duration
-    if !event.event_sub_groups.is_empty() {
-        // Find the subgroup that matches user's category
-        let user_category = get_category_from_score(zwift_score);
-
-        // Check if user's category subgroup matches criteria
-        event.event_sub_groups.iter().any(|subgroup| {
-            // Check if this subgroup is for user's category
-            let is_user_category = category_matches_subgroup(user_category, &subgroup.name);
-
-            if !is_user_category {
-                return false; // Skip other categories
-            }
-
-            if let Some(duration) = subgroup.duration_in_minutes {
-                let diff = (duration as i32 - target_duration as i32).abs();
-                diff <= tolerance as i32
-            } else if let Some(distance) = subgroup.distance_in_meters.filter(|&d| d > 0.0) {
-                let distance_km = distance / METERS_PER_KILOMETER;
-                let route_name = event.route.as_deref().unwrap_or(&event.name);
-                let estimated_duration =
-                    estimate_duration_for_category(distance_km, route_name, zwift_score);
-                let diff = (estimated_duration as i32 - target_duration as i32).abs();
-                diff <= tolerance as i32
-            } else {
-                false
-            }
+    let subgroup = user_subgroup?;
+    if let Some(minutes) = subgroup.duration_in_minutes {
+        return Some(EventEstimate::fixed(minutes, event, zwift_score));
+    }
+    subgroup
+        .distance_in_meters
+        .filter(|&d| d > 0.0)
+        .map(|distance| {
+            let distance = distance / METERS_PER_KILOMETER;
+            EventEstimate::estimated(
+                estimate_duration_for_category(distance, route_name, zwift_score),
+                distance,
+                None,
+            )
         })
-    } else {
-        false
-    }
+}
+
+/// Check the same duration that the table and verbose output display.
+pub fn event_matches_duration(
+    event: &ZwiftEvent,
+    target_duration: u32,
+    tolerance: u32,
+    zwift_score: u32,
+) -> bool {
+    estimate_event(event, zwift_score)
+        .is_some_and(|estimate| estimate.duration_minutes.abs_diff(target_duration) <= tolerance)
 }
 
 #[cfg(test)]
@@ -602,38 +621,6 @@ mod tests {
         assert!(!event_matches_duration(&event, 120, 10, 200));
     }
 
-    #[test]
-    fn test_filter_new_routes_only() {
-        // Create events with different route IDs
-        let mut events = vec![
-            {
-                let mut e = create_test_event("Race 1", "CYCLING", "RACE");
-                e.route_id = Some(1); // Assume route 1 is completed
-                e
-            },
-            {
-                let mut e = create_test_event("Race 2", "CYCLING", "RACE");
-                e.route_id = Some(999999); // Assume this route is not completed
-                e
-            },
-            {
-                let mut e = create_test_event("Race 3", "CYCLING", "RACE");
-                e.route_id = None; // No route ID, should be kept
-                e
-            },
-        ];
-
-        // This test can't easily mock database, but we can verify the function executes
-        // In real usage, it would filter based on completed routes in the database
-        let initial_count = events.len();
-        let filtered = filter_new_routes_only(&mut events);
-
-        // The function should execute and return a count
-        // Without a test database, we can't assert specific filtering behavior
-        // but we can ensure it doesn't crash and returns a valid count
-        assert!(filtered <= initial_count as u32);
-        assert!(events.len() <= initial_count);
-    }
 
     #[test]
     fn test_event_matches_duration_comparison_operators() {
@@ -667,13 +654,12 @@ mod tests {
             type_filtered: 3,
             duration_filtered: 8,
             tag_filtered: 2,
-            completed_routes_filtered: 1,
             unknown_routes: 0,
             missing_distance: 0,
         };
 
         let total = stats.total_filtered();
-        assert_eq!(total, 29); // 10 + 5 + 3 + 8 + 2 + 1 = 29
+        assert_eq!(total, 28); // 10 + 5 + 3 + 8 + 2 = 28
 
         // If + became -, we'd get negative or very different values
         assert!(total > 20);
@@ -690,7 +676,6 @@ mod tests {
             type_filtered: 0,
             duration_filtered: 8,
             tag_filtered: 0,
-            completed_routes_filtered: 0,
             unknown_routes: 4,
             missing_distance: 2,
         };

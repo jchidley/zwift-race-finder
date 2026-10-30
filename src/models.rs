@@ -68,13 +68,14 @@ pub struct CachedStats {
 
 pub struct RouteData {
     pub distance_km: f64,
-    pub elevation_m: u32,
+    pub elevation_m: Option<f64>,
     #[allow(dead_code)]
     pub name: &'static str,
     #[allow(dead_code)]
     pub world: &'static str,
     pub surface: &'static str, // "road", "gravel", "mixed"
-    pub lead_in_distance_km: f64,
+    pub lead_in_distance_km: Option<f64>,
+    pub lead_in_elevation_m: Option<f64>,
 }
 
 #[cfg(test)]

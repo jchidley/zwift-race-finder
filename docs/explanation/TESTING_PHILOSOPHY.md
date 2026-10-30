@@ -107,16 +107,13 @@ Track **behavioural coverage** — what the user sees — not code lines:
 | Property tests | Verify invariants across input space | `proptest` | After unit tests reveal complexity |
 | Snapshot tests | Catch output regressions | `insta` | For complex outputs, API responses |
 | Integration tests | Verify components together | `tests/` directory | After units prove individual correctness |
-| E2E tests | Verify user workflows | `assert_cmd` | Define early, test throughout |
+| End-to-end tests | Verify user workflows | Process execution with controlled fixtures | For critical CLI paths |
 
-**Coverage targets**: Unit 60% → Integration 80% → E2E 95%.
+Coverage percentages are diagnostic signals, not release gates by themselves.
 
-## Current Project Metrics
+## Recorded Project Evidence
 
-- **MAE**: 16.6% on 125 matched races (target: <20%)
-- **169 tests** passing across lib + integration + property + snapshot
-- **100% natural test rate** for tested functions
-- Regression test with real race data runs on every change
+The latest retained calibration record reports 16.6% MAE on 125 matched races, against a product target below 20%. That result depends on the owner's local race database. The repository also contains unit, property, snapshot, golden, integration, regression, benchmark, and optional OCR tests; see the current [Test Suite Reference](../reference/TEST_SUITE_SUMMARY.md) for their actual boundaries.
 
 ## References
 

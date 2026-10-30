@@ -1,148 +1,68 @@
-# Configuration Management
+# How to Configure Zwift Race Finder
 
-The Zwift Race Finder supports flexible configuration management to personalize your experience and save your preferences across updates.
+Save non-secret defaults in TOML and use environment variables for secrets or temporary overrides.
 
-## Configuration Priority
+## Configuration precedence
 
-Settings are loaded in the following priority order (highest to lowest):
+Environment overrides have highest priority. Otherwise the first existing project, user-config, or user-data TOML file wins. See the [Configuration Reference](../reference/CONFIGURATION.md) for the exact fields, defaults, environment names, and precedence.
 
-1. **Environment Variables** - Override any config file settings
-2. **Local config.toml** - Project-specific configuration
-3. **~/.config/zwift-race-finder/config.toml** - User configuration directory
-4. **~/.local/share/zwift-race-finder/config.toml** - Data directory (survives updates)
-5. **Built-in defaults** - Fallback values
+## Create a user configuration
 
-## Configuration File Format
+Prefer the user configuration directory:
 
-Create a `config.toml` file with your personal settings:
+```bash
+mkdir -p ~/.config/zwift-race-finder
+cp config.example.toml ~/.config/zwift-race-finder/config.toml
+```
+
+Edit the copied file. Supported sections include:
 
 ```toml
 [defaults]
-zwift_score = 195         # Your Zwift Racing Score
-category = "D"            # Your racing category (A/B/C/D/E)
-height_m = 1.82          # Height in meters (for aerodynamics)
-weight_kg = 86.0         # Weight in kilograms
-ftp_watts = 250          # Functional Threshold Power (optional)
-
-[preferences]
-default_duration = 120    # Default race duration to search (minutes)
-default_tolerance = 30    # Duration tolerance (+/- minutes)
-default_days = 1         # Days ahead to search
-
-[display]
-use_colors = true        # Enable colored output
-debug = false           # Show debug information
-
-[import]
-# For WSL users - set your Windows username
-windows_username = "YOUR_USERNAME"
-```
-
-## Environment Variable Overrides
-
-You can override any configuration setting using environment variables:
-
-- `ZWIFT_SCORE` - Override Zwift Racing Score
-- `ZWIFT_CATEGORY` - Override racing category
-- `ZWIFT_WEIGHT_KG` - Override weight
-- `ZWIFT_HEIGHT_M` - Override height
-- `ZWIFT_FTP_WATTS` - Override FTP
-- `ZWIFT_DEFAULT_DURATION` - Override default duration
-- `ZWIFT_DEFAULT_TOLERANCE` - Override default tolerance  
-- `ZWIFT_DEFAULT_DAYS` - Override default days
-
-Example:
-```bash
-# Run with custom duration preference
-ZWIFT_DEFAULT_DURATION=90 zwift-race-finder
-
-# Run with different racing score
-ZWIFT_SCORE=250 zwift-race-finder
-```
-
-## Recommended Setup
-
-### 1. User Configuration (Survives Updates)
-
-Save your personal configuration to the data directory:
-
-```bash
-mkdir -p ~/.local/share/zwift-race-finder
-cat > ~/.local/share/zwift-race-finder/config.toml << 'EOF'
-[defaults]
-zwift_score = 195
-category = "D"
-height_m = 1.82
-weight_kg = 86.0
+zwift_score = 250
+category = "C"
+weight_kg = 75.0
+height_m = 1.75
 ftp_watts = 250
 
 [preferences]
-default_duration = 120
-default_tolerance = 30
-EOF
+default_duration = 60
+default_tolerance = 15
+default_days = 1
+
+[display]
+use_colors = true
+debug = false
+
+[import]
+windows_username = "YOUR_USERNAME"
 ```
 
-### 2. Personal Wrapper Script
+Weight, height, and FTP can be stored but are not direct inputs to the production duration estimator. See [Physical Stats and Duration Estimation](../reference/PHYSICAL_STATS.md).
 
-Create a personal wrapper that loads your configuration:
+## Apply temporary overrides
 
 ```bash
-#!/bin/bash
-# ~/bin/zrf - Personal Zwift Race Finder wrapper
-
-# Load personal defaults
-export ZWIFT_SCORE=195
-export ZWIFT_WEIGHT_KG=86.0
-export ZWIFT_HEIGHT_M=1.82
-
-# Run the tool with any additional arguments
-exec zwift-race-finder "$@"
+ZWIFT_SCORE=250 ZWIFT_DEFAULT_DURATION=90 zwift-race-finder
 ```
 
-Make it executable: `chmod +x ~/bin/zrf`
+The [Configuration Reference](../reference/CONFIGURATION.md#environment-overrides) lists every supported variable. Command-line values override loaded duration, tolerance, days, and score when they differ from the CLI defaults. Because the current implementation infers whether some options were explicitly supplied by comparing them with default values, explicitly passing the default value may still allow the config preference to win.
 
-### 3. Project-Specific Configuration
+## Configure ZwiftPower access
 
-For testing different scenarios, create a local `config.toml`:
+Do not put session or profile credentials in TOML. Load them from the environment:
 
-```toml
-# Testing lighter rider performance
-[defaults]
-zwift_score = 195
-weight_kg = 70.0  # Test with lighter weight
-height_m = 1.75
+- `ZWIFTPOWER_PROFILE_ID`
+- `ZWIFTPOWER_SESSION_ID`
 
-[preferences]
-default_duration = 30  # Look for shorter races
-default_tolerance = 10
-```
+Use the reviewed local secrets process in [How to Set Up Secrets](SECRETS_SETUP.md).
 
-## Security Notes
+## Use a project-local configuration
 
-- **Never** put secrets (API tokens, passwords) in config files
-- Use the secure storage options for OAuth tokens:
-  - Environment variables from secure sources
-  - System keyring (if enabled)
-  - Encrypted files with proper permissions
-- See `SECURE_TOKEN_MIGRATION.md` for secure token storage
+Create `config.toml` at the repository root only for project-specific testing. It overrides either user configuration location while the command runs from this checkout. Do not commit personal values.
 
-## Command Line vs Configuration
+## Troubleshoot configuration
 
-Command line arguments always override configuration settings:
-
-```bash
-# Uses config duration of 120, but overrides tolerance to 60
-zwift-race-finder -t 60
-
-# Completely ignores config, uses all command line values
-zwift-race-finder -s 250 -d 90 -t 20
-```
-
-## Future Enhancements
-
-The configuration system is designed to support future features:
-- Power curve data for better predictions
-- Preferred routes and blacklists
-- Time zone preferences
-- Notification settings
-- API rate limit configuration
+- Invalid TOML makes `FullConfig::load()` fail; the main CLI warns and falls back to all built-in defaults.
+- A valid but partial section may leave omitted optional fields unset. Copy `config.example.toml` when you want a complete starting point.
+- If an unexpected file wins, check the three paths in precedence order and inspect relevant environment variables.

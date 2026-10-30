@@ -1,4 +1,4 @@
-# Secrets Setup (direnv + ak)
+# How to Set Up Secrets with direnv and ak
 
 This project expects a profile ID in the environment:
 
@@ -36,9 +36,9 @@ With direnv allowed, the environment variables are loaded automatically when you
 To avoid storing a session cookie, refresh stats through a browser session state file.
 
 ```bash
-scripts/refresh_zwiftpower_stats.sh
-# Or pass profile ID directly:
-scripts/refresh_zwiftpower_stats.sh 1106548
+bash scripts/refresh_zwiftpower_stats.sh
+# Or pass your profile ID directly:
+bash scripts/refresh_zwiftpower_stats.sh <PROFILE_ID>
 ```
 
 This will:

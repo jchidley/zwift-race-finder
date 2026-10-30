@@ -95,3 +95,10 @@ __pycache__/
 .claude/
 !.claude/settings.local.json
 .envrc
+
+# Private installed-client route exports (must normally stay outside the checkout)
+client-routes*.json
+
+# Private rider activity exports
+/strava_zwift_activities.json
+/tools/import/strava/strava_zwift_activities.json

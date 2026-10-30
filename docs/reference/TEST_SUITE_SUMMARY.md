@@ -1,163 +1,79 @@
-# Zwift Race Finder Test Suite Summary
+# Test Suite Reference
 
-Date: 2025-01-06
-Created by: Claude with Jack
+This page maps test targets to the behaviour they exercise. Exact test counts are intentionally omitted because they drift as tests are added; Cargo metadata and the source files are authoritative.
 
-## Overview
+## Commands
 
-A comprehensive test suite has been created for the Zwift Race Finder application, providing robust coverage across unit tests, integration tests, property-based tests, and performance benchmarks.
+| Scope | Command |
+|---|---|
+| Default-feature suite | `cargo test` |
+| Library tests | `cargo test --lib` |
+| Main binary tests | `cargo test --bin zwift-race-finder` |
+| Accuracy regression | `cargo test --lib test_race_predictions_accuracy -- --nocapture` |
+| Mock HTTP tests | `cargo test --test api_tests` |
+| CLI integration tests | `cargo test --test integration_tests` |
+| Configuration tests | `cargo test --test config_tests` |
+| Core property tests | `cargo test --test property_tests` |
+| Additional properties | `cargo test --test properties_tests` |
+| Output snapshots | `cargo test --test snapshot_tests` |
+| OCR tests | `cargo test --features ocr` |
 
-## Test Statistics
+Some ignored tests require the owner's populated race database, OCR models/images, or explicit baseline generation. Inspect each `#[ignore]` reason before enabling it.
 
-### Current Coverage
-- **Library Tests**: 8 tests (all passing)
-- **Main Binary Tests**: 28 tests passing, 1 ignored
-- **Integration Tests**: Ready but require API credentials
-- **Property Tests**: 5 comprehensive property-based tests
-- **API Tests**: 8 tests with mocked API responses
-- **Config Tests**: 5 tests for configuration management
-- **Performance Benchmarks**: 6 benchmarks for critical paths
+## In-module tests
 
-Total: **60+ tests** covering all major functionality
+Most reusable modules contain adjacent unit tests:
 
-### Test Organization
+- `src/category.rs`, `src/duration_estimation.rs`, and `src/estimation.rs`: category mapping and duration calculations;
+- `src/event_filtering.rs`, `src/event_analysis.rs`, and `src/parsing.rs`: event selection, subgroup selection, and text parsing;
+- `src/event_display.rs` and `src/formatting.rs`: display preparation and formatting;
+- `src/database.rs`: schema creation and selected database operations;
+- `src/parsing.rs`: event-distance, elevation and lap parsing;
+- `src/regression_test.rs`: prediction error against locally stored race results;
+- OCR modules: parsing and image-processing behaviour when `ocr` is enabled.
 
-```
-tests/
-├── README.md              # Test documentation
-├── integration_tests.rs   # CLI and end-to-end tests
-├── api_tests.rs          # API interaction with mocks
-├── config_tests.rs       # Configuration loading tests
-└── property_tests.rs     # Property-based testing
+`src/main.rs` also contains binary-private tests for orchestration helpers that are not exposed by the library.
 
-benches/
-└── performance.rs        # Performance benchmarks
+## Integration targets
 
-src/
-├── main.rs              # 20 unit tests
-├── database.rs          # 2 unit tests
-├── secure_storage.rs    # 3 unit tests
-├── route_discovery.rs   # 2 unit tests
-└── regression_test.rs   # 3 regression tests
-```
+| Target | Actual boundary exercised |
+|---|---|
+| `tests/api_tests.rs` | `reqwest` and JSON behaviour against a local `mockito` server. These tests do **not** call production `src/api.rs::fetch_events()`. |
+| `tests/integration_tests.rs` | Spawns `cargo run --bin zwift-race-finder`. Several cases can call the live Zwift API or create/use the normal user SQLite database. |
+| `tests/config_tests.rs` | TOML/default behaviour and current-directory config loading. Some tests change process cwd. |
+| `tests/property_tests.rs`, `tests/properties_tests.rs` | Generated inputs for parsing, formatting, filtering, and estimation invariants. |
+| `tests/snapshot_tests.rs` | Historical synthetic arithmetic fixtures; their labels/IDs are not current route metadata. |
+| `tests/duration_consistency_tests.rs` | Compact/verbose duration agreement with filtering, fixed-duration priority, fallback visibility, explicit-distance/lap lead-in rules, and rejection of unestimable events. |
+| `tests/elevation_consistency_tests.rs` | Known zero versus unknown, exact lap plus lead-in totals, proportional distance totals, and invalid/overflow cases. |
+| `tests/client_route_import_tests.rs` | Private-database client precedence, precision, Unicode/nulls, legacy identity correction, history preservation, dry-run and forced rollback. |
+| `tests/export_client_routes_tests.ps1` | Standalone PowerShell 7 collector tests for ID precedence, units, missing/zero, hashes, XML safety, invalid input, and output protection. |
+| `tests/golden_tests.rs` and `tests/golden/` | Baseline generation and validation; generators/validators are ignored by default. |
+| `tests/ocr_*` | OCR characterization, fuzz/property, snapshot, and integration behaviour; prerequisites vary by target. |
 
-## Key Test Categories
+## Important limitations
 
-### 1. Unit Tests (30 tests)
-- Duration estimation algorithms
-- Event filtering logic
-- Route parsing and detection
-- Format functions
-- URL parameter parsing
-- Racing Score vs Traditional category detection
+- The former `performance` and `ocr_benchmarks` Cargo targets were empty placeholders and have been removed. No Criterion benchmark suite is currently implemented. The separate `zwift_ocr_benchmark` executable remains available with the `ocr` feature.
+- The inactive `tests/uom_integration_tests.rs` and `tests/behavioral/` scaffolding has been removed: it depended on an undeclared `uom-migration` feature and absent UOM implementations. The real `src/ab_testing.rs` utility and its unit tests remain.
 
-### 2. Integration Tests
-- CLI argument parsing
-- Help command validation
-- Invalid input handling
-- Database creation
-- Conflicting options
+- The mock HTTP suite verifies HTTP/JSON mechanics, not the hard-coded production endpoint or its error mapping.
+- CLI integration is not hermetic: network availability and user-state files can affect it.
+- Database tests do not comprehensively cover migration scripts, corruption, concurrent writers, or disk-full behaviour.
+- No current automated test substitutes a local fixture endpoint for the complete fetch → filter → display workflow.
+- The accuracy regression depends on local database contents; a passing result is not reproducible from the repository alone.
+- OCR coverage is split between default-disabled feature code, ignored model/image tests, and Python tooling.
 
-### 3. API Tests (with Mockito)
-- Successful event fetching
-- 404 error handling
-- Malformed JSON handling
-- Empty responses
-- Racing Score event parsing
-- Rate limiting
-- Strava token refresh
+For task-oriented instructions, see [How to Test the Project](../howto/TESTING_GUIDE.md). Historical UOM migration coverage notes are preserved in [project history](../project-history/UOM_INTEGRATION_TEST_COVERAGE_2025.md).
 
-### 4. Property-Based Tests
-- Duration formatting across all ranges
-- Duration estimation boundaries
-- Filter logic symmetry
-- URL parameter robustness
-- Race result parsing edge cases
+## History-model verification — 2026-10-30
 
-### 5. Configuration Tests
-- Default configuration values
-- TOML parsing
-- File loading precedence
-- Partial configurations
-- Invalid config handling
+Current isolated default suite: **195 passed, 0 failed, 7 ignored**. This adds seven parser and six history migration/import tests to the 182-test client-only state. Browser exporter checks use synthetic data (`node tests/history_export_tests.js`). Release binaries and all-feature test compilation pass; OCR execution is not requalified. Private before/after legacy score-based regression: **13.3% MAPE on the same six records**; after import it explicitly excludes 188 unknown-score records. This is not MAE or evidence of a new predictor. See [history audit](../project-history/HISTORY_MODEL_2026-10-30.md).
 
-### 6. Performance Benchmarks
-- Route lookup performance
-- Batch route operations
-- Duration estimation calculations
-- Format operations
-- URL parsing
-- Event filtering at scale
+## CLI simplification — 2026-10-30
 
-## Running Tests
+After removing completion marking/filtering and description-analysis/discovery commands, the isolated default suite passes **190 tests, 0 failures, 7 ignored**. Five executions were removed: four dedicated obsolete tests and the duplicate binary-side description-parser test (the library parser and its test remain). The standalone analysis binary is removed. Existing stored completion/discovery data is preserved; no discovery-attempt table is created in fresh databases. Direct release-binary checks verify removed options are absent from help and rejected before database creation.
 
-```bash
-# Run all tests
-cargo test
+### Follow-up: remove completion presentation and manual recording
 
-# Run specific test suites
-cargo test --lib                    # Library tests only
-cargo test --bin zwift-race-finder  # Main binary tests
-cargo test integration             # Integration tests
-cargo test api                     # API tests
-cargo test config                  # Configuration tests
-cargo test property                # Property-based tests
+The subsequent cleanup removes progress/indicators and manual result entry, their database APIs and three dedicated tests. At that stage the isolated default suite passed **187 tests, 0 failures, 7 ignored**. History query and nullable-score migration coverage remain, using synthetic SQL fixtures and the supported importer rather than the removed insertion API. Fresh databases no longer create the completion table; existing tables/data are preserved.
 
-# Run with output
-cargo test -- --nocapture
-
-# Run benchmarks
-cargo bench
-
-# Generate coverage report (requires cargo-tarpaulin)
-cargo tarpaulin --out Html
-```
-
-## Test Quality Features
-
-### 1. Realistic Test Data
-- Uses actual Zwift event structures
-- Real route data from Jack's racing history
-- Authentic Racing Score event formats
-
-### 2. Edge Case Coverage
-- Zero distances
-- Invalid formats
-- Missing data
-- Extreme values
-- Multi-lap races
-
-### 3. Error Handling
-- API failures
-- Database errors
-- Invalid configurations
-- Parsing failures
-
-### 4. Performance Testing
-- Database operations benchmarked
-- Critical path optimizations measured
-- Scale testing with 1000+ events
-
-## Key Insights from Test Development
-
-1. **Test-Driven Development Essential**: The attempted code reorganization failed because comprehensive tests weren't in place first. TDD prevents such issues.
-
-2. **AI Behavior**: AI assistants may inadvertently change logic when asked to reorganize code. Tests catch these modifications.
-
-3. **Property Testing Value**: Property-based tests found edge cases in duration formatting and parsing that traditional tests might miss.
-
-4. **Mock Strategy**: Using Mockito for API tests allows testing error conditions without actual API calls.
-
-5. **Regression Tests**: Using Jack's actual race history ensures predictions remain accurate as code evolves.
-
-## Future Improvements
-
-1. **Increase Coverage Target**: Aim for >90% code coverage
-2. **Add Mutation Testing**: Use cargo-mutants to verify test quality
-3. **Golden Tests**: Add snapshot tests for output format stability
-4. **Fuzz Testing**: Add fuzzing for parsers
-5. **Contract Tests**: Add tests to verify API contract assumptions
-
-## Conclusion
-
-The test suite provides strong confidence in the application's correctness and performance. With 60+ tests covering all major functionality, the project is well-protected against regressions and ready for future enhancements.
+The final associated-code sweep removes the unused-for-estimation route-name guessing module and its remaining test: **186 passed, 0 failed, 7 ignored**. The actual event-distance/elevation/lap parsers remain.

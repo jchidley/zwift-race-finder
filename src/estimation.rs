@@ -6,8 +6,7 @@
 
 use crate::database::{Database, RouteData as DbRouteData};
 use crate::duration_estimation::{
-    get_route_difficulty_multiplier,
-    get_route_difficulty_multiplier_from_elevation_and_category,
+    get_route_difficulty_multiplier, get_route_difficulty_multiplier_from_gain_and_category,
 };
 use crate::models::RouteData;
 
@@ -31,83 +30,79 @@ pub fn get_route_data(route_id: u32) -> Option<RouteData> {
             world: Box::leak(db_route.world.into_boxed_str()),
             surface: Box::leak(db_route.surface.into_boxed_str()),
             lead_in_distance_km: db_route.lead_in_distance_km,
+            lead_in_elevation_m: db_route.lead_in_elevation_m,
         });
     }
 
-    // Fallback to hardcoded data for common routes
-    match route_id {
-        // Women's races - typically shorter criteriums
-        1258415487 => Some(RouteData {
-            distance_km: 14.1,
-            elevation_m: 59,
-            name: "Bell Lap",
-            world: "Crit City",
-            surface: "road",
-            lead_in_distance_km: 0.5,
-        }),
-        _ => None,
+    // Do not fabricate a route when lookup fails. The former Bell Lap fallback
+    // used Glasgow Reverse's ID and contradicted both client and reference data.
+    None
+}
+
+fn valid_gain(gain: f64) -> Option<f64> {
+    (gain.is_finite() && gain >= 0.0 && gain <= f64::from(u32::MAX)).then_some(gain)
+}
+
+/// Complete laps plus event lead-in, retaining fractional metres.
+pub fn elevation_for_laps(route: &RouteData, laps: u32) -> Option<f64> {
+    valid_gain(
+        valid_gain(route.elevation_m?)? * f64::from(laps) + valid_gain(route.lead_in_elevation_m?)?,
+    )
+}
+
+/// Proportional climbing for a supplied total distance, not an exact profile.
+pub fn elevation_for_distance(route: &RouteData, distance_km: f64) -> Option<f64> {
+    let lead_distance = route.lead_in_distance_km?;
+    if !route.distance_km.is_finite()
+        || route.distance_km <= 0.0
+        || !lead_distance.is_finite()
+        || lead_distance < 0.0
+        || !distance_km.is_finite()
+        || distance_km < lead_distance
+    {
+        return None;
     }
+    let lap_gain = valid_gain(route.elevation_m?)?;
+    let lead_gain = valid_gain(route.lead_in_elevation_m?)?;
+    valid_gain(lap_gain * (distance_km - lead_distance) / route.distance_km + lead_gain)
 }
 
-/// Estimate duration based on route_id only
+/// Estimate duration based on one complete route plus its lead-in.
 pub fn estimate_duration_from_route_id(route_id: u32, zwift_score: u32) -> Option<u32> {
-    let route_data = get_route_data(route_id)?;
-
-    // Get category-based speed
-    let category = crate::category::get_category_from_score(zwift_score);
-    let base_speed = crate::category::get_category_speed(category);
-
-    // Use elevation-based multiplier if we have elevation data
-    let difficulty_multiplier = if route_data.elevation_m > 0 {
-        get_route_difficulty_multiplier_from_elevation_and_category(
-            route_data.distance_km,
-            route_data.elevation_m,
-            category,
-        )
-    } else {
-        get_route_difficulty_multiplier(route_data.name)
-    };
-
-    let effective_speed = base_speed * difficulty_multiplier;
-    let total_distance = route_data.distance_km + route_data.lead_in_distance_km;
-    let duration_hours = total_distance / effective_speed;
-    let duration_minutes = (duration_hours * crate::constants::MINUTES_PER_HOUR as f64) as u32;
-
-    Some(duration_minutes)
+    let route = get_route_data(route_id)?;
+    Some(estimate_route_duration(
+        &route,
+        route.distance_km + route.lead_in_distance_km?,
+        zwift_score,
+    ))
 }
 
-/// Estimate duration with a specific distance (for multi-lap races)
-///
-/// Uses elevation data from the route when available, falling back to
-/// name-based difficulty estimation. The distance parameter overrides the
-/// route's stored distance (for multi-lap races where total distance differs).
+/// Estimate duration for a supplied total distance. Never add lead-in distance
+/// to an event-provided distance; only account for its share of climbing.
 pub fn estimate_duration_with_distance(
     route_id: u32,
     distance_km: f64,
     zwift_score: u32,
 ) -> Option<u32> {
-    let route_data = get_route_data(route_id)?;
+    let route = get_route_data(route_id)?;
+    Some(estimate_route_duration(&route, distance_km, zwift_score))
+}
 
+fn estimate_route_duration(route: &RouteData, distance_km: f64, zwift_score: u32) -> u32 {
     let category = crate::category::get_category_from_score(zwift_score);
     let base_speed = crate::category::get_category_speed(category);
-
-    // Use elevation-based multiplier when we have elevation data
-    let difficulty_multiplier = if route_data.elevation_m > 0 {
-        get_route_difficulty_multiplier_from_elevation_and_category(
-            route_data.distance_km,
-            route_data.elevation_m,
-            category,
-        )
-    } else {
-        get_route_difficulty_multiplier(route_data.name)
-    };
-
-    let effective_speed = base_speed * difficulty_multiplier;
-    let duration_hours = distance_km / effective_speed;
-    let duration_minutes =
-        (duration_hours * crate::constants::MINUTES_PER_HOUR as f64) as u32;
-
-    Some(duration_minutes)
+    // Prefer the full event's gain/distance. If lead-in gain is missing, retain
+    // the known lap gradient rather than invent a flat lead-in.
+    let elevation = elevation_for_distance(route, distance_km)
+        .map(|gain| (gain, distance_km))
+        .or_else(|| route.elevation_m.map(|gain| (gain, route.distance_km)));
+    let multiplier = elevation.map_or_else(
+        || get_route_difficulty_multiplier(route.name),
+        |(gain, distance)| {
+            get_route_difficulty_multiplier_from_gain_and_category(distance, gain, category)
+        },
+    );
+    (distance_km / (base_speed * multiplier) * f64::from(crate::constants::MINUTES_PER_HOUR)) as u32
 }
 
 #[cfg(test)]
@@ -116,12 +111,17 @@ mod tests {
 
     #[test]
     fn test_lead_in_distance_is_added() {
-        // Bell Lap: 14.1 km route + 0.5 km lead-in = 14.6 km total
-        // This test verifies lead-in is ADDED (not subtracted or ignored).
-        let route_id = 1258415487; // Bell Lap (hardcoded fallback)
+        // Explicit synthetic input, never an implicit seed or real-route claim.
+        let route_id = 4_000_001_101;
+        let route = serde_json::from_value(serde_json::json!({
+            "route_id": route_id, "name": "Synthetic lead-in circuit", "world": "Test",
+            "distance_km": 10.0, "elevation_m": 50.0, "surface": "road",
+            "lead_in_distance_km": 2.0, "lead_in_elevation_m": 10.0
+        })).unwrap();
+        crate::database::Database::new().unwrap().add_route(&route).unwrap();
 
         let with_lead_in = estimate_duration_from_route_id(route_id, 195);
-        assert!(with_lead_in.is_some(), "Bell Lap route should be known");
+        assert!(with_lead_in.is_some(), "Explicit synthetic route should be known");
 
         // estimate_duration_with_distance uses only the provided distance (no lead-in added)
         let route_data = get_route_data(route_id).unwrap();
@@ -138,7 +138,27 @@ mod tests {
              Lead-in distance is {} km.",
             with_lead_in.unwrap(),
             without_lead_in.unwrap(),
-            route_data.lead_in_distance_km
+            route_data.lead_in_distance_km.unwrap()
         );
+    }
+    #[test]
+    fn duration_uses_event_gradient_when_lead_in_is_known() {
+        let mut route = RouteData {
+            distance_km: 2.0,
+            elevation_m: Some(100.0),
+            lead_in_distance_km: Some(2.0),
+            lead_in_elevation_m: Some(0.0),
+            name: "Test",
+            world: "Test",
+            surface: "road",
+        };
+        let actual = estimate_route_duration(&route, 4.0, 195);
+        let category = crate::category::get_category_from_score(195);
+        let speed = crate::category::get_category_speed(category);
+        let multiplier =
+            get_route_difficulty_multiplier_from_gain_and_category(4.0, 100.0, category);
+        assert_eq!(actual, (4.0 / (speed * multiplier) * 60.0) as u32);
+        route.lead_in_elevation_m = None;
+        assert_ne!(actual, estimate_route_duration(&route, 4.0, 195));
     }
 }

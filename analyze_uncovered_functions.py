@@ -47,7 +47,6 @@ def categorize_functions(functions):
             "main",
             "run",
             "show_unknown_routes",
-            "record_race_result",
             "handle_",
             "parse_args",
             "cli_",
@@ -138,7 +137,6 @@ def main():
     known_uncovered = [
         "main",
         "show_unknown_routes",
-        "record_race_result",
         "fetch_events",
         "fetch_zwiftpower_stats",
         "filter_events",

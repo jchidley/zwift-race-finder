@@ -1,6 +1,7 @@
 //! Integration tests for zwift-race-finder
 //! These tests verify the complete functionality of the application
 
+mod common;
 use std::process::Command;
 use zwift_race_finder::estimation;
 use zwift_race_finder::parsing::parse_lap_count;
@@ -55,18 +56,6 @@ fn test_invalid_event_type() {
     assert!(stderr.contains("Unknown event type") || stderr.contains("invalid_type"));
 }
 
-#[test]
-fn test_new_routes_only_flag() {
-    // Test that new-routes-only flag works
-    let (stdout, _, _) = run_command(&["--new-routes-only"]);
-
-    // Should either work or give appropriate message
-    assert!(
-        stdout.contains("routes")
-            || stdout.contains("No results")
-            || stdout.contains("No matching events")
-    );
-}
 
 #[test]
 fn test_database_command() {
@@ -103,18 +92,6 @@ mod cli_parsing_tests {
         }
     }
 
-    #[test]
-    fn test_record_result_format() {
-        // Test invalid format
-        let (_, stderr, success) = run_command(&["--record-result", "invalid_format"]);
-
-        assert!(!success);
-        assert!(
-            stderr.contains("Invalid result format")
-                || stderr.contains("comma-separated")
-                || stderr.contains("Format: --record-result")
-        );
-    }
 
     #[test]
     fn test_verbose_mode() {
@@ -157,9 +134,6 @@ mod output_format_tests {
             );
         }
     }
-
-    // Route discovery integration tests
-    // (Moved from route_discovery.rs to avoid module import issues)
 
     #[test]
     fn test_multi_lap_race_detection() {
@@ -215,87 +189,14 @@ mod output_format_tests {
     }
 
     #[test]
-    fn test_route_id_regression_with_actual_results() {
-        // This test will use Jack's actual race results once provided
-        // For now, we test the route_id infrastructure
-
-        // Test that our known routes exist
-        let known_routes = vec![
-            (1258415487, "Bell Lap"),
-            (2143464829, "Watopia Flat Route"),
-            (2927651296, "Makuri Pretzel"),
-            (3742187716, "Castle to Castle"),
-            (2698009951, "Downtown Dolphin"),
-            (2663908549, "Mt. Fuji"),
-        ];
-
-        for (route_id, name) in known_routes {
-            assert!(
-                estimation::get_route_data(route_id).is_some(),
-                "Route {} ({}) should exist in database",
-                route_id,
-                name
-            );
-        }
-
-        // Test duration estimates are reasonable for Cat D (195 score)
-        struct RouteExpectation {
-            route_id: u32,
-            name: &'static str,
-            min_minutes: u32,
-            max_minutes: u32,
-        }
-
-        let expectations = vec![
-            RouteExpectation {
-                route_id: 1258415487, // Bell Lap (14.1km, 59m elevation)
-                name: "Bell Lap",
-                min_minutes: 22, // 14.1km at ~38 km/h (flat boost)
-                max_minutes: 28,
-            },
-            RouteExpectation {
-                route_id: 2698009951, // Downtown Dolphin (22.9km, 80m elevation)
-                name: "Downtown Dolphin",
-                min_minutes: 40, // 22.9km at ~34 km/h
-                max_minutes: 48,
-            },
-            RouteExpectation {
-                route_id: 2663908549, // Mt. Fuji (20.3km, 1159m elevation, 57 m/km)
-                name: "Mt. Fuji",
-                min_minutes: 85,  // Steep mountain climb with Cat D penalty
-                max_minutes: 115, // Similar gradient to Road to Sky (110 min for 17.6km Cat D)
-            },
-        ];
-
-        for exp in expectations {
-            if let Some(duration) = estimation::estimate_duration_from_route_id(exp.route_id, 195) {
-                assert!(
-                    duration >= exp.min_minutes && duration <= exp.max_minutes,
-                    "Route {} ({}) estimate {} should be {}-{} min for Cat D",
-                    exp.route_id,
-                    exp.name,
-                    duration,
-                    exp.min_minutes,
-                    exp.max_minutes
-                );
-            } else {
-                panic!(
-                    "Route {} ({}) should have duration estimate",
-                    exp.route_id, exp.name
-                );
-            }
-        }
-
-        // TODO: Add Jack's actual race results here
-        // Example format:
-        // struct ActualResult {
-        //     route_id: u32,
-        //     actual_minutes: u32,
-        //     date: &'static str,
-        // }
-        //
-        // let jacks_results = vec![
-        //     ActualResult { route_id: 2698009951, actual_minutes: 52, date: "2025-01" },
-        // ];
+    fn test_explicit_route_metadata_supports_estimation() {
+        let id = crate::common::install_route();
+        let route = estimation::get_route_data(id).expect("explicit fixture must resolve");
+        assert_eq!(route.name, "Synthetic test circuit");
+        assert_eq!(route.distance_km, 10.0);
+        let minutes = estimation::estimate_duration_from_route_id(id, 195).unwrap();
+        assert!(minutes > 0);
+        assert!(estimation::get_route_data(u32::MAX).is_none());
     }
+
 }

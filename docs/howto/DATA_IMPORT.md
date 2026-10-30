@@ -1,167 +1,45 @@
-# Data Import Guide
+# How to Import Race and Route Data
 
 ## Overview
 
-Zwift Race Finder can import data from multiple sources to improve predictions and discover new routes.
+Zwift Race Finder imports verified client route metadata and measured performance history. History is stored for evaluation; importing it does not automatically personalize production predictions.
 
-## ZwiftPower Import
+For route metadata, use [the client-only import workflow](CLIENT_ROUTE_DATA.md): explicitly selected installed-client cache, then extracted client XML for missing IDs. Exports remain private outside Git; no route dataset is bundled. Race-history imports below are separate.
 
-### Prerequisites
-- Active ZwiftPower account linked to your Zwift account
-- Web browser with developer console access
+## ZwiftPower history
 
-### Export Process
+Use [the measured-history export/import workflow](ZWIFTPOWER_EXPORT_STEPS.md).
+The supported binary is `import_zwiftpower_history`, which previews on an
+in-memory copy and imports measured results with optional historical scores.
+Legacy extractor/import shell scripts are unsupported; some invent durations,
+write a different table, or delete existing results. Do not run them against
+normal history.
 
-1. **Navigate to Your Profile**:
-   - Log into ZwiftPower.com
-   - Go to your profile page
+## Strava history
 
-2. **Extract Race Data**:
-   ```bash
-   # Copy the extraction script to clipboard
-   cat tools/zwiftpower/zwiftpower_profile_extractor.js | xclip -selection clipboard
-   
-   # Or on macOS:
-   cat tools/zwiftpower/zwiftpower_profile_extractor.js | pbcopy
-   ```
-
-3. **Run in Browser Console**:
-   - Open browser developer tools (F12)
-   - Go to Console tab
-   - Paste and run the script
-   - Save the downloaded `zwiftpower_results.json`
-
-4. **Import to Database**:
-   ```bash
-   # For development/testing
-   ./tools/zwiftpower/import_zwiftpower_dev.sh
-   
-   # For production
-   ./tools/zwiftpower/import_zwiftpower.sh
-   ```
-
-### What Gets Imported
-- Race finish times
-- Route information
-- Category/score data
-- Event dates
-- Power/weight data (if available)
-
-## Strava Import
-
-### Prerequisites
-- Strava account with Zwift activities
-- Strava API application (create at https://www.strava.com/settings/api)
-
-### Setup
-
-1. **Configure Strava App**:
-   ```bash
-   # Copy example config
-   cp tools/import/strava/strava_config.json.example strava_config.json
-   
-   # Edit with your app details
-   vim strava_config.json
-   ```
-
-2. **Authenticate**:
-   ```bash
-   # Run authentication flow
-   ./tools/import/strava/strava_auth.sh
-   
-   # Or with secure storage
-   ./tools/import/strava/strava_auth_secure.sh
-   ```
-
-3. **Fetch Activities**:
-   ```bash
-   # Fetch recent Zwift activities
-   ./tools/import/strava/strava_fetch_activities.sh
-   
-   # Import to database
-   ./tools/import/strava/strava_import_to_db.sh
-   ```
-
-### What Gets Imported
-- Actual race completion times
-- Route names from activity titles
-- Distance and elevation
-- Average speed/power
-- Date and time
+The existing Strava scripts and credential workflows have not been reconciled
+with this model and are not a supported history-update path. Moving time is not
+automatically race finish time, and title/date matching is not route/event identity.
+Do not execute their automatic result rewrites. A future adapter needs explicit
+source IDs, timing semantics, duplicate handling and approved credential storage.
 
 ## Route Data Import
 
-### WhatsOnZwift Data
+Use `import_client_routes` as described in [Client-only route data](CLIENT_ROUTE_DATA.md).
+Community/zwift-offline imports, manual third-party metadata insertion, and website
+route scraping are no longer supported inputs. Fresh databases have no seeded
+routes; existing route rows and history remain until explicitly updated.
+The discovery and description-analysis CLI options are removed. Internal
+event-description parsing remains supported.
 
-1. **Fetch Route Data**:
-   ```bash
-   cd tools/import/routes
-   
-   # Fetch all routes
-   ./fetch_whatsonzwift_route_data.sh
-   
-   # Parse and import
-   python3 fetch_whatsonzwift_route_data_parser.py
-   ```
+## Route identity and race-history mapping
 
-2. **Import to Database**:
-   ```bash
-   # Import parsed routes
-   python3 import_zwift_data_routes.py
-   ```
-
-### Manual Route Addition
-
-For routes not in automated sources:
-
-```sql
--- Connect to database
-sqlite3 ~/.local/share/zwift-race-finder/races.db
-
--- Add new route
-INSERT INTO routes (route_id, distance_km, elevation_m, lead_in_km, 
-                   lead_in_elevation_m, name, world, surface, slug)
-VALUES (
-    12345,           -- route_id from ZwiftHacks
-    25.3,            -- distance in km
-    341,             -- elevation in meters
-    2.1,             -- lead-in distance
-    15,              -- lead-in elevation
-    'Epic Route',    -- route name
-    'Watopia',       -- world
-    'road',          -- surface type
-    'epic-route'     -- URL slug
-);
-```
-
-## Route Mapping
-
-### Apply Standard Mappings
-
-```bash
-# Apply all route mappings
-./tools/utils/apply_route_mappings.sh
-
-# Or manually
-sqlite3 ~/.local/share/zwift-race-finder/races.db < sql/mappings/route_mappings.sql
-```
-
-### Fix Unmapped Routes
-
-```bash
-# Show routes needing mapping
-cargo run -- --show-unknown-routes
-
-# Apply fixes
-./tools/utils/fix_unmapped_routes.sh
-```
-
-### Multi-Lap Race Mappings
-
-```sql
--- Special handling for multi-lap races
-sqlite3 ~/.local/share/zwift-race-finder/races.db < sql/mappings/fix_multi_lap_mappings.sql
-```
+Refresh missing route metadata through [the client workflow](CLIENT_ROUTE_DATA.md).
+Use `--show-unknown-routes` to list unresolved IDs. Legacy website-derived SQL,
+placeholder IDs, and event-name-based mapping recipes are retired; do not guess a
+race's route from its series name. Existing race results and aliases are preserved,
+not automatically corrected by this cleanup. Any historical-result remapping needs
+separate event-specific evidence, a preview, and approval before writes.
 
 ## Event Description Import
 
@@ -182,51 +60,42 @@ cd tools/import/routes
 
 ### Verify Import Success
 
-```sql
--- Check imported race results
-SELECT COUNT(*) as total_races FROM race_results;
-
--- Check route coverage
-SELECT COUNT(DISTINCT route_id) as unique_routes FROM routes;
-
--- Find missing data
-SELECT event_title, COUNT(*) as occurrences
+```bash
+sqlite3 ~/.local/share/zwift-race-finder/races.db <<'SQL'
+SELECT COUNT(*) AS total_races FROM race_results;
+SELECT COUNT(*) AS total_routes FROM routes;
+SELECT route_id, event_name, times_seen
 FROM unknown_routes
-WHERE route_id = 9999
-GROUP BY event_title
-ORDER BY occurrences DESC
+ORDER BY times_seen DESC
 LIMIT 10;
+SQL
 ```
 
 ### Test Predictions
 
 ```bash
-# Run regression tests with imported data
-cargo test regression
-
-# Check accuracy
-cargo run -- --test-predictions
+cargo test --lib test_race_predictions_accuracy -- --nocapture
 ```
+
+The regression reads the normal application database. Compare results only when the database contents are known and equivalent.
 
 ## Troubleshooting
 
 ### Common Issues
 
 1. **Duplicate Imports**:
+   Preview possible duplicates without changing data:
    ```sql
-   -- Remove duplicates (keeping first occurrence)
-   DELETE FROM race_results
-   WHERE rowid NOT IN (
-       SELECT MIN(rowid)
-       FROM race_results
-       GROUP BY event_name, event_date, category
-   );
+   SELECT event_name, race_date, route_id, COUNT(*) AS copies
+   FROM race_results
+   GROUP BY event_name, race_date, route_id
+   HAVING COUNT(*) > 1;
    ```
+   Confirm which rows are truly duplicates and back up the database before deleting anything.
 
 2. **Missing Route Mappings**:
-   - Check event title variations
-   - Look for route_id on ZwiftHacks
-   - Add to `route_mappings.sql`
+   - Refresh the selected client export and match numeric route IDs.
+   - Leave unresolved historical results unmapped until event-specific evidence exists.
 
 3. **Import Script Fails**:
    - Check file permissions
@@ -235,16 +104,7 @@ cargo run -- --test-predictions
 
 ### Data Cleanup
 
-```bash
-# Backup before cleanup
-cp ~/.local/share/zwift-race-finder/races.db ~/.local/share/zwift-race-finder/races.db.pre-cleanup
-
-# Remove old/test data
-sqlite3 ~/.local/share/zwift-race-finder/races.db "DELETE FROM race_results WHERE event_date < date('now', '-2 years');"
-
-# Vacuum database
-sqlite3 ~/.local/share/zwift-race-finder/races.db "VACUUM;"
-```
+Bulk deletion is intentionally not prescribed here: it irreversibly changes the race history used for calibration. Back up the database, preview rows with `SELECT`, and confirm the exact retention rule before issuing a `DELETE`. The `race_results` timestamp column is `race_date`; see the [Database Reference](../reference/DATABASE.md).
 
 ## Best Practices
 

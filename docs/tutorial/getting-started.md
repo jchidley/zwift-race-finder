@@ -8,7 +8,9 @@ You need:
 - Linux or WSL2 (Windows Subsystem for Linux)
 - Rust toolchain (`rustup` installed)
 - Build dependencies: `sudo apt-get install -y libssl-dev pkg-config`
-- Your Zwift Racing Score (find it on [ZwiftPower](https://zwiftpower.com) or in the Zwift Companion app)
+- Your Zwift Racing Score (find it in Zwift or the Zwift Companion app)
+
+If you do not have a current score after a break, follow [How to Return to Zwift Racing](../howto/RETURN_TO_RACING.md) before choosing a scored race.
 
 ## Step 1: Install
 
