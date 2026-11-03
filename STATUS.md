@@ -11,8 +11,8 @@ This project owns recorded-ride reviews, practical pacing plans and higher-level
 - Canonical root: ~/git/zwift-race-coach.
 - Existing private remote: https://github.com/jchidley/zwift-race-coach.
 - The 2026-10-31 authenticated recheck confirmed main at `e9982b0eb5de6927b337376afe9572cb05ec2e0d`, with only README.md and the two licence files and Actions disabled. Remote contents/settings have not been rechecked during this documentation repair.
-- Local Git is now initialized on main, tracking origin/main at that same existing history. No new commit or push has been made.
-- The owner approved publication of the complete prepared package on 2026-11-03: README, .gitignore, AGENTS, STATUS, TASKS and all current docs/scripts. Preparation and checks are recorded below; publication remains pending until remote verification. Existing licence files and README template sections are unchanged.
+- Local main tracks origin/main; the approved package was committed and pushed at `78a7bb224443dcd9220860793c687bf58fc43447`, preserving the bootstrap history. The verification receipt below records that publication checkpoint.
+- The owner-approved complete package is published: README, .gitignore, AGENTS, STATUS, TASKS and all current docs/scripts. GitHub API verification matched all 38 file path/mode/blob entries at the publication checkpoint. Existing licence files and README template sections are unchanged.
 
 Preparation and publication evidence is kept outside the repository at ~/.local/share/zwift-race-coach-setup/. The earlier approved bootstrap is documented in [GITHUB_SETUP_PREVIEW.md](docs/reference/GITHUB_SETUP_PREVIEW.md).
 
@@ -47,6 +47,14 @@ The Gymnasticon and ANT/BLE reports remain here as historical device/output evid
 [Status history](docs/reference/STATUS_HISTORY_2026-10-31.md) retains the earlier setup, device and pairing chronology. Historical source results do not validate the unimplemented Rust bridge or coaching models.
 
 Next actions are in [TASKS.md](TASKS.md). No hardware operations, installs, account changes or live experiments were performed during this handoff.
+
+## Publication verification — 2026-11-03
+
+Checked checkpoint: `78a7bb224443dcd9220860793c687bf58fc43447`, with a clean working tree and local origin/main matching HEAD immediately after push. This is the committed 36-file approved change set on the existing bootstrap; the complete tree contains 38 files including the two unchanged licences.
+
+Named checks/results: GitHub Git-ref API main matched that full commit; recursive Git-tree API returned an untruncated tree whose 38 file path/mode/blob entries exactly matched `git ls-tree -r HEAD`. Repository API confirmed private visibility and default main; Actions-permissions API confirmed disabled Actions. Local tracking and `git status --porcelain` checks passed. Final staged package/link checks passed for the exact allowed file set, 147 local links/anchors and `git diff --cached --check`; no ignored cache/private-input path was staged. Diagnostic source blobs are those recorded in the preparation table below.
+
+This verifies publication contents/settings at the named checkpoint, not hardware behavior, coaching correctness or model calibration. This receipt is recorded in a follow-up documentation-only commit; it does not retroactively change the checked source or rerun diagnostic tests. Private ride data and reports remain outside Git. The two historical sibling-workspace research links remain nonportable.
 
 ## Publication preparation — 2026-11-03
 

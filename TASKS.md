@@ -5,8 +5,7 @@
 - [x] Publish and verify the separate Fitness Bridge repository; its sensor/processing/radio backlog no longer belongs here.
 - [x] Reconcile README, boundaries and current experiment guidance; retain historical bridge design and device evidence.
 - [x] Recheck the private coach remote and disabled Actions; initialize local main tracking the existing origin/main history without changing working files.
-- [ ] Commit and push the owner-approved complete package (README, .gitignore, AGENTS, STATUS, TASKS, docs and scripts), preserving bootstrap history. Exact scope and completed preflight/checks are in [publication preparation](STATUS.md#publication-preparation--2026-11-03).
-- [ ] Independently verify the resulting remote contents/settings and local tracking state after publication.
+The approved package is published and its remote contents/settings and local tracking were verified; see the [publication checkpoint and limits](STATUS.md#publication-verification--2026-11-03). Publication is no longer pending; coaching implementation and acceptance work below remain open.
 
 ## Standards adoption
 
