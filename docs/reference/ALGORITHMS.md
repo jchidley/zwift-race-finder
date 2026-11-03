@@ -2,13 +2,49 @@
 
 ## Overview
 
-Estimates how long a Zwift race will take for a specific rider based on route characteristics and Racing Score category.
+Racing Score selects the relevant event subgroup. Its route and distance feed a
+score-independent personal estimate from earlier measured race results when
+usable history is available. Declared fixed durations remain authoritative;
+otherwise insufficient history, geometry or unsupported formats produce unknown
+duration, excluded from time-window matches. The CLI discloses the omitted count. Filtering and display consume the same resolved estimate.
 
-## Production Algorithm: Category Speed Model
+## Personal duration estimates
+
+`src/personal_estimation.rs` implements the live history path for ordinary races.
+It uses measured seconds, reported total event distance and canonical client route
+identity, without requiring or inferring historical Racing Scores. Time trials,
+rides and unknown source formats are not ordinary-race training data.
+
+The model uses earlier UTC dates only, before `min(today, event day)`:
+
+1. At least three same-route observations with prior/target distance ratio in
+   `[0.8, 1.25]`: recency-weighted median minutes/km × target distance. This is
+   approximate distance scaling, not a reconstructed partial-route profile.
+2. Otherwise at least twelve observations with known course climbing: fit
+   `minutes = pace × (distance_km + h × ascent_km)`. A fixed grid
+   `h = 0, 2, 4, 8, 16, 32, 64` and pace bounded to 1–4 min/km minimize
+   recency-weighted time MAE. Recency has a 365-day half-life. Pace is the
+   feature-weighted median; exact shape ties retain the first/smallest grid value.
+3. If neither is supported, return an explicit unavailability reason, not a category-speed duration. Unfamiliar courses still use step 2 when supported.
+
+Calculated personal output rounds once to whole minutes. Verbose output reports
+method, sample count and descriptive fitted residual error. That error is **not**
+a confidence interval. The model uses course distance/climbing totals, not exact
+ordered gradients. Whole-kilometre historical distances and retrospective route
+metadata remain qualifications. This user-requested integration is not a claim
+that personal prediction has demonstrated superior time-window selection.
+See [implementation and verification](../project-history/LIVE_PERSONAL_ESTIMATOR_2026-11-02.md).
+
+## Retained Legacy Algorithm: Category Speed Model
+
+These helpers remain for standalone callers and the historical regression. The
+finder no longer calls them to fill unsupported personal estimates.
 
 ```
-duration_minutes = (distance_km / (category_speed × difficulty_multiplier)) × 60
+duration_minutes = round((distance_km / (category_speed × difficulty_multiplier)) × 60)
 ```
+
+Calculated durations are rounded once to the nearest whole minute; positive half-minute ties round up. The shared event estimate is used for both filtering and display. The retained legacy category speeds and difficulty multipliers are unchanged. Fixed-duration handling is unchanged. Whole-minute presentation does not imply accuracy within one minute.
 
 ### Category Speeds (km/h)
 
@@ -29,7 +65,7 @@ Score 600+ maps to "A++" (45.0 km/h). The detailed category function splits this
 
 Multiplied with category speed. Values >1.0 mean faster (flat), <1.0 mean slower (hilly).
 
-**Elevation-based** (`get_route_difficulty_multiplier_from_elevation_and_category`):
+**Elevation-based** (`get_route_difficulty_multiplier_from_gain_and_category`):
 
 Uses piecewise linear interpolation across 9 breakpoints for smooth transitions, with a category-aware penalty on steep climbs.
 
@@ -83,27 +119,43 @@ The final multiplier on a climb is `base_multiplier × category_factor`. For exa
 
 `event_filtering::estimate_event()` resolves one `EventEstimate` (minutes, available distance/elevation, and fixed-versus-estimated status). `event_matches_duration()` compares those minutes to the target with an inclusive tolerance. Both compact and verbose display use the same resolver; display does not add a separate surface multiplier or extra lead-in. An unestimable event is not a match.
 
-The resolver tries these methods in order, returning the first available estimate:
+The resolver selects a subgroup before calculating geometry. For Racing Score events,
+it matches the numeric `rangeAccessLabel` against the supplied score rather than
+searching the event title for a category letter. Ranges are inclusive; touching
+endpoints retain API order, not an inferred unique eligibility decision. A score
+outside all declared ranges has no estimate. Blank/whitespace-only range labels
+are not restrictions; malformed nonblank labels remain restricted rather than
+silently turning into traditional events. Traditional groups use exact
+`subgroupLabel` when present, otherwise category tokens in the name; D-to-E
+fallback follows an exact D match. Score is not passed into personal fitting and does not supply a substitute speed.
 
-1. **Fixed duration**: If event has `duration_in_minutes` or `duration_in_seconds`, use directly
-2. **Multi-lap with known route**: Subgroup has lap count → `lead_in + (route_distance × laps)` → estimate
-3. **Known route + known distance**: Route_id resolves, event/subgroup has distance → `estimate_duration_with_distance`
-4. **Known distance + unknown route**: Distance available but route unknown → `estimate_duration_for_category` (name-based multiplier)
-5. **Known route only**: Route_id resolves, no distance → `estimate_duration_from_route_id` (adds lead-in) + multi-lap DB check
-6. **Racing Score + route**: Route_id known, parse distance from description → estimate
-7. **Fallback: event distance**: `distance_in_meters > 0` → `estimate_duration_for_category`
-8. **Fallback: Racing Score description**: Parse distance from description text
-9. **Fallback: name guess**: `estimate_distance_from_name` heuristic
-10. **Selected subgroup fallback**: fixed minutes or positive distance from the first subgroup selected by `find_user_subgroup`; it is not an any-subgroup match.
+Duration precedence is positive event minutes, positive event seconds, then the
+selected subgroup's positive minutes or seconds. Seconds use integer division by
+60; a result below one whole minute is unavailable and does not mask a calculated
+estimate. Subgroup detail display uses the same duration helper. Declared time overrides a calculated estimate. For example, 2,700 seconds
+remains 45 fixed minutes even when route geometry would predict something else.
 
-Fixed event minutes take precedence over event seconds and subgroup lap/distance metadata. For example, an API event declaring 2,700 seconds displays 45 minutes even if its lap-based estimate would differ. Available fixed-event distance/lap metadata is retained without overriding that duration.
+Fixed and calculated durations share one geometry policy:
+
+1. **Selected subgroup total distance**, if positive and finite.
+2. **Selected subgroup positive laps**, using lap distance × laps plus one known
+   event lead-in. Zero laps are unavailable, not a lead-in-only event.
+3. **Event total distance**, if positive and finite.
+4. **Known route fallback**, including the existing historical multi-lap lookup
+   and one known event lead-in.
+5. **Racing Score description distance**, then the existing name-distance guess.
+
+All route calculations prefer `subgroup.route_id` over `event.route_id`. An explicit
+total distance never receives another lead-in. Known route metadata supplies geometry to the personal model; unknown routes do
+not receive a name/category-speed duration.
+Distance/elevation provenance remains independent of whether duration is fixed.
 
 Description and name fallbacks are estimates, not verified route facts. In particular, the existing description parser takes the first matching distance and does not select the relevant stage from multi-stage text; shared display makes this visible but does not resolve that data-quality issue.
 
 ### Lead-in Distance Handling
 
-- **Multi-lap (step 2)**: Lead-in added once by the shared resolver in `event_filtering.rs`
-- **Route-only (step 5)**: Lead-in added inside `estimate_duration_from_route_id` in `estimation.rs`
+- **Multi-lap geometry (step 2)**: Lead-in added once by the shared resolver in `event_filtering.rs`
+- **Route-only geometry (step 4)**: The shared resolver adds one lead-in; the standalone `estimate_duration_from_route_id` helper also adds one for its own callers.
 - **Explicit event/subgroup distance**: Treated as total distance; no extra lead-in is added by filtering or display.
 - **Other fallbacks**: Lead-in is not added. Historical DB multi-lap metadata uses lap distance × laps plus one lead-in, then estimates that total, rather than multiplying a single-lap time and repeating its lead-in.
 
@@ -113,46 +165,65 @@ Route and event lead-in climbing are optional: unknown is not zero. SQLite knowl
 
 - **Lap-based totals:** fractional lap elevation × laps + fractional event lead-in elevation once, rounded only for display. Both must be known; otherwise the total displays as unknown. Missing lead-in distance is also preserved as unknown rather than assumed zero. Route-only/lap distance estimates require a known lead-in distance.
 - **Distance-limited totals:** proportional lap climbing for (total distance − lead-in distance), plus known lead-in climbing. Without a full elevation profile this is approximate and displays with a `~` prefix. Distances shorter than the lead-in do not get invented climbing.
-- **Duration inputs:** when event climbing is available, apply the existing category/elevation multiplier to total gain over total distance. If lead-in gain is unknown, retain the known lap gradient; if lap gain is also unknown, use the existing name-based fallback. Category speeds and difficulty breakpoints are unchanged.
+- **Personal duration inputs:** use available total climbing for the cross-course fit. Unknown climbing is not zero; same-route pace may still be supported without it. No category or name-based speed is substituted.
 - **Fixed durations:** climbing/distance metadata never overrides declared time.
 
 ### Route ID Alias Resolution
 
 Zwift uses different internal route IDs for the same physical route depending on context (event-only vs free-ride). The `route_aliases` table maps these alternative IDs to canonical DB route IDs. `Database::get_route()` checks aliases transparently: direct lookup → alias lookup → None. See [Database Reference](DATABASE.md).
 
-## Calibration
+## Validation and calibration
 
-- **Latest recorded MAE**: 16.6% on 125 matched races in the owner's local dataset
-- **Product target**: < 20% MAE
-- **Test threshold**: the focused regression asserts < 30% MAE
-- **Run**: `cargo test --lib test_race_predictions_accuracy -- --nocapture`
+The accuracy regression reports **mean absolute percentage error (MAPE)** and
+**mean absolute error in minutes (MAE)**. These are different metrics.
 
-The result depends on the local `race_results` database and was not reproduced by this documentation pass.
+The 2026-11-02 evaluation used recorded total event distances and precise finish
+seconds. Six observations have known historical Racing Scores:
 
-### Error by Terrain Type
+| Formula output | MAE, minutes | MAPE | Within 5 minutes |
+|---|---:|---:|---:|
+| Previous truncation | 1.93 | 4.32% | 6/6 |
+| Nearest-minute rounding | 2.09 | 4.67% | 6/6 |
+| Tested personal last-five adjustment, rounded | 2.59 | 5.39% | 6/6 |
 
-| Terrain | MAE | n | Notes |
-|---------|-----|---|-------|
-| Flat (<10 m/km) | ~19% | 104 | Bias ≈ 0%, model well-calibrated |
-| Hilly (10–20 m/km) | ~10% | 16 | Best accuracy segment |
-| Climbing (>20 m/km) | <20% | 5 | Fixed from 43.8% by category-aware multiplier |
+Nearest-minute rounding is a presentation-resolution decision, not a demonstrated
+accuracy improvement. This small cohort does not establish accuracy within one
+minute or reconstruct the original live API event resolver.
 
-### Key Findings
+The focused regression now prefers recorded event distance over event-name guesses
+and measured seconds over legacy whole-minute observations. The previous regression
+ignored these fields: its 6.167 → 5.833 minute MAE and 13.3% → 12.4% MAPE rounding
+comparison therefore used different geometry/targets, not evidence that production
+predictions improved by correcting the test. Legacy rows without the new fields
+retain fallback handling, and the regression reports precise-time/distance counts.
 
-1. Pure physics models fail (127% error)
-2. Draft benefit crucial — already baked into category speeds
-3. High variance is inherent to racing (same route: 32–86 min depending on pack dynamics)
-4. Binary state: with pack or dropped, no gradual separation
-5. Lower categories are disproportionately slower on climbs (w/kg effect)
-6. Weight/height are **not** direct model inputs — the effect is captured via the category × elevation interaction
+All 194 measured observations were retained. The 188 without historical Racing
+Score cannot support a genuine score-dependent production comparison, but were
+used in the score-independent personal-pace experiment. That candidate was rejected:
+its small dated-holdout gain was not robust and it worsened the known-score result.
+See [the practical evaluation](../project-history/PRACTICAL_ESTIMATOR_2026-11-02.md).
+
+Run `cargo test --lib test_race_predictions_accuracy -- --nocapture` against an
+isolated database copy. Run the rest of the suite with fresh HOME/XDG state;
+some route-consistency diagnostics assume synthetic rather than personal history.
+Older 125-race and percentage-labelled “MAE” claims are historical calibration
+claims, not the current verified test result.
+
+A personal pace adjustment must use only earlier observations, preserve unknown
+historical scores, and be evaluated using comparable event distances/lead-ins.
+Report out-of-sample MAE in minutes and within-window counts. Do not select an
+adjustment using the same later results presented as its validation. Existing
+category speeds already include drafting; adding a second generic draft bonus
+would double-count that benefit. Physics simulation and exact equipment are not
+prerequisites for useful race selection.
 
 ## Special Cases
 
 | Case | Handling |
 |------|----------|
 | Fixed duration events | Duration used directly from event data (no estimation) |
-| Time trials | No specific handling — uses same category speeds (known inaccuracy) |
+| Time trials | Declared duration only; ordinary-race fitting is unsupported |
 | Multi-lap | Route distance × laps + lead-in |
 | Racing Score events | `distanceInMeters: 0` in API; parse from description |
-| Unknown routes | Name-based difficulty multiplier fallback |
-| Category E | Separate category at 28 km/h |
+| Unknown routes | Personal support required; no category/name-speed duration |
+| Category E | Used for subgroup selection, not personal pace |

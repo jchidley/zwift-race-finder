@@ -2,16 +2,14 @@
 
 Contract, mechanics, and Rust-specific patterns for behaviour-preserving code changes. For the research and rationale behind these rules, see [Refactoring Explained](../explanation/REFACTORING_EXPLAINED.md).
 
-**Quick invocation:** Use `/refactor <task>` to activate refactoring mode with the global prompt template (`~/.pi/agent/prompts/refactor.md`). These project-level rules provide additional Rust-specific detail.
+These rules apply to an explicitly requested behaviour-preserving change; they do not automatically invoke a workflow. Read the applicable [architecture constraints](ARCHITECTURE.md) and [selected examples](../code-truth/PATTERNS.md#selected-first-party-examples) before choosing a transformation.
 
-<critical_contract>
-WHEN YOU SEE THE WORD "REFACTOR" YOU ARE ENTERING A BINDING CONTRACT:
-- You will preserve behavior EXACTLY
-- You will follow the specific mechanics for each refactoring type
-- You will NOT add features or "improvements"
-- You will REVERT if tests fail
-- Breaking this contract is a CRITICAL FAILURE
-</critical_contract>
+## Scope contract
+
+- Preserve the agreed externally observable behaviour and compatibility. Do not add features, bug fixes or optimizations under a behaviour-preserving scope.
+- Inspect current requirements, decisions, code, tests and the working-tree diff first. Record existing failures; current code and tests are evidence, not automatically the requirement.
+- Choose small transformations and validate the affected boundary after each step. Tests may move with code or gain requirement-derived coverage without changing the accepted behaviour.
+- On a failure, stop and diagnose before continuing. Preserve unrelated work; rollback is limited to your own edits and must not discard pre-existing changes.
 
 ## Core Definition
 
@@ -20,9 +18,13 @@ WHEN YOU SEE THE WORD "REFACTOR" YOU ARE ENTERING A BINDING CONTRACT:
 **Key principles:**
 - Small behaviour-preserving transformations
 - System fully working after each change
-- Tests are the specification — if they fail, *you* failed
+- Requirements and explicit owner decisions define the contract; tests provide incomplete, sometimes stale evidence of it
 
-## Prompt Strategy (What Research Shows Works)
+## Research context (not acceptance criteria)
+
+The figures below are retained from earlier guidance. Their sources and applicability were not reverified during standards adoption; they do not establish current model capability or require a particular prompting method. See [Refactoring Explained](../explanation/REFACTORING_EXPLAINED.md) for the earlier narrative, not operational authority.
+
+### Prompt strategy
 
 Research (2024–2026) demonstrates that *how* you prompt matters enormously:
 
@@ -34,13 +36,13 @@ Research (2024–2026) demonstrates that *how* you prompt matters enormously:
 | Restrict context to relevant code only | Reduces overrefactoring and hallucinations |
 | Sample multiple generations (pass@5) | Unit test pass rates up 28.8% (Cordeiro et al., 2024) |
 
-**In practice:** Always name the specific refactoring type. "Perform an Extract Function refactoring" beats "clean this up" by 5×.
+**Practical default:** Name the intended transformation and preserved contract rather than requesting unbounded cleanup.
 
-## Where LLMs Excel vs Fail
+### Reported strengths and weaknesses
 
-LLMs are not uniformly bad at refactoring — they have a precise competence boundary (Cordeiro et al., 2024; Emergent Mind survey, Jan 2026):
+Earlier guidance summarized the following reported strengths and weaknesses (Cordeiro et al., 2024; Emergent Mind survey, Jan 2026). Treat them as source-specific historical claims, not a precise competence boundary for the agent doing this task:
 
-### LLMs beat developers at:
+#### Reported strengths:
 - Magic Number elimination
 - Long Statement splitting
 - Extract Method (localized)
@@ -48,14 +50,14 @@ LLMs are not uniformly bad at refactoring — they have a precise competence bou
 - Systematic, repetitive transformations
 - Code smell reduction: 44.4% (LLM) vs 24.3% (developer)
 
-### LLMs fail at:
+#### Reported weaknesses:
 - Cross-module/architectural refactoring
 - Context-dependent transformations requiring domain knowledge
 - Refactorings touching core algorithms
 - Multi-file package reorganisations
 - Hallucination rate: 6–8% of unfiltered outputs break behaviour
 
-### LLMs dangerously overreach on:
+#### Reported overreach:
 - "Improving" already-clean code (overrefactoring)
 - Adding validation or error handling during moves
 - "Modernising" patterns that work correctly
@@ -67,8 +69,8 @@ LLMs are not uniformly bad at refactoring — they have a precise competence bou
 
 ```
 MECHANICAL COPY-DELETE METHOD:
-Step 1: Copy ENTIRE source file → new file
-Step 2: DELETE everything except functions to move (delete key only)
+Step 1: Identify the complete function, supporting items and matching tests
+Step 2: Move those items without rewriting their behaviour
 Step 3: DELETE moved functions from original, add module + imports
 Step 4: Run tests — must pass unchanged
 ```
@@ -76,9 +78,9 @@ Step 4: Run tests — must pass unchanged
 **Rust-specific notes (learned from applying these rules):**
 
 - **Import resolution is the hard part.** In a binary crate that depends on its own library crate, you must distinguish `crate::` paths (binary-private modules) from `your_crate_name::` paths (library public modules). This is where most cognitive effort goes — not the copy-delete itself.
-- **Visibility changes are mandatory.** Changing `fn` to `pub fn` on moved functions is technically an API surface change, but it's required for the move to compile. This is an accepted exception to "no behaviour changes."
+- **Keep visibility narrow.** A move may need `pub(super)` or `pub(crate)`, but does not automatically justify a public API. Library/binary crossings can require public access; identify compatibility effects explicitly rather than treating expansion as a blanket exception.
 - **Decide what moves together before starting.** Group functions by cohesion (shared data, shared callers, shared domain concept). The mechanical method covers *how* to move but not *what* belongs together — that's a judgment call you make up front.
-- **Tests that use `super::*` can't follow.** If tests call private functions via `super::*`, they must stay in the original file. Moving them would require making functions public, which changes the API — a separate refactoring step.
+- **Move private unit tests with their owning logic when appropriate.** An adjacent `#[cfg(test)]` module can retain `super::*` access in the destination. Do not expose implementation details solely to preserve a test's old location.
 
 ### 2. Extract Function
 
@@ -170,66 +172,44 @@ fn calculate(base: f64, rate: f64) -> f64 { calculate_v2(base, rate, 1) }
 // Step 4: Remove old function
 ```
 
-## STOP Signals
+## Scope and validation
 
-<stop_signals>
-If you think ANY of these, STOP IMMEDIATELY:
+Separate opportunistic improvements from the requested transformation. Discovering
+a stale test, bug or unsuitable abstraction is a reason to investigate and report,
+not permission to change behaviour or a reason to ignore contradictory evidence.
 
-❌ "This would be better if..."
-❌ "While I'm here..."
-❌ "This parameter isn't used..."
-❌ "Modern style prefers..."
-❌ "This could be more efficient..."
-❌ "The test is wrong..."
-❌ "This catches more edge cases..."
-❌ "This comment is outdated..."
-❌ "This is redundant..."
+1. Establish the relevant baseline and preserve the pre-existing diff.
+2. Run focused tests after a bounded step, then the applicable default-feature,
+   formatting and lint gates before completion. Use the isolation and prerequisite
+   rules in the [testing guide](../howto/TESTING_GUIDE.md); do not run the suite
+   against normal user state merely because a refactor is small.
+3. Test the preserved contract, including prohibited cases where consequential.
+   Do not weaken an assertion or regenerate a baseline simply to obtain a pass.
+4. A formula or threshold change is not behaviour-preserving. If explicitly
+   authorized separately, follow the populated-data accuracy requirements and
+   report before/after MAE; synthetic checks do not replace that evidence.
+5. Use targeted mutation testing when consequential logic needs stronger
+   fault-detection evidence. It is not mandatory after every refactor.
+6. Report executed checks, existing failures and unverified boundaries separately.
+   Known formatting/lint failures remain visible; broad suppressions are not a fix.
 
-THESE THOUGHTS MEAN YOU'RE REWRITING, NOT REFACTORING
-</stop_signals>
+Cross-module moves, ownership changes, algorithm replacement and pipeline rewrites
+need a bounded design and stronger regression coverage than a rename. Split the
+work where useful; seek approval for changed behaviour or material scope, not
+merely because a catalog gives the transformation a complex name.
 
-## Validation Checklist
+## Recovery protocol
 
-### After each change:
-- [ ] `cargo check` (fast compilation check)
-- [ ] `cargo test` (behaviour preserved)
-- [ ] `cargo clippy -- -D warnings` (no new warnings)
-- [ ] No test files modified (tests are the spec)
+When a check fails or produces an unexpected result:
 
-### After all refactoring:
-- [ ] `cargo mutants` on changed modules (tests still effective)
-- [ ] No new features added
-- [ ] No bug fixes snuck in
-- [ ] No optimisations applied
-- [ ] No style updates beyond the refactoring scope
-- [ ] API compatibility maintained
-
-## Complex Refactorings to AVOID
-
-<danger_zone>
-These require extreme care — consider refusing or requiring human review:
-
-- Replace Conditional with Polymorphism
-- Replace Type Code with Subclasses
-- Replace Algorithm
-- Split Phase
-- Replace Loop with Pipeline (subtle ownership changes in Rust)
-- Any refactoring touching core algorithms
-
-Response: "This complex refactoring requires careful human review at each step."
-</danger_zone>
-
-## Recovery Protocol
-
-<recovery>
-WHEN TESTS FAIL:
-1. DO NOT debug the code
-2. DO NOT modify tests
-3. DO NOT try to fix forward
-4. IMMEDIATELY revert all changes
-5. Report: "Refactoring failed — behaviour changed"
-6. Re-attempt with smaller scope if appropriate
-</recovery>
+1. Stop, inspect the diagnostic and state the revised plan.
+2. Distinguish a regression from a pre-existing failure, stale expectation,
+   missing prerequisite or live-service failure. Do not assume any one of them.
+3. Fix a regression within the agreed behaviour-preserving scope, or roll back
+   only your own bounded edits. Never reset the dirty checkout or revert another
+   contributor's work.
+4. If resolving the failure requires changed requirements or behaviour, preserve
+   completed work and ask for that scope. Record any unperformed acceptance check.
 
 ## Rust-Specific Patterns
 
@@ -270,7 +250,11 @@ fn parse() -> Result<Data> {
 
 ## Tools
 
-### Essential
+### Optional tools
+
+Use the installed toolchain first. The commands below change the local toolchain;
+install only when needed and authorized, not as a routine refactoring prerequisite.
+
 ```bash
 cargo install cargo-edit         # Add/remove/upgrade dependencies
 cargo install cargo-machete      # Find unused dependencies
@@ -278,17 +262,22 @@ cargo install cargo-mutants      # Mutation testing
 rustup component add clippy rustfmt
 ```
 
-### Useful aliases
+### Convenience aliases (not acceptance gates)
+
+These do not isolate application state or qualify accuracy. Use the testing
+guide's wrappers and applicable gates for validation; watchers are opt-in
+long-running jobs, not required checks.
+
 ```bash
 alias ct='cargo test'
 alias cc='cargo check'
-alias cf='cargo fmt'
+alias cf='cargo fmt -- --check'
 alias ccl='cargo clippy -- -W clippy::all'
 alias cw='cargo watch -x check -x test -x clippy'
 ```
 
 ## The Golden Rule
 
-**Tests failing = You failed, not the tests.**
+**Preserve the agreed contract, investigate failures, and preserve unrelated work.**
 
-Tests are the specification. If they fail after refactoring, you changed behaviour. The ONLY correct response is to revert and try again.
+A passing suite supports behaviour preservation; it does not prove correctness or turn stale tests into requirements.

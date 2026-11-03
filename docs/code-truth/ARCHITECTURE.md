@@ -1,13 +1,13 @@
-<!-- code-truth: ad3e87c -->
+<!-- code-truth: checkpoint 3e13a78 plus unpublished working-tree observations; see README.md -->
 # Implementation Architecture
 
-This page describes current code boundaries and change propagation. Domain physics is explained under [`docs/explanation/`](../explanation/); user-facing algorithms are specified in [`docs/reference/ALGORITHMS.md`](../reference/ALGORITHMS.md).
+This page describes observed code boundaries and change propagation, including unpublished changes after the checkpoint in [README.md](README.md). Adopted constraints live in [the architecture reference](../reference/ARCHITECTURE.md); [selected examples](PATTERNS.md#selected-first-party-examples) identify what new work should follow. Domain physics is explained under [`docs/explanation/`](../explanation/); user-facing algorithms are specified in [`docs/reference/ALGORITHMS.md`](../reference/ALGORITHMS.md).
 
 ## Executable and library boundary
 
-`src/main.rs` is both CLI orchestration and a consumer of the package library. It declares binary-private modules for `api`, `commands`, `config`, `database` and `zwiftpower`, while importing reusable estimation/filtering/display modules through the `zwift_race_finder` library crate.
+`src/main.rs` is both CLI orchestration and a consumer of the package library. It keeps only `commands` and `zwiftpower` binary-private; API, configuration, database and reusable estimation/filtering/display modules are shared through the `zwift_race_finder` library crate.
 
-Some files therefore compile in two module contexts: through `src/lib.rs` and as private modules of the binary. Imports using `crate::...` and `zwift_race_finder::...` are not interchangeable. Moving code across this boundary can break visibility or resolve a type from the wrong crate context.
+API/configuration/database now compile once as library modules rather than duplicated private CLI copies. Library internals use `crate::...`; binary-private adapters use the shared library modules.
 
 ## Main runtime flow
 
@@ -31,26 +31,35 @@ The normal path is asynchronous only around external HTTP work. Filtering, estim
 
 ## Persistence boundaries
 
-`src/database.rs` owns all application SQL. `Database::new()` opens the platform-local data path, creates tables, and leaves fresh route tables empty until an explicit `import_client_routes` import. Existing route rows and race history are not deleted by retirement. Callers frequently create short-lived `Database` instances rather than sharing one connection.
+`src/database.rs` and its `database_history.rs` child own application SQL. `Database::new()` opens the platform-local data path, creates tables, and leaves fresh route tables empty until an explicit `import_client_routes` import. Existing route rows and race history are not deleted by retirement. Callers frequently create short-lived `Database` instances rather than sharing one connection.
 
 | Store | Writer/readers | Authority |
 |---|---|---|
 | `races.db` | `database.rs`, called by commands, estimation, filtering, display, import, regression | Durable local route/results truth |
 | `user_stats.json` cache | `cache.rs`, used by `zwiftpower.rs` | Transient score/category cache; valid for 24 hours |
-| TOML config | loaded by `config.rs`; `Config::save()` can write user data-dir config | Non-secret user preferences/defaults |
+| TOML config | loaded read-only by `config.rs` | Non-secret user preferences/defaults |
 | Environment | read by `config.rs` and `zwiftpower.rs` | Secrets and highest-priority overrides |
 | Private client JSON export outside Git | `scripts/export_client_routes.ps1` → `src/bin/import_client_routes.rs` → `Database::import_client_routes()` | Explicitly selected client cache plus extracted XML for missing IDs; no bundled dataset |
 | `sql/` | operator-run scripts | Migration/mapping inputs; not automatically applied by a migration framework |
 
 ### Schema propagation
 
-A schema change starts in `src/database.rs::create_tables()`, but existing databases may need explicit migration SQL because `CREATE TABLE IF NOT EXISTS` does not alter existing columns. Update every affected query and row mapping in `database.rs`, then update `docs/reference/DATABASE.md` and relevant import/mapping scripts.
+`Database::from_connection()` enables foreign keys and transactionally runs table creation, elevation-knowledge migration and supported history migration. `CREATE TABLE IF NOT EXISTS` alone does not evolve existing columns. Extend the owning database module's migration and affected queries/row mapping; unsupported custom/dependent history schemas must fail without destruction. Pair changes with synthetic legacy preservation and forced-rollback tests, and update `docs/reference/DATABASE.md` and affected importer documentation. Back up real state before initialization upgrades or imports; historical operator SQL is not a substitute for the application's migration path.
 
 ## Duration decision boundary
 
 Local update after the commit-scoped snapshot: `event_filtering::estimate_event()` owns the ordered fallback tree and returns `EventEstimate` (minutes, optional distance/elevation, fixed status). It may use fixed event duration, subgroup lap data, event/subgroup distance, known route data, description parsing, or an event-name distance guess. `event_matches_duration()` compares its minutes using inclusive tolerance; compact rows and verbose duration formatting use the same resolver rather than separate formulas. The final subgroup fallback uses one selected subgroup, not any matching subgroup. See `tests/duration_consistency_tests.rs` for fixed-duration, fallback visibility, metadata, lead-in, and display/filter agreement regressions.
 
 `src/estimation.rs` bridges route lookup to pure calculations. `estimate_duration_from_route_id()` adds the stored lead-in. `estimate_duration_with_distance()` trusts its supplied distance and does not add lead-in. The multi-lap filtering branch explicitly adds lead-in before calling it; event-provided-distance branches do not. Local elevation update: route and lead-in elevation are optional, with SQLite knowledge flags distinguishing legacy unknown zeros from explicitly known zero. Pure helpers in `estimation.rs` compute exact lap totals and approximate distance-limited totals; the latter carry an approximation flag in `EventEstimate`. Client-only updates use `scripts/export_client_routes.ps1` and `src/bin/import_client_routes.rs`; `Database::import_client_routes()` atomically writes route metadata and `route_sources` provenance, with selected cache > extracted XML precedence; legacy rows remain until explicitly updated. Elevation fields are optional `f64`, lead-in distance is optional, and total elevation is rounded only at the presentation boundary. See [client-only route data](../howto/CLIENT_ROUTE_DATA.md).
+
+A further local correction resolves the numeric Racing Score subgroup (or exact traditional label/category token), prefers its route ID, and shares geometry across fixed/calculated duration: positive finite subgroup distance, positive subgroup laps plus one known lead-in, event distance, then existing route/description/name fallbacks. Zero laps never produce a lead-in-only estimate. Subgroup API seconds are supported; event fixed-duration precedence remains. See the [failure-led diagnosis and live replay](../project-history/PERSONAL_ESTIMATOR_DIAGNOSIS_2026-11-02.md). The earlier profile prototype remains disabled. A subsequent owner-authorized live
+personal path in `personal_estimation.rs` uses prior same-route pace or a global
+distance/ascent fit after geometry resolution. Unsupported estimates now remain unknown rather than using category fallback. The
+returned estimate carries personal method/support or an explicit fallback reason;
+filtering and rendering use the resulting rounded minutes. Fixed durations return
+before history lookup. See [live implementation](../project-history/LIVE_PERSONAL_ESTIMATOR_2026-11-02.md).
+
+Calculated duration functions now round their final result to the nearest whole minute (half-minute ties upward), rather than truncating. The shared resolver uses that result for both filtering and presentation; fixed-duration handling is unchanged. See the 2026-11-02 evaluation in the algorithms reference.
 
 ### Change propagation
 
@@ -62,7 +71,12 @@ A formula or threshold change can affect:
 - the local-database accuracy regression;
 - algorithm and physical-stat references.
 
-Run the focused accuracy regression and compare results before and after.
+Run focused contract tests, then applicable gates with isolated state. Formula changes also require before/after MAE on the same approved populated data; the category regression does not qualify personal fitting. Report chronological shipped-code personal evaluation separately. See the [testing guide](../howto/TESTING_GUIDE.md).
+
+The shared resolver is called independently by filtering and rendering and reads
+`Utc::now()` and current database state. Tests establish agreement for their fixtures,
+not a once-per-event snapshot across concurrent changes or a UTC date boundary.
+Passing an immutable estimate through the pipeline is deferred application work.
 
 ## External boundaries
 
@@ -80,9 +94,9 @@ Run the focused accuracy regression and compare results before and after.
 - Description parsing depends on human-formatted event text and units.
 - Config precedence depends on first existing TOML path, then environment override; partial TOML sections can replace defaults differently from a missing section.
 - The regression result depends on the contents of the normal local database, not a versioned fixture.
-- SQLite foreign-key declarations exist, but connection setup does not visibly enable `PRAGMA foreign_keys = ON`. Enforcement should be verified before relying on it. **[UNCERTAIN]**
+- Application connections enable `PRAGMA foreign_keys=ON` before initialization; a foreign-key check guards migrated history. Tests cover supported preservation/rollback paths, not arbitrary corruption or concurrent writers.
 - The code comments treat the event endpoint as limited to roughly 200 events/~12 hours; this is an external observation, not enforced by the response type. **[UNCERTAIN]**
 
 ## Performance-history migration/import
 
-`src/history.rs` validates the private versioned profile export and normalizes measured observations without score inference. `src/database_history.rs`, a child of `database.rs`, owns the nullable-score history migration, source uniqueness, reconciliation and atomic import. `src/bin/import_zwiftpower_history.rs` hashes input bytes and preflights migration/import on an in-memory SQLite backup before writes. Normal database initialization migrates supported old history schemas transactionally; unsupported custom/dependent schemas fail. `Database::performance_history()` is the score-independent query boundary. Manual result recording and completion presentation are removed; history ingestion uses the source-qualified importer. The production duration estimator is unchanged by history ingestion.
+`src/history.rs` validates the private versioned profile export and normalizes measured observations without score inference. `src/database_history.rs`, a child of `database.rs`, owns the nullable-score history migration, source uniqueness, reconciliation and atomic import. `src/bin/import_zwiftpower_history.rs` hashes input bytes and preflights migration/import on an in-memory SQLite backup before writes. Normal database initialization migrates supported old history schemas transactionally; unsupported custom/dependent schemas fail. `Database::performance_history()` is the score-independent query boundary. Manual result recording and completion presentation are removed; history ingestion uses the source-qualified importer. History ingestion does not itself calibrate prediction. Subsequent owner-authorized personal estimation reads these observations as described above; it does not infer missing scores or establish improved accuracy.

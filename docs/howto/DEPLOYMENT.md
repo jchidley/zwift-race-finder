@@ -102,14 +102,14 @@ cp ~/.config/zwift-race-finder/config.toml ~/zwift-config-backup-$(date +%Y%m%d)
 ## Troubleshooting
 
 ### No Events Found
-1. Check API is accessible: `curl -s https://us-or-rly101.zwift.com/api/public/events | head`
+1. Check API is accessible: `curl -s https://us-or-rly101.zwift.com/api/public/events/upcoming | head`
 2. Try wider tolerance: `-t 60` for ±60 minutes
 3. Try all event types: `-e all`
 4. Remember API limit: only ~12 hours of events available
 
 ### Wrong Predictions
 1. Import measured history using [the ZwiftPower export/import workflow](ZWIFTPOWER_EXPORT_STEPS.md); manual result entry is removed.
-2. Update rider stats: `./update_rider_stats.sh 86.0`
+2. Check event distance/laps and source route metadata; importing history does not yet personalize predictions.
 3. Check if multi-lap race in `multi_lap_events` table
 4. Report via GitHub if consistently wrong
 

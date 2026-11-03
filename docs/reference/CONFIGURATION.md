@@ -19,15 +19,9 @@ Configuration files are not layered or merged.
 |---|---|---:|---:|---|
 | `defaults` | `zwift_score` | optional integer | `195` | Used when CLI/cache/ZwiftPower do not provide a score |
 | `defaults` | `category` | optional string | `"D"` | Fallback displayed category |
-| `defaults` | `weight_kg` | optional float | `86.0` | Stored/configurable; not a direct estimator input |
-| `defaults` | `height_m` | optional float | `1.82` | Stored/configurable; not a direct estimator input |
-| `defaults` | `ftp_watts` | optional integer | unset | Stored/configurable; not a direct estimator input |
-| `import` | `windows_username` | optional string | unset | Builds a WSL downloads path in import helpers |
 | `preferences` | `default_duration` | optional integer | `120` | Search duration in minutes |
 | `preferences` | `default_tolerance` | optional integer | `30` | Duration tolerance in minutes |
 | `preferences` | `default_days` | optional integer | `1` | Requested search horizon |
-| `display` | `use_colors` | optional boolean | `true` | Display preference field |
-| `display` | `debug` | optional boolean | `false` | Display/debug preference field |
 
 The current main CLI explicitly applies config preferences for duration, tolerance, and days only when the parsed CLI value equals that option's built-in default. It cannot distinguish “not supplied” from “explicitly supplied with the default value.”
 
@@ -37,13 +31,9 @@ The current main CLI explicitly applies config preferences for duration, toleran
 |---|---|
 | `ZWIFT_SCORE` | `defaults.zwift_score` |
 | `ZWIFT_CATEGORY` | `defaults.category` |
-| `ZWIFT_WEIGHT_KG` | `defaults.weight_kg` |
-| `ZWIFT_HEIGHT_M` | `defaults.height_m` |
-| `ZWIFT_FTP_WATTS` | `defaults.ftp_watts` |
 | `ZWIFT_DEFAULT_DURATION` | `preferences.default_duration` |
 | `ZWIFT_DEFAULT_TOLERANCE` | `preferences.default_tolerance` |
 | `ZWIFT_DEFAULT_DAYS` | `preferences.default_days` |
-| `WINDOWS_USERNAME` | Import downloads-path fallback |
 
 Values that fail numeric parsing are ignored.
 
@@ -64,3 +54,7 @@ On Linux, the usual resolved paths are:
 - user data config: `~/.local/share/zwift-race-finder/config.toml`
 
 Other platforms use paths returned by the Rust `dirs` crate.
+
+## Removed inert settings
+
+Physical-stat defaults/overrides, `[import]` download-path settings, and `[display]` color/debug fields were removed because the application never used them. Legacy TOML extra fields are ignored; no stored database records are deleted. Use `--debug` for diagnostic output and the standard `NO_COLOR` environment variable to disable color.

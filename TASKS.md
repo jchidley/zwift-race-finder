@@ -2,7 +2,51 @@
 
 `TASKS.md` is the canonical unresolved queue. Items remain distinct and open until current evidence verifies satisfaction or an owner decision marks them superseded.
 
-## Test-first validation and cleanup
+## Immediate plan — personal finder acceptance
+
+Approved 2026-11-03: P1 plan reconciliation followed by P2 bounded acceptance,
+without changing the model. The goal is the actual score → subgroup/course →
+personal duration → time-window workflow, not another model search.
+
+- [x] **P1:** Reconcile current versus historical work, explicitly retain delivered
+  personal integration, and separate unproven accuracy from implementation.
+- [x] **D1:** Adopt S1–S6 documentation and selected examples. No new code/test/CI
+  enforcement was included; see [decisions](docs/code-truth/DECISIONS.md#standards-adoption--documentation-only).
+- [x] **P2:** Bounded acceptance completed 2026-11-03; see the [acceptance table](STATUS.md#p2-acceptance-evidence). Known/unseen course, recency and fallback checks pass; 19 live compact/verbose matches agree and fall within 40–50 minutes. Full default suite: 192 passed, 7 ignored; release build passes and existing binary hash matches. Formatting/Clippy still fail; no clean-release or accuracy-superiority claim. No model changes, parameter sweep or normal-data writes.
+- [x] Reconcile whether the 31 October race supplied in the later session is in
+  normal history: read-only copy checked 2026-11-03; no such dated row, latest
+  stored date 29 October. This is a data-coverage finding, not an authorized import.
+- [ ] **Approved history refresh — blocked on fresh supported export:** back up, preview and reconcile that later result through the supported importer. Only the 30 October export was found in the private application history-import directory; no new import has run.
+  Do not manufacture source provenance from a chat-supplied finish time.
+- [x] **Approved personal-only duration policy:** remove category-speed substitution while retaining same-route and cross-course personal estimates and fixed duration. Unknown durations are excluded and their omission count disclosed. Fitting parameters unchanged.
+- [ ] **Release-gate preparation incomplete:** scoped formatting and functional validation pass; repository-wide formatting and Clippy still fail. Baseline Clippy: 165 library errors; post-change: 160. Do not weaken gates or represent this as release-ready.
+- [ ] Prepare a reviewable local checkpoint after acceptance; distinguish source,
+  tested release binary and published commit. Commit/push require separate approval.
+
+Current-form adaptation is a product concern; one-year weighting and support
+thresholds are implementation choices. P2 verified that recent results have more
+weight individually but older volume can dominate. Only six ordinary candidates
+in the copied history fell within 90 days (16.9% of base recency weight, not
+necessarily fit influence). Reconcile data coverage before proposing tuning.
+Keep output in whole minutes without promising ±1-minute accuracy.
+
+## Separate proposals — not automatically approved
+
+- **E1:** Explicit populated-data accuracy qualification that cannot pass with
+  zero usable comparisons; keep ordinary isolated tests independent of private data.
+- **E2:** Config tests in isolated subprocesses instead of process-global cwd mutation.
+- **M1:** Pass one immutable estimate through filtering/rendering; defer until justified.
+- **CLI precedence:** Explicit duration/tolerance/days equal to built-in defaults
+  can be replaced by config preferences. This is documented, not repaired by D1.
+- **Metric decision:** Resolve the older below-20% “mean absolute error” wording;
+  MAE in minutes and MAPE are different. Do not silently adopt the test's 30% MAPE guard.
+
+## Retained test-first validation and cleanup backlog
+
+The items below retain their individual dispositions. They are not the execution
+order for P2; OCR and general cleanup are deferred unless needed for a concrete
+finder defect. Historical test counts are dated evidence, not current passes.
+
 
 - [x] Install approved initial native prerequisites and run default Rust tests with isolated state: 170 passed, 7 ignored. See [test audit](docs/project-history/TEST_AUDIT_2026-10-29.md).
 - [x] Install approved `libclang-dev` and `tesseract-ocr-eng`; all-feature build passes and tests run (232 passed, 2 failed, 16 ignored).
@@ -11,7 +55,7 @@
 - [ ] Establish a verified OCR model source: the code-provided detection-model URL returns HTTP 403. Six explicit image tests fail due to missing models; image snapshots/golden data are also absent.
 - [ ] Remove or replace the two ignored OCR engine tests that swallow all errors and return success; retain meaningful extraction smoke tests and add real result assertions where appropriate.
 - [ ] Correct the ignored live-API test's stale endpoint; explicit execution returned HTTP 404 while the actual CLI fetched events successfully.
-- [ ] Make the accuracy regression distinguish missing data from measured success. All 194 observations are now imported; the legacy check reports/excludes 188 unknown-score rows and retains 13.3% MAPE on six scored records. It still needs an explicit no-evaluable-data failure/skip policy and correct event geometry/precise-time evaluation before calibration claims.
+- [ ] Make the accuracy regression distinguish missing data from measured success (E1, separate approval). Recorded event distance and precise seconds are already implemented; the corrected six-score comparison reported 2.093 min MAE on 2026-11-02. Unknown-score rows remain valid personal history but cannot qualify the category comparison. Zero usable comparisons still pass.
 - [x] Fix filter/display duration disagreement with one shared estimate; regression tests and live 30±15 / 60±15 checks pass. KRG declares 45 fixed minutes, which now displays correctly.
 - [x] Distinguish unknown elevation from known zero; calculate lap/lead-in totals; import pinned route-ID-based metadata with provenance and preservation tests.
 - [x] Back up the owner's normal database and apply the verified client export with `import_client_routes` (approved/applied 2026-10-30). Verified all 386 client records, unchanged non-route data/history, integrity, no foreign-key violations, and repeat-import idempotence. Private export: `~/.local/share/zwift-race-finder/client-routes-0862ca71d9b4.json`.
@@ -21,9 +65,10 @@
 - [x] Retire bundled legacy/community route data, importers, website discovery, and guessed mapping/alias recipes; preserve existing database/history. See [retirement audit](docs/project-history/CLIENT_ONLY_ROUTES_2026-10-30.md).
 - [ ] Verify active client-cache selection and refresh source coverage when the installed game changes. Rechecked archive SHA and installed version 1.124.0 (167761); installed manifest provided no active-cache link. Do not infer freshness from file time or public availability from internal definitions.
 - [ ] Select the relevant stage's distance from multi-stage event descriptions rather than the first distance in the text; current shared resolver deliberately preserves the existing parser.
-- [ ] Reassess subgroup selection against actual Racing Score range labels; the shared-resolver fix does not change existing eligibility matching.
+- [x] Resolve Racing Score subgroups by numeric range and traditional groups by exact label/category token; prefer subgroup route/distance, ignore zero laps, and share fixed/calculated geometry. Synthetic regressions and captured live-feed replay pass; touching numeric endpoints retain API order, not a proven unique eligibility rule. See [diagnosis](docs/project-history/PERSONAL_ESTIMATOR_DIAGNOSIS_2026-11-02.md).
 - [x] Implement optional-score, precise, source-qualified performance history and a non-writing preview; migrate/import all approved observations with backed-up reconciliation, conflict/rollback tests, preserved six confirmations and repeat no-op verification. See [history audit](docs/project-history/HISTORY_MODEL_2026-10-30.md).
-- [ ] Develop/evaluate a separate history-based estimator: equivalent event geometry first, comparable terrain/distance/format next, recency/uncertainty and explicit fallback. Use chronological splits without future leakage; do not switch production merely because ingestion succeeded.
+- [x] Implement the explicitly requested live history-based estimator: score selects subgroup; earlier same-route pace or personal distance/ascent fit supplies duration; shared filter/display and visible fallback. Shipped-code chronological replay and isolated tests pass. [Implementation](docs/project-history/LIVE_PERSONAL_ESTIMATOR_2026-11-02.md).
+- [ ] Establish improved personal prediction/selection accuracy beyond the mixed already-inspected historical results. Live integration is experimental, not evidence that this accuracy objective is satisfied.
 - [ ] Resolve current Clippy failures; do not treat overlapping library/library-test lint totals as distinct defects.
 - [ ] Resolve existing Rust formatting failures and ShellCheck findings without conflating them with test assertion failures.
 - [ ] Fix `tools/utils/test_api_limits.sh` to check HTTP status and JSON type before reporting counts; the current diagnostic mislabels an HTTP 400 error as one event.
@@ -33,7 +78,7 @@
 
 ## Parked documentation review
 
-- [ ] Review and accept, revise, or discard the complete unpublished documentation rationalisation described in `STATUS.md`.
+- [x] Publish the approved v0.2.0 checkpoint, including the documentation rationalisation, as `3e13a78`; earlier personal activity exports are untracked and privately backed up.
 - [ ] Review `docs/howto/RETURN_TO_RACING.md`.
   - Re-check the official Zwift Racing Score FAQ and calculation page if their 13 September 2026 verification is no longer fresh enough for publication.
   - Decide whether to retain the practical 20–30 minute return-ride suggestion with a representative five-minute hard effort or limit the guide to official wording.
@@ -42,7 +87,14 @@
   - Refresh the verification date if source wording changes.
 - [ ] Complete documentation acceptance after the test-first audit. Native prerequisite approval is tracked above; `rustfmt` is already installed but formatting fails. Installation, privilege elevation, commit, and publication are not implied.
 
-## Duration accuracy
+## Deferred duration research and optional telemetry
+
+The 31 October FIT/Sauce session reported aligned recordings and grouped/solo
+segments; this is measurement evidence, not a validated drafting forecast. The
+requested open-ended recorder and stream-stop diagnostics need reconciliation
+with their private implementation before claiming completion. They are deferred,
+not prerequisites for useful race selection; do not ask for new recordings by default.
+Detailed pacing/strategy simulation belongs in the separate coaching project.
 
 - [ ] Use solo rather than draft-inclusive speeds for time trials.
 - [ ] Assess a race-field-size factor for draft consistency and variance.
@@ -65,8 +117,8 @@ Coaching, pacing experiments, and the deferred netbrain/zwift multi-instance eva
 ## Operational limitations
 
 - [ ] Add API-region failover or verify that the single `us-or-rly101` endpoint is sufficient.
-- [ ] Decide whether stored rider weight and FTP should remain in the schema when the estimator does not use them directly.
-- [ ] Isolate CLI integration tests from the live API and normal user database.
+- [x] Remove unused physical-stat settings/accessors/updater and fresh table creation; preserve existing stored values.
+- [ ] Isolate remaining CLI integration tests from the live API. Subprocess HOME/XDG state is now isolated, and adapter tests use typed loopback mocks.
 
 ## Code-truth decisions requiring resolution
 
@@ -74,7 +126,7 @@ These remain separate open questions from `docs/code-truth/DECISIONS.md`:
 
 - [x] Enable SQLite foreign-key enforcement on application database connections; migration and history import verify constraints, and normal post-import `foreign_key_check` is clean.
 - [ ] Revalidate the assumed ~200-event/~12-hour Zwift API limit when API behaviour is next reviewed.
-- [ ] Decide whether `Config::default()` should retain personal-shaped weight and height defaults or use generic/absent values.
+- [x] Remove unused physical-stat defaults and environment overrides; preserve existing legacy database data.
 - [ ] Assess and remove or contain the `Box::leak` lifetime workaround in `src/estimation.rs` before reusing this code in a long-lived process.
 - [ ] Choose the correct support destination for the unrelated `anthropics/claude-code` issue URL in `src/main.rs`.
 
@@ -87,3 +139,19 @@ The exact legacy items remain in their original numbered/listed form; this secti
 - [ ] Reassess every stated gap and recommendation in `docs/project-history/UOM_INTEGRATION_TEST_COVERAGE_2025.md` if UOM or integration-test work resumes. Current test documentation does not by itself verify that each historical acceptance criterion was satisfied.
 
 The Pi release audit reports no compatibility follow-up and therefore adds no open Pi task. Its evidence remains at `docs/reference/PI_RELEASE_AUDIT.md`.
+
+## Practical duration estimates — 2026-11-02
+
+- [ ] Before adopting the **disabled profile-based candidate**, resolve event-profile
+  composition (lead-in identity, physical scaling and finish cut) and short/long-course
+  fitting tradeoffs. This does not block the already-active distance/ascent and
+  same-route personal estimator. The comparable-length candidate remains disabled; see
+  [diagnosis](docs/project-history/PERSONAL_ESTIMATOR_DIAGNOSIS_2026-11-02.md).
+- [ ] Strengthen the production comparison with source-qualified historical starting
+  scores where available. They are not required for personal fitting; never infer
+  scores for existing records.
+- [ ] Reassess calibration only with new evidence: the last-five pace adjustment
+  failed the dated/known-score comparison; do not tune another multiplier on the
+  same holdout and call it independent validation.
+- Whole-minute rounding and the recorded-distance/precise-time regression correction
+  are implemented. See [evaluation](docs/project-history/PRACTICAL_ESTIMATOR_2026-11-02.md).

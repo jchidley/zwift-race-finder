@@ -9,22 +9,29 @@ This page maps test targets to the behaviour they exercise. Exact test counts ar
 | Default-feature suite | `cargo test` |
 | Library tests | `cargo test --lib` |
 | Main binary tests | `cargo test --bin zwift-race-finder` |
-| Accuracy regression | `cargo test --lib test_race_predictions_accuracy -- --nocapture` |
-| Mock HTTP tests | `cargo test --test api_tests` |
+| Category-fallback accuracy regression (approved populated data) | `cargo test --lib test_race_predictions_accuracy -- --nocapture` |
+| Production HTTP adapter with loopback fixtures | `cargo test --test api_tests` |
 | CLI integration tests | `cargo test --test integration_tests` |
-| Configuration tests | `cargo test --test config_tests` |
+| Configuration tests (process-cwd mutation; run serially) | `cargo test --test config_tests` |
 | Core property tests | `cargo test --test property_tests` |
 | Additional properties | `cargo test --test properties_tests` |
 | Output snapshots | `cargo test --test snapshot_tests` |
 | OCR tests | `cargo test --features ocr` |
 
-Some ignored tests require the owner's populated race database, OCR models/images, or explicit baseline generation. Inspect each `#[ignore]` reason before enabling it.
+These are target selectors, not safe-state wrappers or verified passes. Follow the
+[testing guide's isolation procedure](../howto/TESTING_GUIDE.md#isolate-writable-application-state)
+for writable tests, preserving Cargo/Rustup homes and excluding inherited secrets.
+Use serial test execution for targets that mutate cwd/environment. Some ignored
+tests require populated data, OCR models/images, or explicit baseline generation;
+inspect each reason before enabling it. The focused accuracy test is **not ignored**
+and can pass on empty data.
 
 ## In-module tests
 
 Most reusable modules contain adjacent unit tests:
 
-- `src/category.rs`, `src/duration_estimation.rs`, and `src/estimation.rs`: category mapping and duration calculations;
+- `src/category.rs`, `src/duration_estimation.rs`, and `src/estimation.rs`: category mapping and fallback duration calculations;
+- `src/personal_estimation.rs`: score-independent personal history fit, chronology, support thresholds and explicit fallback; live integration coverage checks filter/display use of personal minutes;
 - `src/event_filtering.rs`, `src/event_analysis.rs`, and `src/parsing.rs`: event selection, subgroup selection, and text parsing;
 - `src/event_display.rs` and `src/formatting.rs`: display preparation and formatting;
 - `src/database.rs`: schema creation and selected database operations;
@@ -38,14 +45,16 @@ Most reusable modules contain adjacent unit tests:
 
 | Target | Actual boundary exercised |
 |---|---|
-| `tests/api_tests.rs` | `reqwest` and JSON behaviour against a local `mockito` server. These tests do **not** call production `src/api.rs::fetch_events()`. |
-| `tests/integration_tests.rs` | Spawns `cargo run --bin zwift-race-finder`. Several cases can call the live Zwift API or create/use the normal user SQLite database. |
-| `tests/config_tests.rs` | TOML/default behaviour and current-directory config loading. Some tests change process cwd. |
+| `tests/api_tests.rs` | Production API adapter against loopback `mockito`: typed event/subgroup decoding, unsigned route IDs, optional fields, malformed payloads, HTTP errors and real tag helpers. |
+| `tests/integration_tests.rs` | Runs the built binary with isolated HOME/XDG and no inherited secrets. Several cases still call the live Zwift API. |
+| `tests/config_tests.rs` | TOML/default behaviour and current-directory config loading. Some tests change process cwd; subprocess migration is not implemented. |
 | `tests/property_tests.rs`, `tests/properties_tests.rs` | Generated inputs for parsing, formatting, filtering, and estimation invariants. |
 | `tests/snapshot_tests.rs` | Historical synthetic arithmetic fixtures; their labels/IDs are not current route metadata. |
 | `tests/duration_consistency_tests.rs` | Compact/verbose duration agreement with filtering, fixed-duration priority, fallback visibility, explicit-distance/lap lead-in rules, and rejection of unestimable events. |
+| `tests/personal_estimation_tests.rs` | Isolated measured-history import → live personal estimate → filter/compact/verbose agreement; chronology, aliases, score independence, formats/provenance, mixed-rider rejection, fixed durations and explicit fallback. |
 | `tests/elevation_consistency_tests.rs` | Known zero versus unknown, exact lap plus lead-in totals, proportional distance totals, and invalid/overflow cases. |
-| `tests/client_route_import_tests.rs` | Private-database client precedence, precision, Unicode/nulls, legacy identity correction, history preservation, dry-run and forced rollback. |
+| `tests/client_route_import_tests.rs` | Temporary synthetic-database client precedence, precision, Unicode/nulls, legacy identity correction, history preservation, preview and forced rollback. Preview may initialize/migrate schema. |
+| `tests/history_import_tests.rs` | Synthetic legacy migration, nullable scores, source-qualified reconciliation, preservation, conflict rejection, forced rollback, repeatability and byte-for-byte unchanged target after preview. |
 | `tests/export_client_routes_tests.ps1` | Standalone PowerShell 7 collector tests for ID precedence, units, missing/zero, hashes, XML safety, invalid input, and output protection. |
 | `tests/golden_tests.rs` and `tests/golden/` | Baseline generation and validation; generators/validators are ignored by default. |
 | `tests/ocr_*` | OCR characterization, fuzz/property, snapshot, and integration behaviour; prerequisites vary by target. |
@@ -55,24 +64,32 @@ Most reusable modules contain adjacent unit tests:
 - The former `performance` and `ocr_benchmarks` Cargo targets were empty placeholders and have been removed. No Criterion benchmark suite is currently implemented. The separate `zwift_ocr_benchmark` executable remains available with the `ocr` feature.
 - The inactive `tests/uom_integration_tests.rs` and `tests/behavioral/` scaffolding has been removed: it depended on an undeclared `uom-migration` feature and absent UOM implementations. The real `src/ab_testing.rs` utility and its unit tests remain.
 
-- The mock HTTP suite verifies HTTP/JSON mechanics, not the hard-coded production endpoint or its error mapping.
-- CLI integration is not hermetic: network availability and user-state files can affect it.
+- The loopback HTTP suite exercises production request/decoding and HTTP error handling, not availability or compatibility of the hard-coded live endpoint.
+- CLI integration is not hermetic: several cases call the live API. Subprocess state is isolated, but in-process default-path consumers still require outer isolation.
+- Some config/cache tests mutate process-global cwd/environment; isolation from user files does not establish parallel-test safety.
 - Database tests do not comprehensively cover migration scripts, corruption, concurrent writers, or disk-full behaviour.
 - No current automated test substitutes a local fixture endpoint for the complete fetch → filter → display workflow.
-- The accuracy regression depends on local database contents; a passing result is not reproducible from the repository alone.
+- The accuracy regression depends on local database contents and checks the retained legacy category formula. It prints MAE in minutes and MAPE but asserts only MAPE below 30%; zero usable comparisons also pass. Report counts/exclusions and treat empty-data results as unqualified. This does not validate personal-estimator accuracy or resolve the product target's ambiguous percentage wording.
+- Filter/display tests check agreement under their fixtures. Callers still resolve estimates independently against time/database state; a once-per-event immutable snapshot is not implemented.
 - OCR coverage is split between default-disabled feature code, ignored model/image tests, and Python tooling.
 
 For task-oriented instructions, see [How to Test the Project](../howto/TESTING_GUIDE.md). Historical UOM migration coverage notes are preserved in [project history](../project-history/UOM_INTEGRATION_TEST_COVERAGE_2025.md).
 
-## History-model verification — 2026-10-30
+## Historical checkpoints (not current qualification)
 
-Current isolated default suite: **195 passed, 0 failed, 7 ignored**. This adds seven parser and six history migration/import tests to the 182-test client-only state. Browser exporter checks use synthetic data (`node tests/history_export_tests.js`). Release binaries and all-feature test compilation pass; OCR execution is not requalified. Private before/after legacy score-based regression: **13.3% MAPE on the same six records**; after import it explicitly excludes 188 unknown-score records. This is not MAE or evidence of a new predictor. See [history audit](../project-history/HISTORY_MODEL_2026-10-30.md).
+The following dated results are retained as historical evidence. Current focus
+and blockers belong in `STATUS.md`; these counts do not establish that today's
+working tree passes.
 
-## CLI simplification — 2026-10-30
+### History-model verification — 2026-10-30
+
+At that checkpoint, the isolated default suite reported: **195 passed, 0 failed, 7 ignored**. This adds seven parser and six history migration/import tests to the 182-test client-only state. Browser exporter checks use synthetic data (`node tests/history_export_tests.js`). Release binaries and all-feature test compilation pass; OCR execution is not requalified. Private before/after legacy score-based regression: **13.3% MAPE on the same six records**; after import it explicitly excludes 188 unknown-score records. This is not MAE or evidence of a new predictor. See [history audit](../project-history/HISTORY_MODEL_2026-10-30.md).
+
+### CLI simplification — 2026-10-30
 
 After removing completion marking/filtering and description-analysis/discovery commands, the isolated default suite passes **190 tests, 0 failures, 7 ignored**. Five executions were removed: four dedicated obsolete tests and the duplicate binary-side description-parser test (the library parser and its test remain). The standalone analysis binary is removed. Existing stored completion/discovery data is preserved; no discovery-attempt table is created in fresh databases. Direct release-binary checks verify removed options are absent from help and rejected before database creation.
 
-### Follow-up: remove completion presentation and manual recording
+#### Follow-up: remove completion presentation and manual recording
 
 The subsequent cleanup removes progress/indicators and manual result entry, their database APIs and three dedicated tests. At that stage the isolated default suite passed **187 tests, 0 failures, 7 ignored**. History query and nullable-score migration coverage remain, using synthetic SQL fixtures and the supported importer rather than the removed insertion API. Fresh databases no longer create the completion table; existing tables/data are preserved.
 

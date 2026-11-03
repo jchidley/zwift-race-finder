@@ -15,9 +15,17 @@ It preserves source fields rather than guessing finish times or Racing Scores.
 If the site's schema/pagination changes, it fails rather than exporting a partial
 history. Keep the downloaded file private and **outside the repository**.
 
-The older profile extractors/import shell scripts are not this workflow. In
-particular, do not use estimated minutes as actual race results or run a script
-that clears existing history. The legacy scripts remain unsupported.
+The old `zwiftpower_profile_extractor.js`, `import_zwiftpower.sh`, and
+`import_zwiftpower_dev.sh` have been removed. They are not this workflow: estimated
+minutes must never be imported as measured race results, and an import must not
+clear existing history.
+
+The retained `zwiftpower_event_extractor.js` is an independent, legacy metrics
+export only. It copies displayed power/HR/distance data, has no finish-time field,
+and has not been validated against the current site. Its JSON is **not** input
+for this importer. Use only `export_profile_history.js` for the supported export.
+Strava title/date matching and OCR clock readings are not substitutes for this
+source-qualified history workflow; see [data import boundaries](DATA_IMPORT.md).
 
 ## Build
 
@@ -83,13 +91,14 @@ metadata first if any are missing. Do not create guessed mappings. If a legacy
 database contains custom columns, dependent tables/views, or implicit constraints,
 the migration refuses to discard them and requests explicit review.
 
-## Storage is not a new prediction model
+## History and predictions
 
-Importing history does not automatically change the production duration formula.
-The current score-based regression explicitly reports/excludes unknown-score rows;
-score-independent history queries still retain them all. See
-[the history data model](../explanation/HISTORY_DATA_MODEL.md) for the separate
-history-based prediction phase.
+The live finder can use supported earlier ordinary-race history for same-route
+pace or cross-course distance/climbing fitting. Unknown historical scores do not
+prevent personal fitting. Importing additional observations can change predictions
+without changing the model; it does not establish better accuracy. See
+[Algorithms](../reference/ALGORITHMS.md) for the active policy and
+[the history data model](../explanation/HISTORY_DATA_MODEL.md) for storage boundaries.
 
 ## Validation
 

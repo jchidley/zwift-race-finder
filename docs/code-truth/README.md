@@ -3,23 +3,27 @@
 This commit-scoped map helps a human direct implementation work and detect misplaced changes. Human usage documentation starts at [`docs/README.md`](../README.md); operational agent rules are in [`AGENTS.md`](../../AGENTS.md).
 
 ```yaml
-commit: ad3e87c19010e5b33de873a148f5f590acfbf570
-short_commit: ad3e87c
+commit: 3e13a787c58b1c4458ced001ccf27d4d654c00d9
+short_commit: 3e13a78
 branch: main
-commit_date: 2026-03-16T08:00:22Z
+commit_date: 2026-10-30T15:22:36Z
 working_tree: modified_with_untracked
 ```
 
-Client-only route retirement is a working-tree update to this snapshot: no bundled
+The checkpoint includes client-only route retirement: no bundled
 route dataset, community importers, website scraping, or automatic route seeds.
 Client exports remain private outside Git; existing database rows/history remain.
-Cache freshness is not verified here.
+Cache freshness is not verified here. Subsequent local cleanup shares API/config/database through the library and retires obsolete helpers/workflows; see the [cleanup audit](../project-history/OBSOLETE_CODE_CLEANUP_2026-10-30.md).
 
-The snapshot was verified while documentation changes were already present. Re-check code before relying on it after another implementation commit.
+The commit identifies the checkpoint, not a clean snapshot of the files described
+below. These pages also include subsequent unpublished cleanup, personal-estimator
+and documentation changes. Working-tree claims were checked statically against
+source during standards adoption; no build/test pass is implied. Re-check code
+and the current diff before relying on the map after further changes.
 
 ## System shape
 
-Zwift Race Finder is a Rust CLI and library. The main command fetches public Zwift events, selects the rider's event subgroup, estimates durations from distance/category/elevation data, filters by a requested time window, and renders a compact or verbose result. SQLite stores route knowledge, aliases, race results, rider stats and unknown routes. Legacy completion/discovery tables are preserved but no longer created or used.
+Zwift Race Finder is a Rust CLI and library. The main command fetches public Zwift events, selects the rider's event subgroup, resolves fixed durations, earlier personal history or unknown duration without category-speed substitution, filters by a requested time window, and renders a compact or verbose result. SQLite stores route knowledge, aliases, race results and unknown routes. Legacy completion/rider-stat/discovery tables are preserved but no longer created or used.
 
 Optional OCR modules and binaries extract telemetry from screenshots. Import and analysis tools support route and race-data maintenance but are not part of the normal event-search path.
 
@@ -30,25 +34,31 @@ For the normal CLI path:
 1. `src/main.rs` — Clap arguments and orchestration.
 2. `src/api.rs` — fixed public event endpoint and response handling.
 3. `src/event_filtering.rs` — filter order and duration-match decision tree.
-4. `src/estimation.rs` and `src/duration_estimation.rs` — route lookup and calculation.
-5. `src/database.rs` — schema, client route imports, aliases and results.
+4. `src/personal_estimation.rs`, `src/estimation.rs` and `src/duration_estimation.rs` — personal fitting, route bridge and retained legacy formula helpers.
+5. `src/database.rs` and `src/database_history.rs` — schema, imports, aliases and measured observations.
 6. `src/event_display.rs` — table/verbose presentation.
 7. `src/config.rs` and `src/zwiftpower.rs` — defaults, environment secrets, optional score lookup, and cache.
 
-Read [`ARCHITECTURE.md`](ARCHITECTURE.md) before changing boundaries and [`DECISIONS.md`](DECISIONS.md) before changing identifiers, persistence, or the duration model.
+Read the durable [architecture constraints](../reference/ARCHITECTURE.md) before
+changing boundaries, then this map's [`ARCHITECTURE.md`](ARCHITECTURE.md) and
+[`DECISIONS.md`](DECISIONS.md) for observed implementation and recorded decisions.
+Follow the [selected examples and matching tests](PATTERNS.md#selected-first-party-examples)
+for the affected pattern; current code is not automatically exemplary.
 
 ## Repository map
 
 ```text
 Cargo.toml                         # Package, features, binary gates, dependencies
-src/main.rs                       # Main CLI; binary-private API/command adapters
+src/main.rs                       # Main CLI; binary-private command/ZwiftPower adapters
 src/lib.rs                        # Public reusable module surface
 src/api.rs                        # Public Zwift event HTTP request
 src/commands.rs                   # Special CLI command handlers
 src/config.rs                     # TOML/env configuration and secret loading
-src/database.rs                   # All application SQL and schema creation
+src/database.rs                   # Database API, schema, route/alias SQL
+src/database_history.rs           # Private child: measured-history SQL/migration/import
 src/category.rs                   # Racing Score category and empirical speed mapping
-src/duration_estimation.rs        # Pure difficulty and duration calculations
+src/duration_estimation.rs        # Pure category-fallback difficulty/duration calculations
+src/personal_estimation.rs        # Earlier measured history → score-independent personal duration
 src/estimation.rs                 # Database route lookup → calculation bridge
 src/event_filtering.rs            # Event filters and estimation fallback order
 src/event_display.rs              # Compact and verbose output
@@ -72,12 +82,13 @@ archive/                          # Historical evidence; do not modify
 | Desired change | Start here | Also inspect |
 |---|---|---|
 | CLI flag or command dispatch | `src/main.rs` | `src/commands.rs`, CLI integration tests, reference docs |
-| Event fetch/error behaviour | `src/api.rs` | `src/errors.rs`, `tests/api_tests.rs` limitation noted in test reference |
+| Event fetch/error behaviour | `src/api.rs` | `src/errors.rs`, production-adapter loopback tests in `tests/api_tests.rs`; live endpoint remains separate |
 | Event inclusion/exclusion | `src/event_filtering.rs` | `src/event_analysis.rs`, `src/parsing.rs`, property tests |
-| Duration formula or category thresholds | `src/duration_estimation.rs`, `src/category.rs` | `src/estimation.rs`, filtering/display call sites, regression and snapshots |
+| Personal duration/history fit | `src/personal_estimation.rs` | `src/event_filtering.rs`, history storage, display, personal integration tests |
+| Category fallback formula or thresholds | `src/duration_estimation.rs`, `src/category.rs` | `src/estimation.rs`, filtering/display call sites, regression and snapshots |
 | Lead-in or lap handling | `src/event_filtering.rs`, `src/estimation.rs` | route schema/data and regression tests |
 | Route identity or aliases | `src/database.rs` | import scripts, SQL mappings, `u32` parsing tests |
-| Database schema | `src/database.rs` | every query in that file, SQL migration/mapping scripts, database reference |
+| Database schema | `src/database.rs`, `src/database_history.rs` | affected queries/row mapping, preservation/rollback tests, database reference; initialization already migrates supported schemas |
 | Config/defaults/secrets | `src/config.rs` | `config.example.toml`, config tests, secrets how-to |
 | Output columns or wording | `src/event_display.rs` | snapshots and CLI integration tests |
 | Route metadata collection/import | `scripts/export_client_routes.ps1`, `src/bin/import_client_routes.rs`, `src/database.rs` | private client exports, source precedence, provenance, client import tests |
@@ -88,7 +99,7 @@ archive/                          # Historical evidence; do not modify
 
 The maintained test map is [`docs/reference/TEST_SUITE_SUMMARY.md`](../reference/TEST_SUITE_SUMMARY.md). Two boundaries are easy to misstate:
 
-- `tests/api_tests.rs` uses `reqwest` against Mockito but does not call production `fetch_events()`.
-- `tests/integration_tests.rs` runs Cargo recursively and can reach the live API and normal user database.
+- `tests/api_tests.rs` calls the production `fetch_events_from_url()` adapter against loopback Mockito responses; the normal CLI retains its fixed endpoint.
+- `tests/integration_tests.rs` runs the built binary with isolated HOME/XDG state; several cases still reach the live API.
 
 Generated snapshots and golden inputs should be reviewed, not hand-edited casually. Proptest regression files preserve minimized failures.

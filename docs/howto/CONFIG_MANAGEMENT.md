@@ -21,24 +21,15 @@ Edit the copied file. Supported sections include:
 [defaults]
 zwift_score = 250
 category = "C"
-weight_kg = 75.0
-height_m = 1.75
-ftp_watts = 250
 
 [preferences]
 default_duration = 60
 default_tolerance = 15
 default_days = 1
 
-[display]
-use_colors = true
-debug = false
-
-[import]
-windows_username = "YOUR_USERNAME"
 ```
 
-Weight, height, and FTP can be stored but are not direct inputs to the production duration estimator. See [Physical Stats and Duration Estimation](../reference/PHYSICAL_STATS.md).
+Unused physical-stat, display and download-path settings have been removed. Weight, height and FTP are not inputs to the production duration estimator. See [Physical Stats and Duration Estimation](../reference/PHYSICAL_STATS.md).
 
 ## Apply temporary overrides
 

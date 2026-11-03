@@ -20,9 +20,9 @@ The production duration estimator does **not** directly use rider weight, height
 
 The category/elevation interaction is an aggregate proxy for climbing differences between rider groups. It is not an individual physics simulation.
 
-## Stored but unused values
+## Removed unused settings
 
-`src/config.rs` can load weight, height, and FTP defaults, and the SQLite `rider_stats` table can store physical data. The production estimation path does not read those values. Adding them to the formula would be a model change and requires new calibration evidence plus the accuracy regression described in [Algorithms](ALGORITHMS.md).
+Unused physical-stat configuration, accessors and the manual updater were removed. Fresh databases no longer create `rider_stats`; existing tables and their data are left intact. Adding them to the formula would be a model change and requires new calibration evidence plus the accuracy regression described in [Algorithms](ALGORITHMS.md).
 
 ## Consequence for changes
 

@@ -26,7 +26,7 @@ and history are not deleted, and fresh databases contain no seeded routes.
 
 Debian/Ubuntu needs `libssl-dev` and `pkg-config`. OCR tests have additional native and model/image prerequisites.
 
-The accuracy regression reads the normal application database. The CLI integration target launches the application through Cargo and some cases use the live Zwift API or normal user database. Review those tests before running them in an isolated or production-like environment.
+The accuracy regression reads the application database selected by HOME/XDG. Run the suite with isolated state to protect normal data. CLI subprocess tests use the built binary with their own isolated HOME/XDG and no inherited secrets, but some still use the live Zwift API. API adapter tests are loopback-only.
 
 ## Performance history
 

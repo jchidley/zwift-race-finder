@@ -93,7 +93,9 @@ CREATE TABLE IF NOT EXISTS route_completion (
 );
 ```
 
-### rider_stats
+### rider_stats (legacy databases only)
+
+No longer created or used. Existing data is preserved; historical layout:
 ```sql
 CREATE TABLE IF NOT EXISTS rider_stats (
     id INTEGER PRIMARY KEY,
@@ -104,7 +106,7 @@ CREATE TABLE IF NOT EXISTS rider_stats (
 );
 ```
 
-Note: `rider_stats` data is stored but **not used** in the duration estimation algorithm.
+The physical-stat getters and manual updater are removed; this legacy data is not used by the estimator.
 
 ### route_aliases
 ```sql

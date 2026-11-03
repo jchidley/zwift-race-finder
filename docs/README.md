@@ -86,3 +86,5 @@ These records explain prior measurements and decisions but are not current opera
 
 - [History data model](explanation/HISTORY_DATA_MODEL.md): eligibility, observations and predictions are separate; historical scores are optional.
 - [Measured ZwiftPower history](howto/ZWIFTPOWER_EXPORT_STEPS.md): private export, backup, read-only preview, migration and idempotent import.
+
+- [Obsolete-code cleanup audit](project-history/OBSOLETE_CODE_CLEANUP_2026-10-30.md): retired workflows, compatibility boundaries and validation.
