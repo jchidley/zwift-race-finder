@@ -72,21 +72,6 @@ fi
 ./target/release/zwift_ocr_compact "$path"
 ~~~
 
-## video (path)
-> Process a video file for telemetry extraction
->
-> **POSITIONAL ARGUMENTS**
-> * path - Path to the video file
-
-**OPTIONS**
-* --skip-frames
-* --no-preview
-* --analyze
-
-~~~bash
-uv run python zwift_video_processor.py "$path" "$@"
-~~~
-
 ## compact (path)
 > Extract telemetry using the compact version
 >
@@ -102,22 +87,6 @@ uv run python zwift_ocr_compact.py "$path"
 
 ~~~bash
 uv run python rider_pose_detector.py ../../docs/screenshots/normal_1_01_16_02_21.jpg
-~~~
-
-## debug (path)
-> Create debug visualization showing extraction regions and results
->
-> **POSITIONAL ARGUMENTS**
-> * path - Path to the screenshot file
-
-~~~bash
-# Convert relative paths to absolute if needed
-if [[ ! "$path" = /* ]]; then
-    path="$(pwd)/$path"
-fi
-
-uv run python debug_visualizer_v3.py "$path" "debug_${path##*/}"
-echo "Debug image created: debug_${path##*/}"
 ~~~
 
 ## clean

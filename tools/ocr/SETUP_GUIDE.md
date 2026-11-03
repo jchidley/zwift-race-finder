@@ -1,383 +1,124 @@
-# Zwift OCR Tools - Complete Setup Guide
+# Zwift screenshot OCR setup
 
-This guide covers everything you need to get the Zwift OCR telemetry extraction tools running on your system, including both Python and Rust implementations.
+This guide covers the retained compact screenshot extractors and calibration
+utilities. The broken video and v3 visualizer wrappers and prototype console
+entrypoint have been retired; see [README.md](README.md). Commands below are
+source-checked examples, **not a runtime validation of current dependencies,
+model availability, image accuracy, or your platform**.
 
-## Prerequisites
+Run project commands from the repository root. Keep personal screenshots,
+configuration exports, and OCR output outside Git. Installation and model
+downloads need network access; review them separately before running them.
 
-### 1. Install mask (Task Runner)
-```bash
-# Install mask globally using cargo
-cargo install mask
+## Rust compact extractor
 
-# Verify installation
-mask --version
-```
-
-### 2. Install uv (Python Package Manager)
-```bash
-# Install uv (if not already installed)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Or on Debian/Ubuntu
-sudo apt update && sudo apt install -y uv
-
-# Verify installation
-uv --version
-```
-
-### 3. System Dependencies
-
-#### Python OCR (PaddleOCR)
-```bash
-# Quick install script (recommended)
-./install_ocr_deps.sh
-
-# Or manually install on Debian/Ubuntu
-sudo apt update
-sudo apt install -y \
-    python3-dev \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    libgomp1 \
-    libgstreamer1.0-0 \
-    libgstreamer-plugins-base1.0-0
-
-# For video processing
-sudo apt install -y ffmpeg
-```
-
-#### Rust OCR (Tesseract + ocrs)
-```bash
-# Debian/Ubuntu
-sudo apt install -y \
-    libleptonica-dev \
-    libtesseract-dev \
-    tesseract-ocr \
-    tesseract-ocr-eng
-
-# macOS
-brew install tesseract leptonica
-
-# Note: OpenCV is NOT required for the compact implementation
-
-# Download ocrs neural network models (required for v1.1+)
-# Models will be automatically downloaded on first use, or manually:
-mkdir -p ~/.cache/ocrs
-cd ~/.cache/ocrs
-wget https://ocrs-models.s3-accelerate.amazonaws.com/text-detection.rten
-wget https://ocrs-models.s3-accelerate.amazonaws.com/text-recognition.rten
-```
-
-## Installation Steps
-
-### 1. Navigate to OCR Tools Directory
-```bash
-cd tools/ocr/
-```
-
-### 2. Install Python Dependencies
-```bash
-# Using mask (recommended)
-mask setup
-
-# Or manually with uv
-uv sync
-```
-
-### 3. Verify Installation
-```bash
-# Run tests to ensure everything works
-mask test
-
-# Or check OCR engines
-mask compare-engines
-```
-
-### 4. Build Rust OCR (Recommended)
-```bash
-# From project root directory
-cd ../..
-
-# Build release version for maximum performance
-cargo build --features ocr --bin zwift_ocr_compact --release
-
-# Test the build (includes leaderboard with v1.1+)
-./target/release/zwift_ocr_compact docs/screenshots/normal_1_01_16_02_21.jpg
-
-# Or build debug version (slower but faster to compile)
-cargo build --features ocr --bin zwift_ocr_compact
-
-# Test the debug build (if needed)
-./target/debug/zwift_ocr_compact docs/screenshots/normal_1_01_16_02_21.jpg
-
-# Example output with v1.1+ includes leaderboard:
-# Leaderboard:
-#   1. J.Matzke      +2:20 1.9w/kg 5.1km
-#   2. J.Chidley     ---   3.2w/kg 6.4km <-- YOU
-#   3. L.Aindre      -0:13 2.8w/kg 6.6km
-
-# Compare Python vs Rust
-cd tools/ocr/
-uv run python compare_ocr_compact.py
-```
-
-## Quick Start Examples
-
-### Basic Screenshot Analysis
-
-#### Rust Implementation (Fastest - Recommended)
-```bash
-# From project root directory
-# Extract telemetry in JSON format (default)
-./target/release/zwift_ocr_compact docs/screenshots/normal_1_01_16_02_21.jpg
-
-# Human-readable text output (v1.1+ includes leaderboard)
-./target/release/zwift_ocr_compact docs/screenshots/normal_1_01_16_02_21.jpg --format text
-
-# Example output:
-# Speed: 34 km/h
-# Distance: 6.4 km  
-# Altitude: 28 m
-# Time: 11:07
-# Power: 268 W
-# Cadence: 72 rpm
-# HR: 160 bpm
-# Gradient: 3.0%
-# Distance to finish: 28.6 km
-# 
-# Leaderboard:
-#   1. J.Matzke      +2:20 1.9w/kg 5.1km
-#   2. J.Chidley     ---   3.2w/kg 6.4km <-- YOU
-#   3. L.Aindre      -0:13 2.8w/kg 6.6km
-# Rider pose: ClimbingSeated
-```
-
-#### Python Implementation (Full Features)
-```bash
-# From tools/ocr directory
-cd tools/ocr/
-
-# Analyze a single screenshot (includes leaderboard)
-uv run python zwift_ocr_compact.py ../../docs/screenshots/normal_1_01_16_02_21.jpg
-
-# With enhanced debug visualization  
-uv run python zwift_ocr_improved_final.py ../../docs/screenshots/normal_1_01_16_02_21.jpg --debug
-
-# Using mask task runner
-mask screenshot ../../docs/screenshots/normal_1_01_16_02_21.jpg
-```
-
-### Video Processing
-```bash
-# Process a video file (1 frame per second)
-mask video ~/Videos/zwift_race.mp4
-
-# Process every 2 seconds for longer videos
-mask video ~/Videos/zwift_race.mp4 --skip-frames 60
-
-# Process without preview window (faster)
-mask video ~/Videos/zwift_race.mp4 --no-preview
-```
-
-### Available Commands
-
-View all available tasks:
-```bash
-mask --help
-```
-
-Key tasks:
-- `mask setup` - Install dependencies
-- `mask test` - Run all tests
-- `mask screenshot <path>` - Extract from image
-- `mask video <path>` - Process video file
-- `mask compare-engines` - Compare OCR accuracy
-- `mask calibrate-poses` - Calibrate rider detection
-- `mask lint` - Check code quality
-- `mask format` - Auto-format code
-- `mask clean` - Remove generated files
-
-## Output Files
-
-After processing, you'll find:
-- `telemetry_YYYYMMDD_HHMMSS.csv` - Spreadsheet format
-- `telemetry_YYYYMMDD_HHMMSS.json` - JSON format
-- `telemetry.db` - SQLite database
-
-## Viewing Results
-
-### CSV Output
-```bash
-# View first few lines
-head telemetry_*.csv
-
-# Open in spreadsheet
-libreoffice --calc telemetry_*.csv
-```
-
-### JSON Output
-```bash
-# Pretty print JSON
-cat telemetry_*.json | jq '.'
-
-# Extract specific fields
-cat telemetry_*.json | jq '.frames[0:5] | .[] | {time: .timestamp, speed: .speed, power: .power}'
-```
-
-### SQLite Database
-```bash
-# Interactive query
-sqlite3 telemetry.db
-
-# Sample queries
-sqlite3 telemetry.db "SELECT COUNT(*) FROM telemetry;"
-sqlite3 telemetry.db "SELECT timestamp, speed, power, heart_rate FROM telemetry LIMIT 10;"
-sqlite3 telemetry.db "SELECT AVG(power) as avg_power, MAX(speed) as max_speed FROM telemetry;"
-```
-
-## Debugging OCR Extraction
-
-### Visual Debug Mode
-The most effective way to troubleshoot OCR issues is using the debug visualization:
+Debian/Ubuntu builds need `pkg-config`, OpenSSL development headers, Leptonica,
+and Tesseract with English language data. An administrator can install the native
+prerequisites:
 
 ```bash
-# Create debug visualization
-mask debug /path/to/screenshot.jpg
-
-# This creates an image showing:
-# - Colored boxes around each extraction region
-# - Extracted values (or "?" if failed)
-# - Success/failure status for each field
-# - Overall extraction success rate
+sudo apt install pkg-config libssl-dev libleptonica-dev libtesseract-dev tesseract-ocr tesseract-ocr-eng
 ```
 
-### Common Issues and Solutions
+The ocrs leaderboard engine loads these files from `~/.cache/ocrs/`:
 
-#### OCR Not Detecting Values
-1. **Use debug mode first** to see if regions are correctly positioned
-2. Check image quality (1920x1080 recommended)
-3. Ensure Zwift UI scale is at default (100%)
-4. Try different OCR engines (PaddleOCR vs EasyOCR)
+- `text-detection.rten`
+- `text-recognition.rten`
 
-#### Concatenated Text Problem
-Some UI elements (speed, distance, altitude, time) may be read as one string:
-- Example: "2018.410631:06" instead of "20", "18.4", "106", "31:06"
-- Solution: Split top bar into separate regions (implemented in v2)
+The current implementation loads local files; it does **not** automatically
+download them. The source error messages identify the upstream locations:
 
-#### Cadence Not Reading
-- Issue: Region too small for 2-3 digit numbers
-- Solution: Increased region size and added scaling in preprocessing
+- https://ocrs-models.s3-accelerate.amazonaws.com/text-detection.rten
+- https://ocrs-models.s3-accelerate.amazonaws.com/text-recognition.rten
 
-#### Gradient Not Found
-- Issue: Gradient box too large, capturing extra elements
-- Solution: Reduced box size to focus on percentage only
+Acquire those models explicitly before relying on leaderboard extraction.
+Missing models can leave leaderboard data unavailable; inspect output rather
+than assuming successful extraction of every field.
 
-### ImportError: No module named 'paddleocr'
+Build and use the feature-gated binary:
+
 ```bash
-# From the repository root
-cd tools/ocr/
-
-# Reinstall dependencies
-uv sync
-
-# Or add specific engine
-uv add paddlepaddle paddleocr
+cargo build --release --features ocr --bin zwift_ocr_compact
+./target/release/zwift_ocr_compact /absolute/path/to/screenshot.png
+./target/release/zwift_ocr_compact /absolute/path/to/screenshot.png --format text
+# Optional parallel screenshot extraction, not video processing:
+./target/release/zwift_ocr_compact /absolute/path/to/screenshot.png --parallel
 ```
 
-### Video Processing Errors
+JSON output goes to standard output by default. If saving it, choose a new private
+output path rather than overwriting existing results. No Rust OCR build or image
+extraction was run as part of the obsolete-workflow cleanup.
+
+## Python compact extractor
+
+Use uv-managed Python. The dependency declarations are in
+[`pyproject.toml`](pyproject.toml); the old direct `easyocr` and `click`
+dependencies and broken `zwift-ocr` console command are gone. `groq` remains for
+vision-assisted calibration.
+
 ```bash
-# Check ffmpeg is installed
-ffmpeg -version
-
-# If not, install it
-sudo apt install -y ffmpeg
+uv sync --project tools/ocr
+uv run --project tools/ocr python tools/ocr/zwift_ocr_compact.py /absolute/path/to/screenshot.png
 ```
 
-### Permission Denied on Scripts
+`uv sync` may resolve dependencies, refresh the lockfile, and download packages.
+The existing lockfile was not refreshed during this source-only cleanup. Python,
+PaddlePaddle and PaddleOCR version compatibility must be validated on the target
+machine; a successful syntax check does not establish that compatibility. OCR
+engine startup may also download model files.
+
+The compact script prints telemetry and **overwrites `telemetry.json` in the
+current working directory**. Preserve any existing file before running it, and
+keep generated personal outputs outside Git.
+
+The enhanced screenshot extractor is also retained:
+
 ```bash
-# Make scripts executable
-chmod +x zwift_ocr.sh
+uv run --project tools/ocr python tools/ocr/zwift_ocr_improved_final.py /absolute/path/to/screenshot.png --validate
 ```
 
-## Advanced Usage
+It creates debug images by default and writes a timestamped results JSON file.
+`--validate` checks plausibility; compare values with the actual screenshot to
+assess accuracy. Historical single-image accuracy/speed figures are not current
+guarantees.
 
-### Custom Video Processing
-```python
-# Create a custom script
-cat > process_my_video.py << 'EOF'
-#!/usr/bin/env python3
-from zwift_video_processor import ZwiftVideoProcessor
+## Local region inspection and calibration
 
-# Custom settings
-processor = ZwiftVideoProcessor(
-    skip_frames=15,      # Process every 0.5 seconds
-    show_preview=True,   # Show live preview
-    save_frames=True     # Save extracted frames
-)
+For an existing configuration with a `regions` object containing `x`, `y`,
+`width`, and `height`, draw the boxes to a new private image:
 
-# Process with callbacks
-def on_frame(data):
-    if data.power and data.power > 300:
-        print(f"High power detected: {data.power}W at {data.timestamp}s")
-
-processor.process_video("my_race.mp4", callback=on_frame)
-EOF
-
-uv run python process_my_video.py
-```
-
-### Integration with Race Finder
 ```bash
-# Extract telemetry from your race
-mask video my_zwift_race.mp4
-
-# Import key metrics into race finder
-sqlite3 ~/.local/share/zwift-race-finder/races.db << 'EOF'
-ATTACH DATABASE 'telemetry.db' AS tel;
-
--- Create telemetry summary
-CREATE TABLE IF NOT EXISTS telemetry_summaries (
-    id INTEGER PRIMARY KEY,
-    filename TEXT,
-    date TEXT,
-    duration_seconds INTEGER,
-    distance_km REAL,
-    avg_power INTEGER,
-    max_power INTEGER,
-    avg_hr INTEGER,
-    energy_kj INTEGER
-);
-
--- Import summary
-INSERT INTO telemetry_summaries 
-SELECT 
-    NULL,
-    'my_zwift_race.mp4',
-    datetime('now'),
-    MAX(race_time),
-    MAX(distance),
-    ROUND(AVG(power)),
-    MAX(power),
-    ROUND(AVG(heart_rate)),
-    MAX(energy)
-FROM tel.telemetry;
-EOF
+uv run --project tools/ocr python tools/ocr/visualize_regions.py /absolute/path/to/screenshot.png /absolute/path/to/regions.json /absolute/path/to/new-region-preview.png
 ```
 
-## Next Steps
+For interactive mapping (a working graphical display is required):
 
-1. Process your own Zwift recordings
-2. Build a library of telemetry data
-3. Use data to validate race duration predictions
-4. Create custom analysis scripts
-5. Share interesting findings!
+```bash
+uv run --project tools/ocr python tools/ocr/visual_region_mapper.py /absolute/path/to/screenshot.png
+```
 
-## Getting Help
+`calibrate_like_original.py`, `calibrate_multipass.py`,
+`calibrate_with_paddleocr.py`, and the other retained calibration helpers remain
+available for experiments. Their output is not automatically consumed by the
+compact extractors; applying a calibration requires reviewing the relevant
+extractor's regions. UI changes, scaling, and resolution can invalidate the
+existing coordinates.
 
-- Check the README.md for feature details
-- Review TECHNICAL_REFERENCE.md for implementation info
-- Look at example scripts in test files
-- Report issues in the GitHub repository
+`calibrate_with_vision.py` retains Groq and other provider modes. Hosted modes
+send screenshots externally and require separate approval plus approved
+credential handling. No provider calls or credential checks were made during
+this cleanup; provider/model support remains unvalidated.
+
+## Unsupported paths
+
+Do not use `zwift-ocr`, `mask video`, or `mask debug`. Their prototype/video/v3
+visualizer targets were missing or have been removed. Other recipes in
+`maskfile.md` and older guides have not been revalidated. There is no replacement
+end-to-end video/stream pipeline or supported telemetry-database summary import
+in this guide. Use screenshots with the compact extractor instead.
+
+OCR output does not automatically update duration estimates or race results.
+For measured finish-time ingestion, follow
+[ZwiftPower history export/import](../../docs/howto/ZWIFTPOWER_EXPORT_STEPS.md);
+do not substitute a screenshot clock or Strava moving time for a verified race
+finish duration.

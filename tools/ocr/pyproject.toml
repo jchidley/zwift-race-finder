@@ -1,16 +1,14 @@
 [project]
 name = "zwift-ocr-telemetry"
 version = "0.1.0"
-description = "OCR-based telemetry extraction for Zwift screenshots and video"
+description = "OCR-based telemetry extraction and calibration for Zwift screenshots"
 requires-python = ">=3.8"
 dependencies = [
     "opencv-python>=4.8.0",
     "numpy>=1.24.0",
     "paddlepaddle>=2.5.0",
     "paddleocr>=2.7.0",
-    "easyocr>=1.7.0",
     "pillow>=10.0.0",
-    "click>=8.1.8",
     "groq>=0.27.0",
     "matplotlib>=3.7.5",
 ]
@@ -20,9 +18,6 @@ dev = [
     "pytest>=7.0.0",
     "ruff>=0.1.0",
 ]
-
-[project.scripts]
-zwift-ocr = "zwift_ocr_prototype:main"
 
 [tool.ruff]
 target-version = "py38"
