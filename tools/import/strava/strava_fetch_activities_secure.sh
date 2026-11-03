@@ -236,4 +236,5 @@ echo "$RACES" | jq -r '.[:5] | .[] |
     "\(.start_date_local | split("T")[0]) - \(.name) - \(.moving_time_minutes)min - \(.distance_km)km"'
 
 echo ""
-echo "Next step: Run ./strava_import_to_db.sh to update the database"
+echo "Strava database ingestion is unsupported; keep this export for standalone analysis."
+echo "For measured race-history imports, see docs/howto/ZWIFTPOWER_EXPORT_STEPS.md."

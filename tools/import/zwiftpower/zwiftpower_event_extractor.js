@@ -1,6 +1,9 @@
-// Extract race results from ZwiftPower profile page - Version 3
-// Captures meaningful metrics (power, w/kg, HR) while excluding unreliable fields
+// Standalone profile-table metrics export (legacy Version 3; current site unvalidated).
+// Copies displayed power, w/kg, HR and distance; does not supply measured finish times.
+// This is NOT input for import_zwiftpower_history. For supported history ingestion,
+// use export_profile_history.js and docs/howto/ZWIFTPOWER_EXPORT_STEPS.md.
 (function() {
+    console.warn('Standalone metrics export only; database ingestion of this format is unsupported.');
     const results = [];
     
     // Target the profile_results table directly
