@@ -13,9 +13,10 @@ pub struct FilterStats {
     pub time_filtered: u32,
     pub type_filtered: u32,
     pub duration_filtered: u32,
+    /// Eligible events omitted because no evidence-based duration is available.
+    pub duration_unknown: u32,
+    pub subgroup_filtered: u32,
     pub tag_filtered: u32,
-    pub unknown_routes: u32,
-    pub missing_distance: u32,
 }
 
 impl FilterStats {
@@ -24,11 +25,9 @@ impl FilterStats {
             + self.time_filtered
             + self.type_filtered
             + self.duration_filtered
+            + self.duration_unknown
+            + self.subgroup_filtered
             + self.tag_filtered
-    }
-
-    pub fn duration_no_match(&self) -> u32 {
-        self.duration_filtered
     }
 }
 
@@ -107,7 +106,6 @@ pub fn filter_by_excluded_tags(events: &mut Vec<ZwiftEvent>, exclude_tags: &[Str
     (pre_count - events.len()) as u32
 }
 
-
 /// The event estimate shared by duration filtering and both display modes.
 #[derive(Debug, Clone)]
 pub struct EventEstimate {
@@ -116,45 +114,30 @@ pub struct EventEstimate {
     pub elevation_m: Option<u32>,
     pub is_fixed: bool,
     pub elevation_is_estimate: bool,
+    pub personal: Option<crate::personal_estimation::PersonalEstimate>,
 }
 
 impl EventEstimate {
-    fn fixed(duration_minutes: u32, event: &ZwiftEvent, zwift_score: u32) -> Self {
-        let subgroup = crate::event_analysis::find_user_subgroup(event, zwift_score);
-        let distance_km = subgroup
-            .and_then(|sg| sg.distance_in_meters)
-            .filter(|&d| d > 0.0)
-            .or(event.distance_in_meters.filter(|&d| d > 0.0))
-            .map(|meters| meters / crate::constants::METERS_PER_KILOMETER)
-            .or_else(|| {
-                let laps = subgroup?.laps?;
-                let route = crate::estimation::get_route_data(event.route_id?)?;
-                Some(route.distance_km * f64::from(laps) + route.lead_in_distance_km?)
-            });
-        let mut estimate = distance_km.map_or(
+    fn resolved(duration_minutes: u32, geometry: Option<&EventGeometry>, is_fixed: bool) -> Self {
+        let mut estimate = geometry.map_or(
             Self {
                 duration_minutes,
                 distance_km: None,
                 elevation_m: None,
-                is_fixed: true,
+                is_fixed,
                 elevation_is_estimate: false,
+                personal: None,
             },
-            |distance| Self::estimated(duration_minutes, distance, event.route_id),
+            |geometry| {
+                let estimate =
+                    Self::estimated(duration_minutes, geometry.distance_km, geometry.route_id);
+                match (geometry.route_id, geometry.laps) {
+                    (Some(route_id), Some(laps)) => estimate.with_laps(route_id, laps),
+                    _ => estimate,
+                }
+            },
         );
-        // Laps provide an exact total; a supplied distance only supports a
-        // proportional estimate without the route's full elevation profile.
-        let has_distance = subgroup
-            .and_then(|sg| sg.distance_in_meters)
-            .filter(|&d| d > 0.0)
-            .or(event.distance_in_meters.filter(|&d| d > 0.0))
-            .is_some();
-        if !has_distance {
-            if let (Some(route_id), Some(laps)) = (event.route_id, subgroup.and_then(|sg| sg.laps))
-            {
-                estimate = estimate.with_laps(route_id, laps);
-            }
-        }
-        estimate.is_fixed = true;
+        estimate.is_fixed = is_fixed;
         estimate
     }
 
@@ -169,6 +152,7 @@ impl EventEstimate {
             elevation_m,
             is_fixed: false,
             elevation_is_estimate: true,
+            personal: None,
         }
     }
     fn with_laps(mut self, route_id: u32, laps: u32) -> Self {
@@ -180,122 +164,167 @@ impl EventEstimate {
     }
 }
 
-/// Resolve a duration using the existing filter's ordered fallbacks.
-/// No estimate means the event cannot be claimed as a duration match.
-pub fn estimate_event(event: &ZwiftEvent, zwift_score: u32) -> Option<EventEstimate> {
+/// Geometry is resolved once, independently of whether duration is fixed.
+struct EventGeometry {
+    distance_km: f64,
+    route_id: Option<u32>,
+    // Only lap-derived geometry has exact lap elevation.
+    laps: Option<u32>,
+}
+
+fn positive_distance(distance: Option<f64>) -> Option<f64> {
+    distance.filter(|d| d.is_finite() && *d > 0.0)
+}
+
+pub(crate) fn fixed_minutes(minutes: Option<u32>, seconds: Option<u32>) -> Option<u32> {
+    minutes.filter(|&minutes| minutes > 0).or_else(|| {
+        seconds
+            .filter(|&seconds| seconds > 0)
+            .map(|seconds| seconds / 60)
+            .filter(|&minutes| minutes > 0)
+    })
+}
+
+/// Selected subgroup distance > selected subgroup laps > event distance >
+/// existing route/description/name fallbacks. Lead-in is added only for laps.
+fn resolve_geometry(
+    event: &ZwiftEvent,
+    subgroup: Option<&crate::models::EventSubGroup>,
+    route_id: Option<u32>,
+) -> Option<EventGeometry> {
     use crate::constants::METERS_PER_KILOMETER;
-    use crate::duration_estimation::estimate_duration_for_category;
-    use crate::estimation::{
-        estimate_duration_from_route_id, estimate_duration_with_distance, get_route_data,
-    };
-    use crate::event_analysis::find_user_subgroup;
+    use crate::estimation::get_route_data;
     use crate::models::is_racing_score_event;
     use crate::parsing::{estimate_distance_from_name, parse_distance_from_description};
 
-    let duration_minutes = event
-        .duration_in_minutes
-        .filter(|&d| d > 0)
-        .or_else(|| event.duration_in_seconds.map(|s| s / 60).filter(|&d| d > 0));
-    if let Some(duration) = duration_minutes {
-        return Some(EventEstimate::fixed(duration, event, zwift_score));
+    let geometry = |distance_km, laps| EventGeometry {
+        distance_km,
+        route_id,
+        laps,
+    };
+    let lap_distance = |route: &crate::models::RouteData, laps: u32| {
+        let lead = route.lead_in_distance_km?;
+        if !lead.is_finite() || lead < 0.0 {
+            return None;
+        }
+        positive_distance(Some(route.distance_km))?;
+        positive_distance(Some(route.distance_km * f64::from(laps) + lead))
+    };
+
+    if let Some(distance) = positive_distance(subgroup.and_then(|sg| sg.distance_in_meters)) {
+        return Some(geometry(distance / METERS_PER_KILOMETER, None));
     }
-
-    let user_subgroup = find_user_subgroup(event, zwift_score);
-    if let Some(route_id) = event.route_id {
-        if let Some(laps) = user_subgroup.and_then(|sg| sg.laps) {
-            if let Some((route, lead_in)) = get_route_data(route_id)
-                .and_then(|route| route.lead_in_distance_km.map(|lead| (route, lead)))
-            {
-                let distance = lead_in + route.distance_km * f64::from(laps);
-                if let Some(minutes) =
-                    estimate_duration_with_distance(route_id, distance, zwift_score)
-                {
-                    return Some(
-                        EventEstimate::estimated(minutes, distance, Some(route_id))
-                            .with_laps(route_id, laps),
-                    );
-                }
-            }
-        }
-
-        let distance_meters = user_subgroup
-            .and_then(|sg| sg.distance_in_meters)
-            .or(event.distance_in_meters);
-        if let Some(distance) = distance_meters.filter(|&d| d > 0.0) {
-            let distance = distance / METERS_PER_KILOMETER;
-            let minutes = estimate_duration_with_distance(route_id, distance, zwift_score)
-                .unwrap_or_else(|| {
-                    estimate_duration_for_category(
-                        distance,
-                        event.route.as_deref().unwrap_or(&event.name),
-                        zwift_score,
-                    )
-                });
-            return Some(EventEstimate::estimated(minutes, distance, Some(route_id)));
-        }
-        if let Some(minutes) = estimate_duration_from_route_id(route_id, zwift_score) {
-            // Count the lead-in once even for historical multi-lap metadata.
-            let laps = Database::new()
-                .ok()
-                .and_then(|db| db.get_multi_lap_info(&event.name).ok().flatten());
-
-            let route = get_route_data(route_id)?;
-            let lap_count = laps.unwrap_or(1);
-            let distance = route.distance_km * f64::from(lap_count) + route.lead_in_distance_km?;
-            let minutes = if laps.is_some() {
-                estimate_duration_with_distance(route_id, distance, zwift_score)?
-            } else {
-                minutes
-            };
-            return Some(
-                EventEstimate::estimated(minutes, distance, Some(route_id))
-                    .with_laps(route_id, lap_count),
-            );
+    if let Some(laps) = subgroup.and_then(|sg| sg.laps).filter(|&laps| laps > 0) {
+        if let Some(distance) = route_id
+            .and_then(get_route_data)
+            .and_then(|route| lap_distance(&route, laps))
+        {
+            return Some(geometry(distance, Some(laps)));
         }
     }
-
-    // Unknown/no route: retain the filter's distance, description, and name fallbacks.
-    let route_name = event.route.as_deref().unwrap_or(&event.name);
-    if let Some(distance) = event.distance_in_meters.filter(|&d| d > 0.0) {
-        let distance = distance / METERS_PER_KILOMETER;
-        return Some(EventEstimate::estimated(
-            estimate_duration_for_category(distance, route_name, zwift_score),
-            distance,
-            None,
-        ));
+    if let Some(distance) = positive_distance(event.distance_in_meters) {
+        return Some(geometry(distance / METERS_PER_KILOMETER, None));
+    }
+    if let Some(route) = route_id.and_then(get_route_data) {
+        let laps = Database::new()
+            .ok()
+            .and_then(|db| db.get_multi_lap_info(&event.name).ok().flatten())
+            .filter(|&laps| laps > 0)
+            .unwrap_or(1);
+        if let Some(distance) = lap_distance(&route, laps) {
+            return Some(geometry(distance, Some(laps)));
+        }
     }
     if is_racing_score_event(event) {
-        if let Some(distance) = parse_distance_from_description(&event.description) {
-            return Some(EventEstimate::estimated(
-                estimate_duration_for_category(distance, route_name, zwift_score),
-                distance,
-                None,
-            ));
+        if let Some(distance) =
+            positive_distance(parse_distance_from_description(&event.description))
+        {
+            return Some(geometry(distance, None));
         }
     }
-    if let Some(distance) = estimate_distance_from_name(&event.name) {
-        return Some(EventEstimate::estimated(
-            estimate_duration_for_category(distance, &event.name, zwift_score),
-            distance,
-            None,
+    positive_distance(estimate_distance_from_name(&event.name))
+        .map(|distance_km| geometry(distance_km, None))
+}
+
+/// Why an event cannot receive an evidence-based duration.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum EstimateUnavailable {
+    NoEligibleSubgroup,
+    MissingGeometry,
+    Personal(crate::personal_estimation::PersonalFallback),
+}
+
+impl std::fmt::Display for EstimateUnavailable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::NoEligibleSubgroup => f.write_str("no eligible subgroup"),
+            Self::MissingGeometry => f.write_str("missing event distance"),
+            Self::Personal(reason) => std::fmt::Display::fmt(reason, f),
+        }
+    }
+}
+
+/// Resolve fixed duration or a supported personal estimate. Score selects only
+/// subgroup geometry: no category speed is substituted for unavailable history.
+///
+/// # Errors
+/// Returns an unavailable reason when no subgroup is eligible, distance is absent,
+/// or the personal model cannot support an estimate (including retrieval errors).
+pub fn resolve_event(
+    event: &ZwiftEvent,
+    zwift_score: u32,
+) -> Result<EventEstimate, EstimateUnavailable> {
+    use crate::event_analysis::find_user_subgroup;
+    use crate::models::is_racing_score_event;
+    use crate::personal_estimation::{predict_from_database, PersonalFallback, PersonalTarget};
+
+    let subgroup = find_user_subgroup(event, zwift_score);
+    if is_racing_score_event(event) && subgroup.is_none() {
+        return Err(EstimateUnavailable::NoEligibleSubgroup);
+    }
+    let geometry = resolve_geometry(
+        event,
+        subgroup,
+        crate::event_analysis::selected_route_id(event, zwift_score),
+    );
+    let fixed = fixed_minutes(event.duration_in_minutes, event.duration_in_seconds).or_else(|| {
+        let sg = subgroup?;
+        fixed_minutes(sg.duration_in_minutes, sg.duration_in_seconds)
+    });
+    if let Some(minutes) = fixed {
+        return Ok(EventEstimate::resolved(minutes, geometry.as_ref(), true));
+    }
+    let geometry = geometry.ok_or(EstimateUnavailable::MissingGeometry)?;
+    if event.event_type != "RACE" {
+        return Err(EstimateUnavailable::Personal(
+            PersonalFallback::UnsupportedFormat,
         ));
     }
-
-    let subgroup = user_subgroup?;
-    if let Some(minutes) = subgroup.duration_in_minutes {
-        return Some(EventEstimate::fixed(minutes, event, zwift_score));
-    }
-    subgroup
-        .distance_in_meters
-        .filter(|&d| d > 0.0)
-        .map(|distance| {
-            let distance = distance / METERS_PER_KILOMETER;
-            EventEstimate::estimated(
-                estimate_duration_for_category(distance, route_name, zwift_score),
-                distance,
-                None,
+    let personal = Database::new()
+        .map_err(|error| PersonalFallback::HistoryUnavailable(error.to_string()))
+        .and_then(|db| {
+            predict_from_database(
+                &db,
+                PersonalTarget {
+                    event_day: event.event_start.date_naive(),
+                    route_id: geometry.route_id,
+                    distance_km: geometry.distance_km,
+                    ascent_m: None,
+                },
+                geometry.laps,
+                Utc::now().date_naive(),
             )
         })
+        .map_err(EstimateUnavailable::Personal)?;
+    let mut estimate =
+        EventEstimate::resolved(personal.minutes.round() as u32, Some(&geometry), false);
+    estimate.personal = Some(personal);
+    Ok(estimate)
+}
+
+/// Convenience predicate/display adapter; use `resolve_event` for the reason.
+pub fn estimate_event(event: &ZwiftEvent, zwift_score: u32) -> Option<EventEstimate> {
+    resolve_event(event, zwift_score).ok()
 }
 
 /// Check the same duration that the table and verbose output display.
@@ -343,7 +372,6 @@ mod tests {
         stats.duration_filtered = 1;
 
         assert_eq!(stats.total_filtered(), 11);
-        assert_eq!(stats.duration_no_match(), 1);
     }
 
     #[test]
@@ -621,7 +649,6 @@ mod tests {
         assert!(!event_matches_duration(&event, 120, 10, 200));
     }
 
-
     #[test]
     fn test_event_matches_duration_comparison_operators() {
         // Test <= comparison in event_matches_duration
@@ -629,7 +656,7 @@ mod tests {
 
         // Test edge case: duration exactly at tolerance boundary
         let mut event = create_test_event("Edge Case Race", "CYCLING", "RACE");
-        event.distance_in_meters = Some(15450.0); // Exactly 30 min for Cat D
+        event.duration_in_minutes = Some(30); // Exact duration isolates the boundary predicate
 
         // With tolerance 0, only exact matches should pass
         assert!(event_matches_duration(&event, 30, 0, 195));
@@ -653,9 +680,9 @@ mod tests {
             time_filtered: 5,
             type_filtered: 3,
             duration_filtered: 8,
+            duration_unknown: 0,
+            subgroup_filtered: 0,
             tag_filtered: 2,
-            unknown_routes: 0,
-            missing_distance: 0,
         };
 
         let total = stats.total_filtered();
@@ -664,27 +691,6 @@ mod tests {
         // If + became -, we'd get negative or very different values
         assert!(total > 20);
         assert!(total < 40);
-    }
-
-    #[test]
-    fn test_duration_no_match_arithmetic() {
-        // Test addition in FilterStats::duration_no_match
-        // Mutation: replace + with -
-        let stats = FilterStats {
-            sport_filtered: 0,
-            time_filtered: 0,
-            type_filtered: 0,
-            duration_filtered: 8,
-            tag_filtered: 0,
-            unknown_routes: 4,
-            missing_distance: 2,
-        };
-
-        let no_match = stats.duration_no_match();
-        assert_eq!(no_match, 8); // duration_no_match only returns duration_filtered
-
-        // Test that it equals duration_filtered
-        assert_eq!(no_match, stats.duration_filtered);
     }
 
     #[test]
@@ -704,6 +710,8 @@ mod tests {
             route_id: None,
             distance_in_meters: Some(0.0),
             duration_in_minutes: None,
+            duration_in_seconds: None,
+            subgroup_label: None,
             category_enforcement: None,
             range_access_label: Some("0-199".to_string()),
             laps: None,

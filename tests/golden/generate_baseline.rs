@@ -10,7 +10,6 @@ use zwift_race_finder::{
     category::get_category_from_score,
     duration_estimation::estimate_duration_for_category,
     estimation::{estimate_duration_from_route_id, estimate_duration_with_distance},
-    models::ZwiftEvent,
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

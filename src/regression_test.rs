@@ -14,13 +14,16 @@ mod tests {
         // Load actual race data from database
         let db = Database::new().expect("Failed to open database");
         let results = db
-            .get_all_race_results()
+            .performance_history()
             .expect("Failed to get race results");
 
         // Cache multi-lap info to avoid repeated database queries
         let mut multi_lap_cache = std::collections::HashMap::new();
 
         let mut total_error = 0.0;
+        let mut total_absolute_minutes = 0.0;
+        let mut precise_times = 0;
+        let mut recorded_distances = 0;
         let mut count = 0;
         let mut errors_by_route = std::collections::HashMap::new();
 
@@ -33,17 +36,19 @@ mod tests {
 
         // Limit to first 500 results for faster testing, excluding test races
         let test_results: Vec<_> = results.into_iter()
-            .filter(|r| r.route_id != 9999 && !r.event_name.starts_with("Test Race"))
+            .filter(|r| r.result.route_id != 9999 && !r.result.event_name.starts_with("Test Race"))
             .take(500)
             .collect();
 
-        println!("Results excluded for unknown Racing Score: {}", test_results.iter().filter(|r| r.zwift_score.is_none()).count());
-        for result in test_results.iter() {
+        println!("Results excluded for unknown Racing Score: {}", test_results.iter().filter(|r| r.result.zwift_score.is_none()).count());
+        for observation in test_results.iter() {
+            let result = &observation.result;
             let Some(zwift_score) = result.zwift_score else { continue; };
             // Estimate duration using route_id and actual distance
-            let predicted = if let Some(distance_km) = parse_distance_from_name(&result.event_name)
+            let predicted = if let Some(distance_km) = observation.event_distance_km.or_else(|| parse_distance_from_name(&result.event_name))
             {
-                // Use parsed distance for multi-lap races
+                // Recorded total event distance takes precedence over name/route guesses.
+                // Never add another lead-in to this distance.
                 estimate_duration_with_distance(result.route_id, distance_km, zwift_score)
             } else {
                 // Check for multi-lap events in cache or database
@@ -67,7 +72,11 @@ mod tests {
             };
 
             if let Some(predicted_minutes) = predicted {
-                let actual_minutes = result.actual_minutes as f64;
+                let actual_minutes = observation.actual_seconds
+                    .map(|seconds| seconds / 60.0)
+                    .unwrap_or(f64::from(result.actual_minutes));
+                precise_times += usize::from(observation.actual_seconds.is_some());
+                recorded_distances += usize::from(observation.event_distance_km.is_some());
                 let predicted_minutes_f64 = predicted_minutes as f64;
                 let error = predicted_minutes_f64 - actual_minutes;
                 let percent_error = (error / actual_minutes * PERCENT_MULTIPLIER).abs();
@@ -89,6 +98,7 @@ mod tests {
                 }
 
                 total_error += percent_error;
+                total_absolute_minutes += error.abs();
                 count += 1;
             }
         }
@@ -97,7 +107,9 @@ mod tests {
             let mean_error = total_error / count as f64;
             println!("\n{}", "=".repeat(80));
             println!("Mean Absolute Percentage Error: {:.1}%", mean_error);
+            println!("Mean Absolute Error: {:.3} min", total_absolute_minutes / count as f64);
             println!("Total races analyzed: {}", count);
+            println!("Precise observed times: {}; recorded event distances: {}", precise_times, recorded_distances);
 
             // Show error by route
             println!("\n=== Error Analysis by Route ===");

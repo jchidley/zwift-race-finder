@@ -139,7 +139,6 @@ fn generate_golden_baseline_improved() {
 
 #[cfg(test)]
 mod integration_with_test_db {
-    use super::*;
     use std::env;
     use tempfile::TempDir;
     

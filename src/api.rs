@@ -1,14 +1,18 @@
 use anyhow::Result;
 
-use zwift_race_finder::errors::*;
-use zwift_race_finder::models::*;
+use crate::errors::*;
+use crate::models::ZwiftEvent;
 
 pub async fn fetch_events() -> Result<Vec<ZwiftEvent>> {
     // API has a hard limit of 200 events (about 12 hours worth)
     // The API ignores pagination parameters (limit/offset) and date filters
     // This is a Zwift API limitation, not a bug in this tool
-    let url = "https://us-or-rly101.zwift.com/api/public/events/upcoming";
+    fetch_events_from_url("https://us-or-rly101.zwift.com/api/public/events/upcoming").await
+}
 
+/// Fetch typed events from a supplied URL using the production request and error handling.
+/// The normal CLI always uses the fixed endpoint in [`fetch_events`].
+pub async fn fetch_events_from_url(url: &str) -> Result<Vec<ZwiftEvent>> {
     let client = reqwest::Client::builder()
         .user_agent("Zwift Race Finder")
         .timeout(std::time::Duration::from_secs(30))

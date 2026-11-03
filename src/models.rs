@@ -33,11 +33,12 @@ pub fn default_sport() -> String {
 }
 
 pub fn is_racing_score_event(event: &ZwiftEvent) -> bool {
-    // Racing Score events have range_access_label in subgroups
+    // Blank labels also occur on traditional events. A nonblank restriction
+    // remains score-based even if malformed; do not silently ignore it.
     event
         .event_sub_groups
         .iter()
-        .any(|sg| sg.range_access_label.is_some())
+        .any(|sg| sg.range_access_label.as_deref().is_some_and(|label| !label.trim().is_empty()))
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -48,6 +49,8 @@ pub struct EventSubGroup {
     pub route_id: Option<u32>,
     pub distance_in_meters: Option<f64>,
     pub duration_in_minutes: Option<u32>,
+    pub duration_in_seconds: Option<u32>,
+    pub subgroup_label: Option<String>,
     pub category_enforcement: Option<bool>,
     pub range_access_label: Option<String>,
     pub laps: Option<u32>,
@@ -108,6 +111,8 @@ mod tests {
                 route_id: Some(1),
                 distance_in_meters: Some(40000.0),
                 duration_in_minutes: None,
+                duration_in_seconds: None,
+                subgroup_label: None,
                 category_enforcement: None,
                 range_access_label: None, // No range label for traditional events
                 laps: None,
@@ -137,6 +142,8 @@ mod tests {
                 route_id: Some(9),
                 distance_in_meters: Some(0.0),
                 duration_in_minutes: None,
+                duration_in_seconds: None,
+                subgroup_label: None,
                 category_enforcement: None,
                 range_access_label: Some("0-199".to_string()), // This indicates Racing Score
                 laps: None,

@@ -11,10 +11,9 @@ use zwift_race_finder::category::{
 };
 use zwift_race_finder::duration_estimation::{
     estimate_duration_for_category, get_route_difficulty_multiplier,
-    get_route_difficulty_multiplier_from_elevation,
-    get_route_difficulty_multiplier_from_elevation_and_category,
+    get_route_difficulty_multiplier_from_gain_and_category,
 };
-use zwift_race_finder::parsing::{parse_distance_from_name, parse_lap_count};
+use zwift_race_finder::parsing::{parse_distance_from_name, parse_description_data};
 
 // ── Monotonicity: longer routes take more time ──────────────────────────────
 
@@ -45,8 +44,8 @@ proptest! {
         base_elev in 0u32..500,
         extra_elev in 100u32..2000
     ) {
-        let flat_mult = get_route_difficulty_multiplier_from_elevation(distance_km, base_elev);
-        let hilly_mult = get_route_difficulty_multiplier_from_elevation(distance_km, base_elev + extra_elev);
+        let flat_mult = get_route_difficulty_multiplier_from_gain_and_category(distance_km, f64::from(base_elev), "C");
+        let hilly_mult = get_route_difficulty_multiplier_from_gain_and_category(distance_km, f64::from(base_elev + extra_elev), "C");
         prop_assert!(
             hilly_mult <= flat_mult,
             "More elevation ({} m, mult={}) should give <= multiplier than ({} m, mult={})",
@@ -120,18 +119,10 @@ proptest! {
         let meters_per_km = elevation_m as f64 / distance_km;
         prop_assume!(meters_per_km > 15.0);
 
-        let mult_a = get_route_difficulty_multiplier_from_elevation_and_category(
-            distance_km, elevation_m, "A",
-        );
-        let mult_c = get_route_difficulty_multiplier_from_elevation_and_category(
-            distance_km, elevation_m, "C",
-        );
-        let mult_d = get_route_difficulty_multiplier_from_elevation_and_category(
-            distance_km, elevation_m, "D",
-        );
-        let mult_e = get_route_difficulty_multiplier_from_elevation_and_category(
-            distance_km, elevation_m, "E",
-        );
+        let mult_a = get_route_difficulty_multiplier_from_gain_and_category(distance_km, f64::from(elevation_m), "A");
+        let mult_c = get_route_difficulty_multiplier_from_gain_and_category(distance_km, f64::from(elevation_m), "C");
+        let mult_d = get_route_difficulty_multiplier_from_gain_and_category(distance_km, f64::from(elevation_m), "D");
+        let mult_e = get_route_difficulty_multiplier_from_gain_and_category(distance_km, f64::from(elevation_m), "E");
 
         prop_assert!(mult_a >= mult_c, "Cat A ({}) should >= Cat C ({}) on climbs", mult_a, mult_c);
         prop_assert!(mult_c >= mult_d, "Cat C ({}) should >= Cat D ({}) on climbs", mult_c, mult_d);
@@ -147,7 +138,7 @@ proptest! {
         distance_km in 1.0..200.0,
         elevation_m in 0u32..5000
     ) {
-        let mult = get_route_difficulty_multiplier_from_elevation(distance_km, elevation_m);
+        let mult = get_route_difficulty_multiplier_from_gain_and_category(distance_km, f64::from(elevation_m), "C");
         prop_assert!(mult > 0.0, "Multiplier should be positive, got {}", mult);
         prop_assert!(mult <= 1.1, "Multiplier should be <= 1.1 (max flat bonus), got {}", mult);
     }
@@ -215,7 +206,7 @@ proptest! {
         laps in 1u32..100
     ) {
         let formatted = format!("{} laps of Watopia", laps);
-        let parsed = parse_lap_count(&formatted);
+        let parsed = parse_description_data(&Some(formatted.clone())).laps;
         prop_assert_eq!(
             parsed, Some(laps),
             "Should parse {} laps from '{}'", laps, formatted

@@ -1,26 +1,11 @@
-# Zwift Race Finder Configuration
-# Non-secret settings only - secrets are loaded from environment variables
+# Zwift Race Finder: non-secret configuration only.
+# Credentials come from environment variables.
 
 [defaults]
 zwift_score = 195
 category = "D"
-height_m = 1.82      # Height in meters (used for aerodynamics)
-weight_kg = 86.0     # Weight in kilograms  
-ftp_watts = 250      # Functional Threshold Power (optional)
-
-[import]
-# For WSL users - set your Windows username here
-# Or use environment variable WINDOWS_USERNAME
-windows_username = "YOUR_USERNAME"
 
 [preferences]
-# Default search parameters
 default_duration = 120
 default_tolerance = 30
 default_days = 1
-
-[display]
-# Color output
-use_colors = true
-# Show debug information
-debug = false

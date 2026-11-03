@@ -100,15 +100,6 @@ pub fn parse_distance_from_name(name: &str) -> Option<f64> {
     None
 }
 
-// Parse lap count from event name (e.g., "3 Laps", "6 laps")
-pub fn parse_lap_count(name: &str) -> Option<u32> {
-    let re = Regex::new(r"(\d+)\s*[Ll]aps?").unwrap();
-    if let Some(caps) = re.captures(name) {
-        caps.get(1)?.as_str().parse().ok()
-    } else {
-        None
-    }
-}
 
 /// Estimate distance from common race name patterns
 pub fn estimate_distance_from_name(name: &str) -> Option<f64> {
@@ -267,27 +258,6 @@ mod tests {
         assert_eq!(data5.laps, None);
     }
 
-    #[test]
-    fn test_parse_lap_count() {
-        // Test basic lap parsing
-        assert_eq!(parse_lap_count("3 Laps of Watopia"), Some(3));
-        assert_eq!(parse_lap_count("5 laps"), Some(5));
-        assert_eq!(parse_lap_count("Single lap race"), None);
-
-        // Test case variations (only handles Laps or laps, not LAPS)
-        assert_eq!(parse_lap_count("2 Laps"), Some(2));
-        assert_eq!(parse_lap_count("4 Lap race"), Some(4));
-
-        // Test with surrounding text
-        assert_eq!(parse_lap_count("Race: 10 laps around Richmond"), Some(10));
-        assert_eq!(parse_lap_count("Watopia Flat Route - 3 laps"), Some(3));
-
-        // Test edge cases
-        assert_eq!(parse_lap_count("No laps mentioned"), None);
-        assert_eq!(parse_lap_count(""), None);
-        assert_eq!(parse_lap_count("0 laps"), Some(0));
-        assert_eq!(parse_lap_count("100 laps ultra"), Some(100));
-    }
 
     #[test]
     fn test_parse_distance_from_name() {

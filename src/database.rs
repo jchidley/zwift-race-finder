@@ -51,13 +51,11 @@ pub struct RouteData {
 /// Local client provenance. Lower rank is more authoritative.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case")]
-#[allow(dead_code)] // Used by the importer; this module also builds privately in the CLI.
 pub enum ClientSourceKind {
     ClientCache,
     ExtractedClient,
 }
 
-#[allow(dead_code)] // Used by the importer; this module also builds privately in the CLI.
 impl ClientSourceKind {
     fn rank(self) -> u8 {
         match self {
@@ -68,7 +66,6 @@ impl ClientSourceKind {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[allow(dead_code)] // Used by the importer; this module also builds privately in the CLI.
 pub struct ClientRouteSource {
     pub kind: ClientSourceKind,
     pub path: String,
@@ -78,7 +75,6 @@ pub struct ClientRouteSource {
 
 /// Normalized metadata plus original source identity and availability flags.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[allow(dead_code)] // Used by the importer; this module also builds privately in the CLI.
 pub struct ClientRouteRecord {
     #[serde(flatten)]
     pub route: RouteData,
@@ -89,13 +85,11 @@ pub struct ClientRouteRecord {
 }
 
 #[derive(Debug, Default)]
-#[allow(dead_code)] // Used by the importer; this module also builds privately in the CLI.
 pub struct ClientImportSummary {
     pub written: usize,
     pub skipped: usize,
 }
 
-#[allow(dead_code)] // Used by the importer; this module also builds privately in the CLI.
 impl ClientRouteRecord {
     pub fn validate(&self) -> Result<()> {
         let route = &self.route;
@@ -159,20 +153,6 @@ pub struct RaceResult {
     pub notes: Option<String>,
 }
 
-/// Rider physical stats for physics calculations
-#[derive(Debug, Clone)]
-#[allow(dead_code)]
-pub struct RiderStats {
-    /// Height in meters
-    #[allow(dead_code)]
-    pub height_m: f64,
-    /// Weight in kilograms
-    pub weight_kg: f64,
-    /// Functional Threshold Power in watts
-    #[allow(dead_code)]
-    pub ftp_watts: Option<u32>,
-}
-
 /// Database connection and operations
 pub struct Database {
     conn: Connection,
@@ -180,12 +160,18 @@ pub struct Database {
 
 impl Database {
     /// Create a new database connection
-    pub fn new() -> Result<Self> { Self::open(&get_database_path()?) }
+    pub fn new() -> Result<Self> {
+        Self::open(&get_database_path()?)
+    }
 
-    pub fn default_path() -> Result<PathBuf> { get_database_path() }
+    pub fn default_path() -> Result<PathBuf> {
+        get_database_path()
+    }
 
     pub fn open(db_path: &Path) -> Result<Self> {
-        if let Some(parent) = db_path.parent().filter(|p| !p.as_os_str().is_empty()) { std::fs::create_dir_all(parent)?; }
+        if let Some(parent) = db_path.parent().filter(|p| !p.as_os_str().is_empty()) {
+            std::fs::create_dir_all(parent)?;
+        }
         let conn = Connection::open(&db_path).map_err(|e| {
             eprintln!("\n{} Failed to open database", "❌ Error:".red().bold());
             eprintln!("   Path: {}", db_path.display());
@@ -207,8 +193,13 @@ impl Database {
     pub fn preview(path: &Path) -> Result<Self> {
         let mut conn = Connection::open_in_memory()?;
         if path.exists() {
-            let source = Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)?;
-            rusqlite::backup::Backup::new(&source, &mut conn)?.run_to_completion(100, std::time::Duration::from_millis(10), None)?;
+            let source =
+                Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+            rusqlite::backup::Backup::new(&source, &mut conn)?.run_to_completion(
+                100,
+                std::time::Duration::from_millis(10),
+                None,
+            )?;
         }
         Self::from_connection(conn)
     }
@@ -221,7 +212,14 @@ impl Database {
             db.create_tables()?;
             db.migrate_elevation_knowledge()?;
             if history_storage::migrate(&db.conn)? {
-                ensure!(db.conn.prepare("PRAGMA foreign_key_check")?.query([])?.next()?.is_none(), "Foreign-key violations prevent migration; inspect a backup before proceeding");
+                ensure!(
+                    db.conn
+                        .prepare("PRAGMA foreign_key_check")?
+                        .query([])?
+                        .next()?
+                        .is_none(),
+                    "Foreign-key violations prevent migration; inspect a backup before proceeding"
+                );
             }
             tx.commit()?;
         }
@@ -265,18 +263,6 @@ impl Database {
             [],
         )?;
 
-        // Rider stats table for physics calculations
-        self.conn.execute(
-            "CREATE TABLE IF NOT EXISTS rider_stats (
-                id INTEGER PRIMARY KEY,
-                height_m REAL DEFAULT 1.82,
-                weight_kg REAL,
-                ftp_watts INTEGER,
-                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-            )",
-            [],
-        )?;
-
         // Route aliases: maps alternative route IDs (used by Zwift API for
         // event-only variants) to canonical route IDs in our routes table.
         // Zwift often uses different internal route IDs for the same physical
@@ -298,7 +284,8 @@ impl Database {
     /// NULL flags preserve legacy positive values; legacy zero means unknown.
     /// Initialization owns the surrounding transaction.
     fn migrate_elevation_knowledge(&self) -> Result<()> {
-        let columns: Vec<String> = self.conn
+        let columns: Vec<String> = self
+            .conn
             .prepare("PRAGMA table_info(routes)")?
             .query_map([], |row| row.get(1))?
             .collect::<Result<_, _>>()?;
@@ -324,7 +311,9 @@ impl Database {
 
     /// Whether any route metadata has been explicitly imported or retained.
     pub fn has_routes(&self) -> Result<bool> {
-        Ok(self.conn.query_row("SELECT EXISTS(SELECT 1 FROM routes)", [], |row| row.get(0))?)
+        Ok(self
+            .conn
+            .query_row("SELECT EXISTS(SELECT 1 FROM routes)", [], |row| row.get(0))?)
     }
 
     /// Get route data by ID, falling back to alias lookup
@@ -405,7 +394,6 @@ impl Database {
 
     /// Import all records atomically. Client cache beats extracted XML; either
     /// replaces legacy/community metadata. Identical imports do not rewrite rows.
-    #[allow(dead_code)] // Called by the separate import_client_routes binary through the library.
     pub fn import_client_routes(
         &self,
         records: &[ClientRouteRecord],
@@ -507,46 +495,6 @@ impl Database {
         Ok(())
     }
 
-    /// Get route data by name
-    #[allow(dead_code)]
-    pub fn get_route_by_name(&self, name: &str) -> Result<Option<RouteData>> {
-        let mut stmt = self.conn.prepare(
-            "SELECT route_id, distance_km,
-                    CASE WHEN elevation_known = 1 OR (elevation_known IS NULL AND elevation_m > 0)
-                         THEN elevation_m END, name, world, surface,
-                    lead_in_distance_km,
-                    CASE WHEN lead_in_elevation_known = 1 OR (lead_in_elevation_known IS NULL AND lead_in_elevation_m > 0)
-                         THEN lead_in_elevation_m END,
-                    lead_in_distance_free_ride_km, lead_in_elevation_free_ride_m,
-                    lead_in_distance_meetups_km, lead_in_elevation_meetups_m, slug
-             FROM routes 
-             WHERE LOWER(name) = LOWER(?1)
-             LIMIT 1",
-        )?;
-
-        let route = stmt
-            .query_row([name], |row| {
-                Ok(RouteData {
-                    route_id: row.get(0)?,
-                    distance_km: row.get(1)?,
-                    elevation_m: row.get(2)?,
-                    name: row.get(3)?,
-                    world: row.get(4)?,
-                    surface: row.get(5)?,
-                    lead_in_distance_km: row.get(6)?,
-                    lead_in_elevation_m: row.get(7)?,
-                    lead_in_distance_free_ride_km: row.get(8).ok(),
-                    lead_in_elevation_free_ride_m: row.get(9).ok(),
-                    lead_in_distance_meetups_km: row.get(10).ok(),
-                    lead_in_elevation_meetups_m: row.get(11).ok(),
-                    slug: row.get(12).ok(),
-                })
-            })
-            .optional()?;
-
-        Ok(route)
-    }
-
     /// Record an unknown route for future investigation
     pub fn record_unknown_route(
         &self,
@@ -563,73 +511,6 @@ impl Database {
             params![route_id, event_name, event_type],
         )?;
         Ok(())
-    }
-
-
-    /// Get race results for a specific route
-    #[allow(dead_code)]
-    pub fn get_race_results_for_route(
-        &self,
-        route_id: u32,
-        zwift_score: u32,
-    ) -> Result<Vec<RaceResult>> {
-        let mut stmt = self.conn.prepare(
-            "SELECT id, route_id, event_name, actual_minutes, zwift_score, race_date, notes 
-             FROM race_results 
-             WHERE route_id = ?1 AND zwift_score BETWEEN ?2 - 10 AND ?2 + 10
-             ORDER BY race_date DESC",
-        )?;
-
-        let results = stmt
-            .query_map(params![route_id, zwift_score], |row| {
-                Ok(RaceResult {
-                    id: Some(row.get(0)?),
-                    route_id: row.get(1)?,
-                    event_name: row.get(2)?,
-                    actual_minutes: row.get(3)?,
-                    zwift_score: row.get(4)?,
-                    race_date: row.get(5)?,
-                    notes: row.get(6)?,
-                })
-            })?
-            .collect::<std::result::Result<Vec<_>, _>>()?;
-
-        Ok(results)
-    }
-
-    /// Get average race time for a route
-    #[allow(dead_code)]
-    pub fn get_average_race_time(&self, route_id: u32, _zwift_score: u32) -> Result<Option<u32>> {
-        // Get average from recent results (last 3 months are most reliable)
-        // But if no recent results, use all historical data
-        let recent_result: Option<f64> = self
-            .conn
-            .query_row(
-                "SELECT AVG(actual_minutes) 
-             FROM race_results 
-             WHERE route_id = ?1 
-               AND race_date >= date('now', '-3 months')",
-                [route_id],
-                |row| row.get(0),
-            )
-            .optional()?;
-
-        // If no recent results, fall back to all results
-        let result = if recent_result.is_some() {
-            recent_result
-        } else {
-            self.conn
-                .query_row(
-                    "SELECT AVG(actual_minutes) 
-                 FROM race_results 
-                 WHERE route_id = ?1",
-                    [route_id],
-                    |row| row.get(0),
-                )
-                .optional()?
-        };
-
-        Ok(result.map(|avg| avg.round() as u32))
     }
 
     /// Get all routes from the database
@@ -712,27 +593,6 @@ impl Database {
         Ok(routes)
     }
 
-    /// Get rider stats from the database
-    #[allow(dead_code)]
-    pub fn get_rider_stats(&self) -> Result<Option<RiderStats>> {
-        let result = self
-            .conn
-            .query_row(
-                "SELECT height_m, weight_kg, ftp_watts FROM rider_stats WHERE id = 1",
-                [],
-                |row| {
-                    Ok(RiderStats {
-                        height_m: row.get(0)?,
-                        weight_kg: row.get(1)?,
-                        ftp_watts: row.get(2)?,
-                    })
-                },
-            )
-            .optional()?;
-
-        Ok(result)
-    }
-
     /// Get lap count for multi-lap events
     #[allow(dead_code)]
     pub fn get_multi_lap_info(&self, event_name: &str) -> Result<Option<u32>> {
@@ -764,10 +624,6 @@ impl Database {
 
         Ok(result)
     }
-
-
-
-
 
     /// Get all routes with basic info (for validation)
     #[allow(dead_code)]
@@ -817,23 +673,72 @@ mod tests {
 
     #[test]
     fn test_database_creation() {
-        let db = Database { conn: Connection::open_in_memory().unwrap() };
+        let db = Database {
+            conn: Connection::open_in_memory().unwrap(),
+        };
         db.create_tables().unwrap();
         db.migrate_elevation_knowledge().unwrap();
-        assert_eq!(db.conn.query_row("SELECT COUNT(*) FROM routes", [], |r| r.get::<_, u32>(0)).unwrap(), 0);
+        assert_eq!(
+            db.conn
+                .query_row("SELECT COUNT(*) FROM routes", [], |r| r.get::<_, u32>(0))
+                .unwrap(),
+            0
+        );
         assert!(db.get_route(1258415487).unwrap().is_none());
     }
 
     #[test]
+    fn legacy_feature_tables_are_preserved_but_not_created() {
+        let db = Database {
+            conn: Connection::open_in_memory().unwrap(),
+        };
+        db.create_tables().unwrap();
+        for table in [
+            "rider_stats",
+            "route_completion",
+            "route_discovery_attempts",
+        ] {
+            let exists: bool = db
+                .conn
+                .query_row(
+                    "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE name=?1)",
+                    [table],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            assert!(!exists, "fresh database must not create {table}");
+            db.conn.execute_batch(&format!(
+                "CREATE TABLE {table}(id INTEGER, note TEXT); INSERT INTO {table} VALUES(1,'retained synthetic record');"
+            )).unwrap();
+        }
+        db.create_tables().unwrap();
+        for table in [
+            "rider_stats",
+            "route_completion",
+            "route_discovery_attempts",
+        ] {
+            let note: String = db
+                .conn
+                .query_row(&format!("SELECT note FROM {table} WHERE id=1"), [], |r| {
+                    r.get(0)
+                })
+                .unwrap();
+            assert_eq!(note, "retained synthetic record");
+        }
+    }
+
+    #[test]
     fn test_race_result_query() {
-        let db = Database { conn: Connection::open_in_memory().unwrap() };
+        let db = Database {
+            conn: Connection::open_in_memory().unwrap(),
+        };
         db.create_tables().unwrap();
         db.migrate_elevation_knowledge().unwrap();
         db.conn.execute("INSERT INTO routes (route_id, distance_km, elevation_m, name, world, surface) VALUES (1258415487, 10, 50, 'Synthetic storage fixture', 'Test', 'road')", []).unwrap();
 
         db.conn.execute("INSERT INTO race_results (route_id,event_name,actual_minutes,zwift_score,race_date,notes) VALUES (1258415487,'Synthetic query fixture',32,195,'2025-02-02','Synthetic note')", []).unwrap();
 
-        let results = db.get_race_results_for_route(1258415487, 195).unwrap();
+        let results = db.get_all_race_results().unwrap();
         assert!(!results.is_empty());
         assert_eq!(results[0].actual_minutes, 32);
     }
@@ -896,13 +801,6 @@ mod tests {
         let flat = db.get_route_direct(route.route_id).unwrap().unwrap();
         assert_eq!(flat.elevation_m, Some(0.0));
         assert_eq!(flat.lead_in_elevation_m, Some(0.0));
-        assert_eq!(
-            db.get_route_by_name("Circuit")
-                .unwrap()
-                .unwrap()
-                .elevation_m,
-            Some(0.0)
-        );
         assert_eq!(db.get_all_routes().unwrap()[0].elevation_m, Some(0.0));
         route.elevation_m = Some(17.0);
         db.add_route(&route).unwrap();

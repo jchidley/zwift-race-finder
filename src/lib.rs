@@ -4,10 +4,13 @@
 //! - Fetch and filter Zwift events based on duration and fitness level
 //! - Store and retrieve route data and race results
 //! - Import route metadata from explicit installed-client exports
-//! - Manage configuration and secure credential storage
+//! - Load configuration and environment-provided credentials
 
 /// A/B testing framework for comparing implementations
 pub mod ab_testing;
+
+/// Public event API adapter.
+pub mod api;
 
 /// Common constants used throughout the application
 pub mod constants;
@@ -32,6 +35,9 @@ pub mod database;
 
 /// Source-qualified personal performance history.
 pub mod history;
+
+/// Score-independent live history estimation and its database adapter.
+pub mod personal_estimation;
 
 /// Duration estimation utilities
 pub mod duration_estimation;

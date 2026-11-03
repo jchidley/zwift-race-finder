@@ -10,15 +10,6 @@ use zwift_race_finder::{
     estimation::{estimate_duration_from_route_id, get_route_data_from_db},
 };
 
-#[derive(Debug)]
-struct ValidationStats {
-    route_name: String,
-    test_results: Vec<f64>,
-    real_results: Vec<f64>,
-    mean_difference: f64,
-    max_difference: f64,
-    correlation: f64,
-}
 
 /// Routes used in our focused test set
 fn get_test_routes() -> Vec<&'static str> {
@@ -281,7 +272,7 @@ fn validate_against_race_history() {
                 
                 // Compare predictions
                 let mut errors = Vec::new();
-                for (event_name, actual, score) in races {
+                for (_event_name, actual, score) in races {
                     if let Some(predicted) = estimate_duration_from_route_id(*route_id, *score) {
                         let error = ((predicted as f64 - *actual as f64) / *actual as f64 * 100.0).abs();
                         errors.push(error);

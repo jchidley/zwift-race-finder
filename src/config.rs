@@ -11,15 +11,9 @@ pub struct Config {
     /// Default rider settings
     #[serde(default)]
     pub defaults: Defaults,
-    /// Import configuration
-    #[serde(default)]
-    pub import: ImportConfig,
     /// User preferences
     #[serde(default)]
     pub preferences: Preferences,
-    /// Display settings
-    #[serde(default)]
-    pub display: Display,
 }
 
 /// Default rider settings
@@ -29,19 +23,6 @@ pub struct Defaults {
     pub zwift_score: Option<u32>,
     /// Racing category (A/B/C/D/E)
     pub category: Option<String>,
-    /// Height in meters
-    pub height_m: Option<f32>,
-    /// Weight in kilograms
-    pub weight_kg: Option<f32>,
-    /// Functional Threshold Power in watts
-    pub ftp_watts: Option<u32>,
-}
-
-/// Import configuration for data sources
-#[derive(Debug, Deserialize, Serialize, Clone, Default)]
-pub struct ImportConfig {
-    /// Windows username for WSL path mapping
-    pub windows_username: Option<String>,
 }
 
 /// User preferences for searching
@@ -55,16 +36,7 @@ pub struct Preferences {
     pub default_days: Option<u32>,
 }
 
-/// Display settings
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct Display {
-    /// Whether to use colored output
-    pub use_colors: Option<bool>,
-    /// Whether to show debug output
-    pub debug: Option<bool>,
-}
-
-/// Secrets loaded from environment or secure storage
+/// Secrets loaded from environment variables
 #[derive(Debug, Clone, Default)]
 pub struct Secrets {
     /// ZwiftPower profile ID
@@ -78,9 +50,6 @@ impl Default for Defaults {
         Defaults {
             zwift_score: Some(195),
             category: Some("D".to_string()),
-            height_m: Some(1.82),  // Jack's height
-            weight_kg: Some(86.0), // Typical weight from race data
-            ftp_watts: None,       // Will be set via config or calculated
         }
     }
 }
@@ -91,15 +60,6 @@ impl Default for Preferences {
             default_duration: Some(120),
             default_tolerance: Some(30),
             default_days: Some(1),
-        }
-    }
-}
-
-impl Default for Display {
-    fn default() -> Self {
-        Display {
-            use_colors: Some(true),
-            debug: Some(false),
         }
     }
 }
@@ -161,24 +121,6 @@ impl Config {
             self.defaults.category = Some(cat);
         }
 
-        if let Ok(weight) = std::env::var("ZWIFT_WEIGHT_KG") {
-            if let Ok(weight) = weight.parse::<f32>() {
-                self.defaults.weight_kg = Some(weight);
-            }
-        }
-
-        if let Ok(height) = std::env::var("ZWIFT_HEIGHT_M") {
-            if let Ok(height) = height.parse::<f32>() {
-                self.defaults.height_m = Some(height);
-            }
-        }
-
-        if let Ok(ftp) = std::env::var("ZWIFT_FTP_WATTS") {
-            if let Ok(ftp) = ftp.parse::<u32>() {
-                self.defaults.ftp_watts = Some(ftp);
-            }
-        }
-
         // Override preferences
         if let Ok(duration) = std::env::var("ZWIFT_DEFAULT_DURATION") {
             if let Ok(duration) = duration.parse::<u32>() {
@@ -197,54 +139,6 @@ impl Config {
                 self.preferences.default_days = Some(days);
             }
         }
-    }
-
-    /// Get the download path for imported files
-    #[allow(dead_code)]
-    pub fn get_download_path(&self) -> String {
-        let username = self
-            .import
-            .windows_username
-            .clone()
-            .or_else(|| std::env::var("WINDOWS_USERNAME").ok())
-            .unwrap_or_else(|| "YOUR_USERNAME".to_string());
-
-        if username != "YOUR_USERNAME" {
-            format!("/mnt/c/Users/{}/Downloads", username)
-        } else {
-            format!(
-                "{}/Downloads",
-                std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string())
-            )
-        }
-    }
-
-    /// Save config to the user's data directory (survives updates)
-    #[allow(dead_code)]
-    pub fn save(&self) -> Result<()> {
-        let config_dir = dirs::data_dir()
-            .ok_or_else(|| anyhow::anyhow!("Could not determine data directory"))?
-            .join("zwift-race-finder");
-
-        // Create directory if it doesn't exist
-        fs::create_dir_all(&config_dir)?;
-
-        let config_path = config_dir.join("config.toml");
-        let content = toml::to_string_pretty(self)?;
-        fs::write(&config_path, content)?;
-
-        eprintln!("Config saved to: {}", config_path.display());
-        Ok(())
-    }
-
-    /// Get the path where user config would be saved
-    #[allow(dead_code)]
-    pub fn get_user_config_path() -> Option<PathBuf> {
-        dirs::data_dir().map(|mut path| {
-            path.push("zwift-race-finder");
-            path.push("config.toml");
-            path
-        })
     }
 }
 
@@ -285,15 +179,12 @@ impl FullConfig {
         })
     }
 
-    // Compatibility methods
     /// Get ZwiftPower profile ID
-    #[allow(dead_code)]
     pub fn zwiftpower_profile_id(&self) -> Option<&String> {
         self.secrets.zwiftpower_profile_id.as_ref()
     }
 
     /// Get ZwiftPower session ID
-    #[allow(dead_code)]
     pub fn zwiftpower_session_id(&self) -> Option<&String> {
         self.secrets.zwiftpower_session_id.as_ref()
     }
@@ -306,29 +197,5 @@ impl FullConfig {
     /// Get default category
     pub fn default_category(&self) -> Option<&String> {
         self.config.defaults.category.as_ref()
-    }
-
-    /// Get Windows username for WSL
-    #[allow(dead_code)]
-    pub fn windows_username(&self) -> Option<&String> {
-        self.config.import.windows_username.as_ref()
-    }
-
-    /// Get default weight in kg
-    #[allow(dead_code)]
-    pub fn default_weight_kg(&self) -> Option<f32> {
-        self.config.defaults.weight_kg
-    }
-
-    /// Get default height in meters
-    #[allow(dead_code)]
-    pub fn default_height_m(&self) -> Option<f32> {
-        self.config.defaults.height_m
-    }
-
-    /// Get default FTP in watts
-    #[allow(dead_code)]
-    pub fn default_ftp_watts(&self) -> Option<u32> {
-        self.config.defaults.ftp_watts
     }
 }

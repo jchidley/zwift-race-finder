@@ -2,11 +2,11 @@
 //!
 //! This module contains functions for displaying event information in a formatted way.
 
-use crate::category::{get_category_from_score, get_detailed_category_from_score};
 use crate::constants::METERS_PER_KILOMETER;
 use crate::database::Database;
 use crate::estimation::{get_route_data, get_route_data_from_db};
-use crate::event_filtering::{estimate_event, FilterStats};
+use crate::event_analysis::selected_route_id;
+use crate::event_filtering::{estimate_event, resolve_event, FilterStats};
 use crate::formatting::format_duration;
 use crate::models::ZwiftEvent;
 use crate::parsing::parse_description_data;
@@ -14,7 +14,7 @@ use chrono::{DateTime, Local};
 use colored::Colorize;
 
 /// Display the basic event header information
-pub fn display_event_header(event: &ZwiftEvent) {
+pub fn display_event_header(event: &ZwiftEvent, zwift_score: u32) {
     let local_time: DateTime<Local> = event.event_start.into();
 
     println!("\n{}", "─".repeat(80).dimmed());
@@ -30,37 +30,52 @@ pub fn display_event_header(event: &ZwiftEvent) {
         local_time.format("%a %b %d at %I:%M %p")
     );
 
-    if let Some(route) = &event.route {
+    let route_id = selected_route_id(event, zwift_score);
+    let route_name = route_id
+        .and_then(get_route_data_from_db)
+        .map(|route| route.name)
+        .or_else(|| {
+            (route_id == event.route_id)
+                .then(|| event.route.clone())
+                .flatten()
+        });
+    if let Some(route) = route_name {
         println!("{}: {}", "Route".bright_blue(), route);
     }
 }
 
 /// Display route metadata
-pub fn display_route_info(event: &ZwiftEvent) {
-    if let Some(route_id) = event.route_id {
-        if let Some(route_data) = get_route_data(route_id) {
-            println!(
-                "{}: {} ({} elevation per lap)",
-                "Route ID".bright_blue().dimmed(),
-                route_id.to_string().dimmed(),
-                route_data
-                    .elevation_m
-                    .map_or_else(|| "unknown".to_string(), |m| format!("{m:.1}m"))
-            );
-        } else {
-            println!(
-                "{}: {} (unknown route - automatically logged)",
-                "Route ID".bright_blue().dimmed(),
-                route_id.to_string().yellow()
-            );
-            log_unknown_route(event);
-        }
+pub fn display_route_info(event: &ZwiftEvent, zwift_score: u32) {
+    if let Some(info) = format_route_info(event, zwift_score) {
+        println!("{}", info);
     }
+    log_unknown_route(event, zwift_score);
+}
+
+/// Format metadata for the same route used by the duration resolver.
+pub fn format_route_info(event: &ZwiftEvent, zwift_score: u32) -> Option<String> {
+    let route_id = selected_route_id(event, zwift_score)?;
+    Some(if let Some(route_data) = get_route_data(route_id) {
+        format!(
+            "{}: {} ({} elevation per lap)",
+            "Route ID".bright_blue().dimmed(),
+            route_id.to_string().dimmed(),
+            route_data
+                .elevation_m
+                .map_or_else(|| "unknown".to_string(), |m| format!("{m:.1}m"))
+        )
+    } else {
+        format!(
+            "{}: {} (unknown route - automatically logged)",
+            "Route ID".bright_blue().dimmed(),
+            route_id.to_string().yellow()
+        )
+    })
 }
 
 /// Record missing route IDs for a future client-metadata refresh.
-pub fn log_unknown_route(event: &ZwiftEvent) {
-    if let Some(route_id) = event.route_id {
+pub fn log_unknown_route(event: &ZwiftEvent, zwift_score: u32) {
+    if let Some(route_id) = selected_route_id(event, zwift_score) {
         if get_route_data(route_id).is_none() {
             if let Ok(db) = Database::new() {
                 let _ = db.record_unknown_route(route_id, &event.name, &event.event_type);
@@ -71,7 +86,8 @@ pub fn log_unknown_route(event: &ZwiftEvent) {
 
 /// Format the same resolved estimate used for filtering and the compact table.
 pub fn format_duration_info(event: &ZwiftEvent, zwift_score: u32) -> String {
-    if let Some(estimate) = estimate_event(event, zwift_score) {
+    let resolution = resolve_event(event, zwift_score);
+    if let Ok(estimate) = &resolution {
         let distance = estimate.distance_km.map_or_else(String::new, |distance| {
             format!("{}: {:.1} km\n", "Distance".bright_blue(), distance)
         });
@@ -91,11 +107,13 @@ pub fn format_duration_info(event: &ZwiftEvent, zwift_score: u32) -> String {
         );
         let basis = if estimate.is_fixed {
             "fixed duration".to_string()
-        } else {
+        } else if let Some(personal) = &estimate.personal {
             format!(
-                "estimated for Cat {} rider",
-                get_detailed_category_from_score(zwift_score)
+                "history: {}; n={}; typical training error {:.1} min (descriptive, not a confidence interval; experimental estimate)",
+                personal.basis, personal.sample_count, personal.typical_error_minutes
             )
+        } else {
+            "personal estimate".to_string()
         };
         format!(
             "{}{}{}: {} ({})",
@@ -106,7 +124,11 @@ pub fn format_duration_info(event: &ZwiftEvent, zwift_score: u32) -> String {
             basis
         )
     } else {
-        format!("{}: unknown", "Duration".bright_blue())
+        format!(
+            "{}: unknown ({})",
+            "Duration".bright_blue(),
+            resolution.unwrap_err()
+        )
     }
 }
 
@@ -130,52 +152,62 @@ pub fn display_subgroups(event: &ZwiftEvent, zwift_score: u32) {
 
     println!("{}: ", "Categories".bright_blue());
 
-    // Find the subgroup that matches user's category
-    let user_category = get_category_from_score(zwift_score);
+    let user_subgroup = crate::event_analysis::find_user_subgroup(event, zwift_score);
 
     for group in &event.event_sub_groups {
-        let is_user_category = group.name.contains(user_category)
-            || (user_category == "D" && group.name.contains("E"));
+        let is_user_category = user_subgroup.is_some_and(|sg| std::ptr::eq(sg, group));
 
         print!("  • {}", group.name);
 
         // Show distance and calculate laps if possible
-        if let Some(dist) = group.distance_in_meters {
+        if let Some(dist) = group
+            .distance_in_meters
+            .filter(|d| d.is_finite() && *d > 0.0)
+        {
             let dist_km = dist / METERS_PER_KILOMETER;
             print!(" ({:.1} km", dist_km);
 
             // Try to calculate laps based on base route distance
-            if let Some(route_id) = event.route_id {
+            if let Some(route_id) = group.route_id.or(event.route_id) {
                 if let Some(route_data) = get_route_data(route_id) {
                     let base_distance = route_data.distance_km;
-                    if base_distance > 0.0 {
-                        let laps = (dist_km / base_distance).round() as u32;
-                        if laps > 1 {
-                            print!(" - {} laps", laps);
+                    if base_distance.is_finite() && base_distance > 0.0 {
+                        if let Some(lead) = route_data
+                            .lead_in_distance_km
+                            .filter(|lead| lead.is_finite() && *lead >= 0.0)
+                        {
+                            let laps = ((dist_km - lead) / base_distance).round() as u32;
+                            if laps > 1 {
+                                print!(" - {} laps", laps);
+                            }
                         }
                     }
                 }
             }
             print!(")");
-
-            // Show estimated duration for user's category
-            if is_user_category {
-                if let Some(estimate) = estimate_event(event, zwift_score) {
-                    print!(
-                        " → {} ({})",
-                        format_duration(estimate.duration_minutes).green(),
-                        if estimate.is_fixed {
-                            "fixed duration"
-                        } else {
-                            "estimated"
-                        }
-                    );
-                }
-            }
         }
 
-        if let Some(dur) = group.duration_in_minutes {
+        if let Some(dur) = crate::event_filtering::fixed_minutes(
+            group.duration_in_minutes,
+            group.duration_in_seconds,
+        ) {
             print!(" ({})", format_duration(dur));
+        }
+
+        // Highlight exactly the subgroup whose geometry drives the main row,
+        // including lap-only groups with no explicit distance.
+        if is_user_category {
+            if let Some(estimate) = estimate_event(event, zwift_score) {
+                print!(
+                    " → {} ({})",
+                    format_duration(estimate.duration_minutes).green(),
+                    if estimate.is_fixed {
+                        "fixed duration"
+                    } else {
+                        "estimated"
+                    }
+                );
+            }
         }
 
         println!();
@@ -226,8 +258,15 @@ pub fn display_description_info(event: &ZwiftEvent) {
 }
 
 /// Display external route information URL
-pub fn display_external_url(event: &ZwiftEvent) {
-    if let Some(route_id) = event.route_id {
+pub fn display_external_url(event: &ZwiftEvent, zwift_score: u32) {
+    if let Some(url) = external_route_url(event, zwift_score) {
+        println!("{}: {}", "Route Info".bright_blue(), url.dimmed());
+    }
+}
+
+/// External route metadata must refer to the selected subgroup's route too.
+pub fn external_route_url(event: &ZwiftEvent, zwift_score: u32) -> Option<String> {
+    if let Some(route_id) = selected_route_id(event, zwift_score) {
         if let Some(db_route) = get_route_data_from_db(route_id) {
             if let Some(slug) = db_route.slug {
                 let world_slug = match db_route.world.as_str() {
@@ -248,21 +287,22 @@ pub fn display_external_url(event: &ZwiftEvent) {
                     "https://whatsonzwift.com/world/{}/route/{}",
                     world_slug, slug
                 );
-                println!("{}: {}", "Route Info".bright_blue(), url.dimmed());
+                return Some(url);
             }
         }
     }
+    None
 }
 
 /// Main function to print a single event with all details
 pub fn print_event(event: &ZwiftEvent, zwift_score: u32) {
-    display_event_header(event);
-    display_route_info(event);
+    display_event_header(event, zwift_score);
+    display_route_info(event, zwift_score);
     display_duration_info(event, zwift_score);
     display_category_enforcement(event);
     display_subgroups(event, zwift_score);
     display_description_info(event);
-    display_external_url(event);
+    display_external_url(event, zwift_score);
 }
 
 /// Structure to hold table row data for compact display
@@ -272,6 +312,7 @@ pub struct EventTableRow {
     pub distance: String,
     pub elevation: String,
     pub duration: String,
+    pub basis: String,
 }
 
 /// Prepare event data for table display
@@ -279,7 +320,8 @@ pub fn prepare_event_row(event: &ZwiftEvent, zwift_score: u32) -> EventTableRow 
     let local_time: DateTime<Local> = event.event_start.into();
     let time_str = local_time.format("%H:%M").to_string();
 
-    let estimate = estimate_event(event, zwift_score);
+    let resolution = resolve_event(event, zwift_score);
+    let estimate = resolution.as_ref().ok();
     let distance_str = estimate
         .as_ref()
         .and_then(|e| e.distance_km)
@@ -298,12 +340,31 @@ pub fn prepare_event_row(event: &ZwiftEvent, zwift_score: u32) -> EventTableRow 
         |e| format_duration(e.duration_minutes),
     );
 
+    let basis = match &resolution {
+        Err(reason) => format!("Unknown: {reason}"),
+        Ok(e) if e.is_fixed => "Fixed".to_string(),
+        Ok(e) => e.personal.as_ref().map_or_else(
+            || "Personal estimate".to_string(),
+            |personal| {
+                format!(
+                    "History: {} (experimental)",
+                    match personal.basis {
+                        crate::personal_estimation::PersonalBasis::SameRoute => "same route",
+                        crate::personal_estimation::PersonalBasis::DistanceAscent =>
+                            "distance/climbing",
+                    }
+                )
+            },
+        ),
+    };
+
     EventTableRow {
         name: event.name.clone(),
         time: time_str,
         distance: distance_str,
         elevation: elevation_str,
         duration: duration_str,
+        basis,
     }
 }
 
@@ -358,23 +419,36 @@ pub fn print_events_table(events: &[ZwiftEvent], zwift_score: u32) {
         .max()
         .unwrap_or(8)
         .max(8);
-    let total_width =
-        name_width + time_width + distance_width + elevation_width + duration_width + 17;
+    let basis_width = rows
+        .iter()
+        .map(|(r, _)| r.basis.len())
+        .max()
+        .unwrap_or(5)
+        .max(5);
+    let total_width = name_width
+        + time_width
+        + distance_width
+        + elevation_width
+        + duration_width
+        + basis_width
+        + 20;
 
     // Print header
     println!("\n{}", "─".repeat(total_width).dimmed());
     println!(
-        "{:<width1$} │ {:<width2$} │ {:<width3$} │ {:<width4$} │ {:<width5$}",
+        "{:<width1$} │ {:<width2$} │ {:<width3$} │ {:<width4$} │ {:<width5$} │ {:<width6$}",
         "Event Name".bright_blue().bold(),
         "Time".bright_blue().bold(),
         "Distance".bright_blue().bold(),
         "Elev".bright_blue().bold(),
         "Duration".bright_blue().bold(),
+        "Basis".bright_blue().bold(),
         width1 = name_width,
         width2 = time_width,
         width3 = distance_width,
         width4 = elevation_width,
-        width5 = duration_width
+        width5 = duration_width,
+        width6 = basis_width
     );
     println!("{}", "─".repeat(total_width).dimmed());
 
@@ -399,17 +473,19 @@ pub fn print_events_table(events: &[ZwiftEvent], zwift_score: u32) {
         current_date = Some(event_date);
 
         println!(
-            "{:<width1$} │ {:<width2$} │ {:<width3$} │ {:<width4$} │ {:<width5$}",
+            "{:<width1$} │ {:<width2$} │ {:<width3$} │ {:<width4$} │ {:<width5$} │ {:<width6$}",
             row.name,
             row.time,
             row.distance,
             row.elevation,
             row.duration.green(),
+            row.basis,
             width1 = name_width,
             width2 = time_width,
             width3 = distance_width,
             width4 = elevation_width,
-            width5 = duration_width
+            width5 = duration_width,
+            width6 = basis_width
         );
     }
 
@@ -418,13 +494,9 @@ pub fn print_events_table(events: &[ZwiftEvent], zwift_score: u32) {
 
 /// Display filter statistics and actionable fixes
 pub fn display_filter_stats(stats: &FilterStats, _total_fetched: usize) {
-    let total_filtered = stats.sport_filtered
-        + stats.time_filtered
-        + stats.type_filtered
-        + stats.tag_filtered
-        + stats.duration_filtered;
+    let total_filtered = stats.total_filtered();
 
-    if total_filtered == 0 && stats.unknown_routes == 0 && stats.missing_distance == 0 {
+    if total_filtered == 0 {
         return; // No issues to report
     }
 
@@ -451,44 +523,24 @@ pub fn display_filter_stats(stats: &FilterStats, _total_fetched: usize) {
         println!("  • {} events filtered by tags", stats.tag_filtered);
     }
 
+    if stats.duration_unknown > 0 {
+        println!(
+            "  • {} events with unknown duration (not time-window matches)",
+            stats.duration_unknown
+        );
+    }
+    if stats.subgroup_filtered > 0 {
+        println!(
+            "  • {} events without an eligible subgroup",
+            stats.subgroup_filtered
+        );
+    }
 
     if stats.duration_filtered > 0 {
         println!(
             "  • {} events outside duration range",
             stats.duration_filtered
         );
-    }
-
-    // Data quality issues in shown events
-    if stats.unknown_routes > 0 || stats.missing_distance > 0 {
-        println!(
-            "\n{}: Some events may have inaccurate estimates",
-            "Data Quality".yellow()
-        );
-
-        if stats.unknown_routes > 0 {
-            println!("  • {} events with unknown routes", stats.unknown_routes);
-            println!(
-                "    {} Refresh client metadata; see {}",
-                "Fix:".green(),
-                "docs/howto/CLIENT_ROUTE_DATA.md".cyan()
-            );
-        }
-
-        if stats.missing_distance > 0 {
-            println!(
-                "  • {} events missing distance data",
-                stats.missing_distance
-            );
-            println!(
-                "    {} These are typically new Racing Score events",
-                "Note:".green()
-            );
-            println!(
-                "    {} Distance parsing from descriptions is attempted automatically",
-                "Info:".green()
-            );
-        }
     }
 
     // Suggest actions for large numbers of filtered events
@@ -502,7 +554,7 @@ pub fn display_filter_stats(stats: &FilterStats, _total_fetched: usize) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::constants::{METERS_PER_KILOMETER, MINUTES_PER_HOUR, PERCENT_MULTIPLIER};
+    use crate::constants::METERS_PER_KILOMETER;
     use crate::models::{EventSubGroup, ZwiftEvent};
     use chrono::Utc;
 
@@ -529,13 +581,15 @@ mod tests {
     fn test_prepare_event_row_distance_conversion() {
         // Test distance conversion: distance / 1000.0
         // Targets mutation: replace / with * and / with %
-        let event = create_test_event("Test Race", 42.195, "Test Route", "CYCLING");
+        let mut event = create_test_event("Test Race", 42.195, "Test Route", "CYCLING");
+        event.duration_in_minutes = Some(77);
         let row = prepare_event_row(&event, 195);
 
         // 42.195 km should be displayed as "42.2 km" (with lead-in it might be different)
         // If / becomes *, we'd get 42195 km
         // If / becomes %, we'd get a remainder instead
-        assert!(row.distance.contains("km"));
+        assert_eq!(row.distance, "42.2 km");
+        assert_eq!(row.duration, "01:17");
         assert!(!row.distance.contains("42195")); // Would appear if / became *
     }
 
@@ -548,29 +602,16 @@ mod tests {
         // Create event with known duration
         let mut event = create_test_event("Test Race", 40.0, "Test Route", "CYCLING");
         event.route_id = Some(1); // Known route
+        event.duration_in_minutes = Some(77);
 
         let row = prepare_event_row(&event, 195);
 
         // Duration should be formatted as "H:MM"
-        // For 40km at Cat D speed (~77 min) = "1:17"
-        assert!(row.duration.contains(":"));
+        // Declared 77 minutes = "01:17"
+        assert_eq!(row.duration, "01:17");
 
         // Wrong arithmetic would produce weird results
         assert!(!row.duration.contains("77:")); // Would appear if / became %
-    }
-
-    #[test]
-    fn test_print_event_percentage_calculation() {
-        // Test percentage calculation: (error / actual) * 100.0
-        // Targets: replace * with +, replace / with *
-
-        let error = 5.0;
-        let actual = 20.0;
-        let percentage = (error / actual) * PERCENT_MULTIPLIER;
-
-        assert_eq!(percentage, 25.0); // 5/20 * 100 = 25%
-        assert_ne!(percentage, 105.0); // Would be if * became +
-        assert_ne!(percentage, 100.0); // Would be if / became *
     }
 
     #[test]
@@ -582,7 +623,7 @@ mod tests {
             event_start: Utc::now() + chrono::Duration::hours(2),
             event_type: "RACE".to_string(),
             distance_in_meters: Some(20000.0),
-            duration_in_minutes: None,
+            duration_in_minutes: Some(40),
             duration_in_seconds: None,
             route_id: Some(1), // Watopia's Ocean Boulevard
             route: Some("Ocean Boulevard".to_string()),
@@ -601,46 +642,6 @@ mod tests {
         assert!(row.distance.contains("km")); // Should include km
         assert!(row.elevation.contains("m")); // Should include m
         assert!(row.duration.contains(":")); // Should be MM:SS or HH:MM format
-    }
-
-    #[test]
-    fn test_prepare_event_row_time_formatting_mutations() {
-        // Test time formatting arithmetic
-        let test_cases = vec![
-            (30, "30"),    // 30 minutes
-            (60, "1:00"),  // 60 minutes = 1 hour
-            (90, "1:30"),  // 90 minutes = 1 hour 30 min
-            (125, "2:05"), // 125 minutes = 2 hours 5 min
-        ];
-
-        for (minutes, _expected) in test_cases {
-            let hours = minutes / MINUTES_PER_HOUR;
-            let mins = minutes % MINUTES_PER_HOUR;
-
-            // Test / is division, not %
-            if minutes == 90 {
-                assert_eq!(hours, 1);
-                assert_ne!(hours, 30); // Would be if / was %
-            }
-
-            // Test % is modulo, not /
-            if minutes == 90 {
-                assert_eq!(mins, 30);
-                assert_ne!(mins, 1); // Would be if % was /
-            }
-        }
-    }
-
-    #[test]
-    fn test_print_event_percentage_calculations() {
-        // Test percentage calculation
-        let error = 5.0;
-        let actual = 50.0;
-        let percentage = (error * PERCENT_MULTIPLIER) / actual;
-
-        assert_eq!(percentage, 10.0);
-        assert_ne!(error + PERCENT_MULTIPLIER, 500.0); // Would be if * was +
-        assert_ne!((error * PERCENT_MULTIPLIER) * actual, 10.0); // Would be if / was *
     }
 
     #[test]
@@ -664,33 +665,7 @@ mod tests {
         };
 
         // This should not panic
-        log_unknown_route(&event);
-    }
-
-    #[test]
-    fn test_display_filter_stats_arithmetic() {
-        // Test arithmetic in display_filter_stats
-        // total_races += count, etc.
-        // Targets: replace += with *=, += with -=
-
-        let mut stats = FilterStats::default();
-
-        // Simulate filtering operations
-        stats.sport_filtered = 5;
-        stats.time_filtered = 3;
-        stats.duration_filtered = 2;
-
-        // Verify counts are reasonable (would be huge if *= mutation)
-        assert!(stats.sport_filtered < 100);
-        assert!(stats.time_filtered < 100);
-        assert!(stats.duration_filtered < 100);
-
-        // Test increments
-        let mut count = 0u32;
-        for _ in 0..5 {
-            count += 1; // Should be 5, not 120 if *= mutation
-        }
-        assert_eq!(count, 5);
+        log_unknown_route(&event, 195);
     }
 
     #[test]
@@ -706,8 +681,8 @@ mod tests {
             type_filtered: 2,
             tag_filtered: 1,
             duration_filtered: 4,
-            unknown_routes: 2,
-            missing_distance: 1,
+            duration_unknown: 0,
+            subgroup_filtered: 0,
         };
 
         // We can't easily capture println! output, but we can verify the function runs
@@ -722,64 +697,31 @@ mod tests {
 
         // Case 1: No route_id - should not call record_unknown_route
         event.route_id = None;
-        log_unknown_route(&event);
+        log_unknown_route(&event, 195);
 
         // Case 2: Known route_id - should not call record_unknown_route
         event.route_id = Some(1); // This is a known route in the test data
-        log_unknown_route(&event);
+        log_unknown_route(&event, 195);
 
         // Case 3: Unknown route_id with description
         event.route_id = Some(999999);
         event.description = Some("3 laps of Ocean Boulevard".to_string());
-        log_unknown_route(&event);
+        log_unknown_route(&event, 195);
 
         // Case 4: Unknown route_id without description
         event.description = None;
-        log_unknown_route(&event);
+        log_unknown_route(&event, 195);
     }
 
     #[test]
     fn test_display_uses_estimated_distance_without_extra_lead_in() {
-        let event = create_test_event("Test Race", 30.0, "Test Route", "CYCLING");
+        let mut event = create_test_event("Test Race", 30.0, "Test Route", "CYCLING");
+        event.duration_in_minutes = Some(45);
         let estimate = estimate_event(&event, 195).unwrap();
         let row = prepare_event_row(&event, 195);
         assert_eq!(estimate.distance_km, Some(30.0));
         assert_eq!(row.distance, "30.0 km");
         assert_eq!(row.duration, format_duration(estimate.duration_minutes));
-    }
-
-    #[test]
-    fn test_display_calculated_duration_arithmetic() {
-        // Test multiplication in display_calculated_duration
-        // Mutations: replace * with +, replace * with /
-
-        // For a 30 km race at Cat D speed (30.9 km/h)
-        // Duration = 30 / 30.9 * 60 = 58.25 minutes
-        let distance_km = 30.0;
-        let speed_kmh = 30.9;
-        let duration_minutes = (distance_km / speed_kmh * MINUTES_PER_HOUR as f64) as u32;
-
-        assert_eq!(duration_minutes, 58);
-        // If * became +, we'd get 60 minutes (0.97 + 60)
-        assert_ne!(duration_minutes, 60);
-        // If * became /, we'd get 0 minutes (0.97 / 60)
-        assert_ne!(duration_minutes, 0);
-    }
-
-    #[test]
-    fn test_display_distance_based_duration_division() {
-        // Test division operations in display_distance_based_duration
-        // Specifically the distance_km / 1000.0 operation
-        // Mutations: replace / with *, replace / with %
-
-        let distance_meters = 42195.0;
-        let distance_km = distance_meters / METERS_PER_KILOMETER;
-
-        assert_eq!(distance_km, 42.195);
-        // If / became *, we'd get 42195000.0
-        assert!(distance_km < 100.0);
-        // If / became %, we'd get 195.0 (remainder)
-        assert!(distance_km > 40.0);
     }
 
     #[test]
@@ -791,9 +733,9 @@ mod tests {
             time_filtered: 5,
             type_filtered: 3,
             duration_filtered: 8,
+            duration_unknown: 0,
+            subgroup_filtered: 0,
             tag_filtered: 2,
-            unknown_routes: 4,
-            missing_distance: 2,
         };
 
         let total_events = 100;
@@ -802,10 +744,6 @@ mod tests {
         // Test that FilterStats::total_filtered works correctly
         let total = stats.total_filtered();
         assert_eq!(total, 28); // 10 + 5 + 3 + 8 + 2 = 28
-
-        // Test duration_no_match calculation
-        let duration_no_match = stats.duration_no_match();
-        assert_eq!(duration_no_match, 8); // duration_no_match only returns duration_filtered
     }
 
     #[test]
@@ -825,8 +763,6 @@ mod tests {
             + empty_stats.duration_filtered;
 
         assert_eq!(total_filtered, 0);
-        assert_eq!(empty_stats.unknown_routes, 0);
-        assert_eq!(empty_stats.missing_distance, 0);
 
         // The function should return early and not print anything
         display_filter_stats(&empty_stats, 100);
@@ -843,8 +779,12 @@ mod tests {
             "route_id": route_id, "name": "Synthetic lap circuit", "world": "Test",
             "distance_km": 10.0, "elevation_m": 50.0, "surface": "road",
             "lead_in_distance_km": 0.5, "lead_in_elevation_m": 0.0
-        })).unwrap();
-        crate::database::Database::new().unwrap().add_route(&route).unwrap();
+        }))
+        .unwrap();
+        crate::database::Database::new()
+            .unwrap()
+            .add_route(&route)
+            .unwrap();
         event.route_id = Some(route_id);
 
         // Add subgroup with 3 laps
@@ -854,6 +794,8 @@ mod tests {
             route_id: None,
             distance_in_meters: None,
             duration_in_minutes: None,
+            duration_in_seconds: None,
+            subgroup_label: None,
             category_enforcement: None,
             range_access_label: None,
             laps: Some(3),
@@ -861,6 +803,7 @@ mod tests {
 
         // Also need to find the user's subgroup - add the score range
         event.event_sub_groups[0].range_access_label = Some("0-199".to_string());
+        event.duration_in_minutes = Some(60);
 
         let row = prepare_event_row(&event, 195); // Cat D rider
 
@@ -884,59 +827,5 @@ mod tests {
             distance, 13.0,
             "Distance shouldn't be exactly 13km (10 + 3)"
         );
-    }
-
-    #[test]
-    fn test_display_distance_based_duration_conversion() {
-        // Test mutation: distance_km = distance_meters / METERS_PER_KILOMETER (line 271)
-        // Ensures division is used for conversion, not modulo
-
-        let event = create_test_event("Marathon", 42.195, "Marathon Route", "CYCLING");
-        let distance_meters = 42195.0;
-        let zwift_score = 195;
-
-        // Call the function directly would require making it public
-        // Instead, test through the public interface
-        display_duration_info(&event, zwift_score);
-
-        // Verify the conversion logic
-        let distance_km = distance_meters / METERS_PER_KILOMETER;
-        assert_eq!(distance_km, 42.195);
-
-        // If / was replaced with %, we'd get 195.0 (42195 % 1000)
-        assert_ne!(distance_km, 195.0);
-    }
-
-    #[test]
-    fn test_filter_stats_boundary_conditions() {
-        // Test various boundary conditions for filter stats
-        use crate::event_filtering::FilterStats;
-
-        // Test with only unknown routes (no filtering)
-        let stats1 = FilterStats {
-            unknown_routes: 5,
-            missing_distance: 3,
-            ..Default::default()
-        };
-
-        display_filter_stats(&stats1, 100);
-
-        // Test with only filtering (no data issues)
-        let stats2 = FilterStats {
-            sport_filtered: 5,
-            time_filtered: 3,
-            ..Default::default()
-        };
-
-        display_filter_stats(&stats2, 100);
-
-        // Test with mixed conditions
-        let stats3 = FilterStats {
-            duration_filtered: 25, // High number to trigger suggestions
-            unknown_routes: 2,
-            ..Default::default()
-        };
-
-        display_filter_stats(&stats3, 100);
     }
 }

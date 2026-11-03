@@ -102,12 +102,38 @@ fn estimate_route_duration(route: &RouteData, distance_km: f64, zwift_score: u32
             get_route_difficulty_multiplier_from_gain_and_category(distance, gain, category)
         },
     );
-    (distance_km / (base_speed * multiplier) * f64::from(crate::constants::MINUTES_PER_HOUR)) as u32
+    (distance_km / (base_speed * multiplier) * f64::from(crate::constants::MINUTES_PER_HOUR)).round() as u32
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn known_route_rounds_only_the_final_minutes() {
+        // 10 m/km gives a neutral terrain multiplier; A++ speed is 45 km/h.
+        let route = RouteData {
+            distance_km: 10.0,
+            elevation_m: Some(100.0),
+            lead_in_distance_km: Some(0.0),
+            lead_in_elevation_m: Some(0.0),
+            name: "Synthetic rounding circuit",
+            world: "Test",
+            surface: "road",
+        };
+        for (minutes, expected) in [
+            (0.49, 0),
+            (0.5, 1),
+            (30.49, 30),
+            (30.5, 31),
+            (30.51, 31),
+        ] {
+            assert_eq!(
+                estimate_route_duration(&route, minutes * 0.75, 650),
+                expected
+            );
+        }
+    }
 
     #[test]
     fn test_lead_in_distance_is_added() {
@@ -157,7 +183,7 @@ mod tests {
         let speed = crate::category::get_category_speed(category);
         let multiplier =
             get_route_difficulty_multiplier_from_gain_and_category(4.0, 100.0, category);
-        assert_eq!(actual, (4.0 / (speed * multiplier) * 60.0) as u32);
+        assert_eq!(actual, (4.0 / (speed * multiplier) * 60.0).round() as u32);
         route.lead_in_elevation_m = None;
         assert_ne!(actual, estimate_route_duration(&route, 4.0, 195));
     }

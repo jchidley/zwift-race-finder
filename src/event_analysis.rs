@@ -2,26 +2,53 @@
 //!
 //! This module contains functions for analyzing Zwift events.
 
-use crate::category::{category_matches_subgroup, get_category_from_score};
-use crate::models::{EventSubGroup, ZwiftEvent};
+use crate::category::get_category_from_score;
+use crate::models::{is_racing_score_event, EventSubGroup, ZwiftEvent};
 use std::collections::HashMap;
 
-/// Find the subgroup that matches the user's category
-pub fn find_user_subgroup<'a>(
-    event: &'a ZwiftEvent,
-    zwift_score: u32,
-) -> Option<&'a EventSubGroup> {
-    if event.event_sub_groups.is_empty() {
-        return None;
+/// Find the user's actual score band, or traditional category subgroup.
+pub fn find_user_subgroup(event: &ZwiftEvent, zwift_score: u32) -> Option<&EventSubGroup> {
+    if is_racing_score_event(event) {
+        // API ranges are inclusive. Touching endpoints are ambiguous: retain
+        // API order rather than guessing which band's geometry was intended.
+        return event.event_sub_groups.iter().find(|sg| {
+            sg.range_access_label
+                .as_deref()
+                .and_then(|label| label.split_once('-'))
+                .and_then(|(low, high)| {
+                    Some((
+                        low.trim().parse::<u32>().ok()?,
+                        high.trim().parse::<u32>().ok()?,
+                    ))
+                })
+                .is_some_and(|(low, high)| low <= zwift_score && zwift_score <= high)
+        });
     }
 
-    let user_category = get_category_from_score(zwift_score);
+    let category = get_category_from_score(zwift_score);
+    let matches = |sg: &&EventSubGroup, wanted: &str| {
+        if let Some(label) = &sg.subgroup_label {
+            return label == wanted;
+        }
+        // Match category tokens, never letters embedded in an event title.
+        sg.name
+            .split(|c: char| !c.is_ascii_alphanumeric() && c != '+' && c != '-')
+            .any(|token| token == wanted)
+    };
+    let find = |wanted| event.event_sub_groups.iter().find(|sg| matches(sg, wanted));
+    find(category)
+        .or_else(|| (category == "A++").then(|| find("A")).flatten())
+        // Preserve traditional D eligibility for E only after an exact D match.
+        .or_else(|| (category == "D").then(|| find("E")).flatten())
+}
 
-    // Use the new category matching function from the category module
-    event
-        .event_sub_groups
-        .iter()
-        .find(|sg| category_matches_subgroup(user_category, &sg.name))
+/// Route identity for the selected subgroup, shared by estimates and metadata.
+pub fn selected_route_id(event: &ZwiftEvent, zwift_score: u32) -> Option<u32> {
+    let subgroup = find_user_subgroup(event, zwift_score);
+    if is_racing_score_event(event) && subgroup.is_none() {
+        return None;
+    }
+    subgroup.and_then(|sg| sg.route_id).or(event.route_id)
 }
 
 /// Count events by type for display
@@ -144,6 +171,8 @@ mod tests {
                     route_id: None,
                     distance_in_meters: Some(40000.0),
                     duration_in_minutes: None,
+                    duration_in_seconds: None,
+                    subgroup_label: None,
                     category_enforcement: None,
                     range_access_label: None,
                     laps: None,
@@ -154,6 +183,8 @@ mod tests {
                     route_id: None,
                     distance_in_meters: Some(30000.0),
                     duration_in_minutes: None,
+                    duration_in_seconds: None,
+                    subgroup_label: None,
                     category_enforcement: None,
                     range_access_label: None,
                     laps: None,
@@ -164,6 +195,8 @@ mod tests {
                     route_id: None,
                     distance_in_meters: Some(20000.0),
                     duration_in_minutes: None,
+                    duration_in_seconds: None,
+                    subgroup_label: None,
                     category_enforcement: None,
                     range_access_label: None,
                     laps: None,
@@ -174,6 +207,8 @@ mod tests {
                     route_id: None,
                     distance_in_meters: Some(15000.0),
                     duration_in_minutes: None,
+                    duration_in_seconds: None,
+                    subgroup_label: None,
                     category_enforcement: None,
                     range_access_label: None,
                     laps: None,
@@ -184,6 +219,8 @@ mod tests {
                     route_id: None,
                     distance_in_meters: Some(10000.0),
                     duration_in_minutes: None,
+                    duration_in_seconds: None,
+                    subgroup_label: None,
                     category_enforcement: None,
                     range_access_label: None,
                     laps: None,
@@ -228,6 +265,8 @@ mod tests {
                 route_id: None,
                 distance_in_meters: Some(15000.0),
                 duration_in_minutes: None,
+                duration_in_seconds: None,
+                subgroup_label: None,
                 category_enforcement: None,
                 range_access_label: None,
                 laps: None,
@@ -238,6 +277,8 @@ mod tests {
                 route_id: None,
                 distance_in_meters: Some(20000.0),
                 duration_in_minutes: None,
+                duration_in_seconds: None,
+                subgroup_label: None,
                 category_enforcement: None,
                 range_access_label: None,
                 laps: None,

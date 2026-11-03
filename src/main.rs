@@ -3,14 +3,8 @@
 //! This tool fetches upcoming Zwift events and filters them based on estimated
 //! completion time for your specific Zwift Racing Score.
 
-// ABOUTME: Tool to find Zwift races suitable for Cat C riders (~180 ZwiftScore) lasting ~2 hours
-// Fetches events from Zwift API and filters based on race duration estimates
-
-mod api;
 mod commands;
-mod config;
-mod database;
-use zwift_race_finder::history;
+use zwift_race_finder::{api, config, database};
 mod zwiftpower;
 
 use anyhow::Result;
@@ -194,11 +188,8 @@ fn generate_filter_description(args: &Args, min_duration: u32, max_duration: u32
         parts.push(format!("excluding: {}", exclude_str));
     }
 
-
     parts.join(" | ")
 }
-
-
 
 fn filter_events(
     mut events: Vec<ZwiftEvent>,
@@ -243,12 +234,27 @@ fn filter_events(
         eprintln!("Debug: {} events after exclude tag filter", events.len());
     }
 
-
     // Duration filter
-    let pre_duration = events.len();
-    events
-        .retain(|event| event_matches_duration(event, args.duration, args.tolerance, zwift_score));
-    stats.duration_filtered = (pre_duration - events.len()) as u32;
+    events.retain(|event| match resolve_event(event, zwift_score) {
+        Ok(estimate) => {
+            let matches = estimate.duration_minutes.abs_diff(args.duration) <= args.tolerance;
+            if !matches {
+                stats.duration_filtered += 1;
+            }
+            matches
+        }
+        Err(reason) => {
+            if reason == EstimateUnavailable::NoEligibleSubgroup {
+                stats.subgroup_filtered += 1;
+            } else {
+                stats.duration_unknown += 1;
+            }
+            if args.debug {
+                eprintln!("Debug: duration unavailable for '{}': {reason}", event.name);
+            }
+            false
+        }
+    });
 
     if args.debug {
         eprintln!("Debug: {} events after duration filter", events.len());
@@ -261,17 +267,15 @@ fn filter_events(
     (events, stats)
 }
 
-
-
-
-
-
-
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
 
-    println!("🚴 {} {}", "Zwift Race Finder".bold(), concat!("v", env!("CARGO_PKG_VERSION")).dimmed());
+    println!(
+        "🚴 {} {}",
+        "Zwift Race Finder".bold(),
+        concat!("v", env!("CARGO_PKG_VERSION")).dimmed()
+    );
 
     // Handle special commands first
     if args.show_unknown_routes {
@@ -279,13 +283,8 @@ async fn main() -> Result<()> {
         return Ok(());
     }
 
-
-
-
-
-
     if !database::Database::new()?.has_routes()? {
-        eprintln!("No route metadata is installed. Export client routes with scripts/export_client_routes.ps1, then run import_client_routes --input /path/to/client-routes.json. Only event-provided or heuristic estimates are available until import.");
+        eprintln!("No route metadata is installed. Export client routes with scripts/export_client_routes.ps1, then run import_client_routes --input /path/to/client-routes.json. Fixed durations remain available; personal estimates require supported measured history and course geometry. No category-speed estimates are substituted.");
     }
 
     // Load configuration
@@ -485,7 +484,7 @@ async fn main() -> Result<()> {
                 // Show what duration we would estimate
                 if let Some(route_id) = event.route_id {
                     if let Some(route_data) = get_route_data(route_id) {
-                        let est = estimate_duration_from_route_id(route_id, zwift_score);
+                        let est = estimate_event(event, zwift_score).map(|e| e.duration_minutes);
                         println!(
                             "    → Known route: {} km, would estimate {:?} min",
                             route_data.distance_km, est
@@ -510,7 +509,7 @@ async fn main() -> Result<()> {
     // Record missing route IDs for a future client-metadata refresh.
     for event in &events {
         if event.sport.to_uppercase() == "CYCLING" && event.event_type == "RACE" {
-            log_unknown_route(event);
+            log_unknown_route(event, zwift_score);
         }
     }
 
@@ -522,8 +521,20 @@ async fn main() -> Result<()> {
 
     let (filtered, filter_stats) = filter_events(events.clone(), &effective_args, zwift_score);
 
+    if filter_stats.duration_unknown > 0 {
+        println!(
+            "Omitted {} events with unknown duration: insufficient supported personal history, course data, or format; no category-speed estimates substituted. Use --debug for reasons.",
+            filter_stats.duration_unknown
+        );
+    }
+
     if filtered.is_empty() {
         println!("\n{}", "No matching events found!".red());
+
+        if filter_stats.duration_filtered == 0 && filter_stats.duration_unknown > 0 {
+            println!("No supported durations were outside the requested window. Widening tolerance cannot recover unknown durations; check supported history/course data and --debug reasons.");
+            return Ok(());
+        }
 
         // Provide specific suggestions based on what was searched for
         let suggestions = generate_no_results_suggestions(&args);
@@ -578,7 +589,7 @@ async fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use zwift_race_finder::constants::{METERS_PER_KILOMETER, PERCENT_MULTIPLIER};
+    use zwift_race_finder::constants::METERS_PER_KILOMETER;
 
     impl Default for Args {
         fn default() -> Self {
@@ -597,14 +608,14 @@ mod tests {
         }
     }
 
-    fn create_test_event(name: &str, distance: f64, route: &str, sport: &str) -> ZwiftEvent {
+    fn create_test_event(name: &str, minutes: u32, route: &str, sport: &str) -> ZwiftEvent {
         ZwiftEvent {
             id: 1,
             name: name.to_string(),
             event_start: Utc::now() + chrono::Duration::hours(2),
             event_type: "RACE".to_string(),
-            distance_in_meters: Some(distance * METERS_PER_KILOMETER),
-            duration_in_minutes: None,
+            distance_in_meters: Some(20.0 * METERS_PER_KILOMETER),
+            duration_in_minutes: Some(minutes),
             duration_in_seconds: None,
             route_id: None,
             route: Some(route.to_string()),
@@ -617,11 +628,53 @@ mod tests {
     }
 
     #[test]
+    fn unknown_durations_are_excluded_and_counted_separately_from_ineligible_subgroups() {
+        let mut unsupported = create_test_event("Unsupported format", 45, "Test", "CYCLING");
+        unsupported.event_type = "TIME_TRIAL".into();
+        unsupported.duration_in_minutes = None;
+        let mut missing_geometry = unsupported.clone();
+        missing_geometry.name = "No geometry".into();
+        missing_geometry.event_type = "RACE".into();
+        missing_geometry.distance_in_meters = None;
+        missing_geometry.route = None;
+        let mut ineligible = create_test_event("Restricted", 45, "Test", "CYCLING");
+        ineligible.event_sub_groups.push(EventSubGroup {
+            id: 1,
+            name: "Upper".into(),
+            route_id: None,
+            distance_in_meters: None,
+            duration_in_minutes: None,
+            duration_in_seconds: None,
+            subgroup_label: None,
+            category_enforcement: None,
+            range_access_label: Some("500-1000".into()),
+            laps: None,
+        });
+        let fixed = create_test_event("Fixed", 45, "Test", "CYCLING");
+        let args = Args {
+            duration: 45,
+            tolerance: 100,
+            ..Args::default()
+        };
+        let (matches, stats) = filter_events(
+            vec![unsupported, missing_geometry, ineligible, fixed],
+            &args,
+            195,
+        );
+        assert_eq!(matches.len(), 1);
+        assert_eq!(matches[0].name, "Fixed");
+        assert_eq!(stats.duration_unknown, 2);
+        assert_eq!(stats.duration_filtered, 0); // None has a known out-of-window duration.
+        assert_eq!(stats.subgroup_filtered, 1);
+        assert_eq!(stats.total_filtered(), 3);
+    }
+
+    #[test]
     fn test_filters_out_running_events() {
         let events = vec![
-            create_test_event("Cycling Race", 60.0, "Watopia Flat", "CYCLING"), // ~116 min
-            create_test_event("Running Event", 10.0, "May Field", "RUNNING"),
-            create_test_event("Bike Race 2", 62.0, "Tempus Fugit", "CYCLING"), // ~112 min
+            create_test_event("Cycling Race", 116, "Watopia Flat", "CYCLING"), // Fixed 116 min
+            create_test_event("Running Event", 30, "May Field", "RUNNING"),
+            create_test_event("Bike Race 2", 112, "Tempus Fugit", "CYCLING"), // Fixed 112 min
         ];
 
         let args = Args {
@@ -647,9 +700,9 @@ mod tests {
     #[test]
     fn test_duration_filtering() {
         let events = vec![
-            create_test_event("Short Race", 20.0, "Watopia Flat", "CYCLING"), // ~39 min
-            create_test_event("Perfect Race", 50.0, "Watopia Flat", "CYCLING"), // ~97 min
-            create_test_event("Long Race", 80.0, "Watopia Flat", "CYCLING"),  // ~155 min
+            create_test_event("Short Race", 39, "Watopia Flat", "CYCLING"), // Fixed 39 min
+            create_test_event("Perfect Race", 97, "Watopia Flat", "CYCLING"), // Fixed 97 min
+            create_test_event("Long Race", 155, "Watopia Flat", "CYCLING"), // Fixed 155 min
         ];
 
         let args = Args {
@@ -678,9 +731,9 @@ mod tests {
         // Targets: replace - with /, replace abs() removal
 
         let events = vec![
-            create_test_event("Race 1", 15.0, "Short", "CYCLING"), // ~29 min
-            create_test_event("Race 2", 16.0, "Target", "CYCLING"), // ~31 min
-            create_test_event("Race 3", 17.0, "Long", "CYCLING"),  // ~33 min
+            create_test_event("Race 1", 29, "Short", "CYCLING"), // Fixed 29 min
+            create_test_event("Race 2", 31, "Target", "CYCLING"), // Fixed 31 min
+            create_test_event("Race 3", 33, "Long", "CYCLING"),  // Fixed 33 min
         ];
 
         let args = Args {
@@ -703,7 +756,7 @@ mod tests {
         // Targets: replace <= with <, <= with ==, <= with >
 
         let events = vec![
-            create_test_event("Exact Match", 15.45, "Test", "CYCLING"), // Exactly 30 min
+            create_test_event("Exact Match", 30, "Test", "CYCLING"), // Exactly 30 min
         ];
 
         let args = Args {
@@ -717,38 +770,6 @@ mod tests {
         // Should find the event (30 <= 30 is true)
         // If <= becomes <, would not find it (30 < 30 is false)
         assert_eq!(filtered.len(), 1);
-    }
-
-
-    #[test]
-    fn test_boolean_operators_in_filtering() {
-        // Test boolean operators
-        // event.sport == "CYCLING" && event.event_type == "RACE"
-        // Targets: replace && with ||, == with !=
-
-        let cycling_race = create_test_event("Bike Race", 30.0, "Test", "CYCLING");
-        let running_race = create_test_event("Run", 10.0, "Test", "RUNNING");
-
-        // Should only match CYCLING && RACE
-        assert!(cycling_race.sport == "CYCLING" && cycling_race.event_type == "RACE");
-        assert!(!(running_race.sport == "CYCLING" && running_race.event_type == "RACE"));
-
-        // With || mutation, would match either condition
-        // Running race has event_type == "RACE", so OR would be true
-        assert!(running_race.sport == "CYCLING" || running_race.event_type == "RACE");
-    }
-
-    #[test]
-    fn test_negation_operators() {
-        // Test ! operator
-        // !tags.is_empty()
-        // Target: delete ! operator
-
-        let tags = vec!["sprint".to_string()];
-        assert!(!tags.is_empty()); // Should be true
-
-        let empty_tags: Vec<String> = vec![];
-        assert!(empty_tags.is_empty()); // Should be true
     }
 
     #[test]
@@ -837,16 +858,16 @@ mod tests {
     #[test]
     fn test_event_type_filtering() {
         // Create different event types
-        let mut race = create_test_event("3R Race", 50.0, "Watopia", "CYCLING");
+        let mut race = create_test_event("3R Race", 100, "Watopia", "CYCLING");
         race.event_type = "RACE".to_string();
 
-        let mut fondo = create_test_event("Gran Fondo", 60.0, "Watopia", "CYCLING");
+        let mut fondo = create_test_event("Gran Fondo", 100, "Watopia", "CYCLING");
         fondo.event_type = "GROUP_RIDE".to_string();
 
-        let mut group = create_test_event("Sunday Ride", 50.0, "Watopia", "CYCLING");
+        let mut group = create_test_event("Sunday Ride", 100, "Watopia", "CYCLING");
         group.event_type = "GROUP_RIDE".to_string();
 
-        let mut tt = create_test_event("Time Trial", 40.0, "Watopia", "CYCLING");
+        let mut tt = create_test_event("Time Trial", 100, "Watopia", "CYCLING");
         tt.event_type = "TIME_TRIAL".to_string();
 
         let events = vec![race, fondo, group, tt];
@@ -920,14 +941,14 @@ mod tests {
 
     #[test]
     fn test_racing_score_event_filtering() {
-        // Create a Racing Score event with distance in description
+        // Fixed time isolates subgroup eligibility from the personal model.
         let racing_score_event = ZwiftEvent {
             id: 1,
             name: "Three Village Loop Race".to_string(),
             event_start: Utc::now() + chrono::Duration::hours(2),
             event_type: "RACE".to_string(),
             distance_in_meters: Some(0.0), // Racing Score events have 0
-            duration_in_minutes: None,
+            duration_in_minutes: Some(20),
             duration_in_seconds: None,
             route_id: Some(3379779247),
             route: Some("Three Village Loop".to_string()),
@@ -939,6 +960,8 @@ mod tests {
                 route_id: Some(3379779247),
                 distance_in_meters: Some(0.0),
                 duration_in_minutes: None,
+                duration_in_seconds: None,
+                subgroup_label: None,
                 category_enforcement: None,
                 range_access_label: Some("0-199".to_string()),
                 laps: None,
@@ -963,8 +986,7 @@ mod tests {
         let events = vec![racing_score_event.clone()];
         let (filtered, _) = filter_events(events, &args, 195);
 
-        // Event should be included if distance parsing works
-        // 10.6 km at Cat D speed (30.9 km/h) = ~20.6 minutes
+        // Eligibility/filter orchestration is independent of personal history.
         assert_eq!(filtered.len(), 1);
         assert_eq!(filtered[0].name, "Three Village Loop Race");
     }
@@ -980,7 +1002,7 @@ mod tests {
                 event_start: Utc::now() + chrono::Duration::hours(1),
                 event_type: "RACE".to_string(),
                 distance_in_meters: Some(20000.0), // 20km
-                duration_in_minutes: None,
+                duration_in_minutes: Some(40),
                 duration_in_seconds: None,
                 route_id: None,
                 route: Some("Watopia".to_string()),
@@ -997,7 +1019,7 @@ mod tests {
                 event_start: Utc::now() + chrono::Duration::hours(2),
                 event_type: "RACE".to_string(),
                 distance_in_meters: Some(0.0), // 0 distance!
-                duration_in_minutes: None,
+                duration_in_minutes: Some(40),
                 duration_in_seconds: None,
                 route_id: None,
                 route: Some("Test Route".to_string()),
@@ -1009,6 +1031,8 @@ mod tests {
                     route_id: None,
                     distance_in_meters: Some(0.0),
                     duration_in_minutes: None,
+                    duration_in_seconds: None,
+                    subgroup_label: None,
                     category_enforcement: None,
                     range_access_label: Some("0-650".to_string()),
                     laps: None,
@@ -1033,7 +1057,7 @@ mod tests {
 
         let (filtered, _) = filter_events(events, &args, 195);
 
-        // Both events should be included (20km at ~30.9km/h = ~38.8 min)
+        // Both fixed-duration events remain eligible despite zero top-level distance.
         assert_eq!(filtered.len(), 2);
         assert!(filtered.iter().any(|e| e.name == "Traditional Race"));
         assert!(filtered.iter().any(|e| e.name == "Racing Score Event"));
@@ -1213,132 +1237,4 @@ mod tests {
         assert!(suggestions[0].contains("No events match"));
         assert!(suggestions[1].contains("30")); // Should suggest wider tolerance (15*2)
     }
-
-    // Mutation testing: arithmetic operations
-    #[test]
-    fn test_filter_events_duration_arithmetic_mutations() {
-        // Test duration filtering arithmetic
-        let event = create_test_event("Test Race", 40.0, "Watopia", "CYCLING");
-        let args = Args {
-            duration: 30,
-            tolerance: 5,
-            ..Default::default()
-        };
-
-        // Test that diff calculation uses subtraction, not division
-        let estimated_duration = 35; // Within tolerance
-        let diff = (estimated_duration as i32 - args.duration as i32).abs();
-        assert_eq!(diff, 5);
-        assert!(diff <= args.tolerance as i32);
-
-        // Test edge cases
-        let estimated_duration2 = 25; // Exactly at boundary
-        let diff2 = (estimated_duration2 as i32 - args.duration as i32).abs();
-        assert_eq!(diff2, 5);
-        assert!(diff2 <= args.tolerance as i32);
-
-        let estimated_duration3 = 24; // Just outside boundary
-        let diff3 = (estimated_duration3 as i32 - args.duration as i32).abs();
-        assert_eq!(diff3, 6);
-        assert!(diff3 > args.tolerance as i32);
-    }
-
-    #[test]
-    fn test_filter_events_distance_conversion() {
-        // Test distance conversion: meters to km
-        let distance_meters = 42195.0;
-        let distance_km = distance_meters / METERS_PER_KILOMETER;
-
-        assert!((distance_km - 42.195).abs() < 0.001);
-        assert_ne!(distance_km, 42195000.0); // Would be if / became *
-        assert_ne!(distance_km, 195.0); // Would be if / became %
-    }
-
-    #[test]
-    fn test_filter_events_increment_operations() {
-        // Test += operations in filter statistics
-        let mut stats = FilterStats::default();
-        let initial = stats.type_filtered;
-
-        // Test += increments, not multiplies
-        stats.type_filtered += 5;
-        assert_eq!(stats.type_filtered, initial + 5);
-
-        // Test multiple increments
-        stats.type_filtered += 3;
-        assert_eq!(stats.type_filtered, initial + 8);
-        assert_ne!(stats.type_filtered, initial * 5 * 3); // Would be if += was *=
-    }
-
-    #[test]
-    fn test_comparison_operators() {
-        // Test > vs < vs ==
-        let value = 10;
-        let threshold = 5;
-
-        assert!(value > threshold);
-        assert!(!(value < threshold)); // Would be true if > became <
-        assert!(!(value == threshold)); // Would be true if > became ==
-
-        // Test edge case
-        let value2 = 5;
-        assert!(!(value2 > threshold));
-        assert_eq!(value2, threshold);
-    }
-
-    #[test]
-    fn test_boolean_operators_mutations() {
-        // Test || and && operators
-        let event = ZwiftEvent {
-            tags: vec!["sprint".to_string(), "race".to_string()],
-            ..create_test_event("Test", 20.0, "Watopia", "CYCLING")
-        };
-
-        // Test OR logic (||)
-        let tags = vec!["sprint", "climb"];
-        let has_any = tags
-            .iter()
-            .any(|tag| event.tags.iter().any(|etag| etag.contains(tag)));
-        assert!(has_any); // Should be true because "sprint" matches
-
-        // Test AND logic (&&) would be different
-        let has_all = tags
-            .iter()
-            .all(|tag| event.tags.iter().any(|etag| etag.contains(tag)));
-        assert!(!has_all); // Should be false because "climb" doesn't match
-    }
-
-    #[test]
-    fn test_negation_operator_mutations() {
-        // Test ! operator in exclude filtering
-        let exclude = true;
-        assert!(!exclude == false);
-        assert!(!!exclude == true);
-    }
-
-    #[test]
-    fn test_match_arm_coverage_mutations() {
-        // Ensure all match arms are tested
-        let args = Args {
-            event_type: "unknown_type".to_string(),
-            ..Default::default()
-        };
-
-        // This should trigger the default match arm
-        let _event = create_test_event("Test", 20.0, "Watopia", "CYCLING");
-        // The default arm returns true, allowing all events
-        assert!(true); // Would test the actual filtering logic
-    }
-
-    #[test]
-    fn test_division_edge_cases() {
-        // Test divisions that could cause issues
-        let zero = 0;
-        let value = 10;
-
-        // Test protected division
-        let result = if zero > 0 { value / zero } else { 0 };
-        assert_eq!(result, 0);
-    }
-
 }

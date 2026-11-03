@@ -5,7 +5,6 @@
 
 use proptest::prelude::*;
 use zwift_race_finder::{
-    category::get_category_from_score,
     duration_estimation::estimate_duration_for_category,
     estimation::{estimate_duration_from_route_id, estimate_duration_with_distance},
 };
@@ -207,25 +206,14 @@ proptest! {
     }
 
     /// Property: Very short distances behavior
-    /// Current implementation rounds very short distances to 0 minutes
+    /// Tiny positive distances produce an estimate below half a minute, rounded to zero.
     #[test]
-    fn minimum_duration_for_any_distance(
+    fn below_half_minute_estimates_round_to_zero(
         route_name in route_name_strategy(),
-        distance in 0.01..1.0, // Very short distances
+        distance in 0.001..0.01,
         score in 100..500u32,
     ) {
-        let duration = estimate_duration_for_category(distance, route_name, score);
-        
-        // Current implementation allows 0 duration for very short distances
-        // This documents the actual behavior
-        assert!(duration >= 0,
-            "Duration for {} km should be non-negative", distance);
-            
-        // But distances over ~2km should have positive duration
-        if distance >= 2.0 {
-            assert!(duration > 0,
-                "Distance {} km should have positive duration", distance);
-        }
+        prop_assert_eq!(estimate_duration_for_category(distance, route_name, score), 0);
     }
 
     /// Property: Score of 0 should still produce valid results
