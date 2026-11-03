@@ -56,7 +56,7 @@ The application must:
 - keep credentials outside source code and committed configuration;
 - accept ZwiftPower credentials only from environment variables.
 
-Application SQL and schema evolution belong in `src/database.rs` and its `src/database_history.rs` child; callers use `Database` methods. [Database Reference](DATABASE.md) mirrors storage, but its older route-ID cast note is not permission to bypass checked input conversion. Back up existing data before imports or schema upgrades; see the [client-route](../howto/CLIENT_ROUTE_DATA.md) and [measured-history](../howto/ZWIFTPOWER_EXPORT_STEPS.md) procedures. The latter's storage-only prediction discussion predates the active personal estimator; [Algorithms](ALGORITHMS.md) owns current prediction policy.
+Application SQL and schema evolution belong in `src/database.rs` and its `src/database_history.rs` child; callers use `Database` methods. [Database Reference](DATABASE.md) mirrors storage, but its older route-ID cast note is not permission to bypass checked input conversion. Back up existing data before imports or schema upgrades; see the [client-route](../howto/CLIENT_ROUTE_DATA.md) and [measured-history](../howto/ZWIFTPOWER_EXPORT_STEPS.md) procedures. Importing supported observations can change personal predictions without establishing better accuracy; [Algorithms](ALGORITHMS.md) owns current prediction policy.
 
 ## CLI and configuration
 

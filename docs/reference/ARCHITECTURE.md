@@ -72,7 +72,7 @@ For new work, follow the [selected first-party examples with tests](../code-trut
 ### 7. Route Metadata and Description Parsing
 - [Client-only import](../howto/CLIENT_ROUTE_DATA.md) accepts an explicitly selected client cache and extracted client XML for missing IDs; exports stay private outside Git.
 - No bundled route dataset or supported community/zwift-offline import remains.
-- The [measured-history procedure](../howto/ZWIFTPOWER_EXPORT_STEPS.md) owns export, backup and preview/apply steps. Its storage-only prediction discussion predates personal-estimator integration; [Algorithms](ALGORITHMS.md) owns the active estimate policy.
+- The [measured-history procedure](../howto/ZWIFTPOWER_EXPORT_STEPS.md) owns export, backup and preview/apply steps. Importing supported observations can change personal predictions without changing the model; [Algorithms](ALGORITHMS.md) owns the active estimate policy.
 - Discovery and description-analysis commands are removed; route metadata comes from explicit client imports.
 - Event-distance/elevation/lap parsing in `parsing.rs` remains supported. The route-name guessing module is removed.
 

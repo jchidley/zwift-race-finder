@@ -1,4 +1,4 @@
-<!-- code-truth: checkpoint 3e13a78 plus unpublished working-tree observations; see README.md -->
+<!-- code-truth: ea787a9 source checked during focused duration-boundary reconciliation; other sections retain the scope in README.md -->
 # Implementation Architecture
 
 This page describes observed code boundaries and change propagation, including unpublished changes after the checkpoint in [README.md](README.md). Adopted constraints live in [the architecture reference](../reference/ARCHITECTURE.md); [selected examples](PATTERNS.md#selected-first-party-examples) identify what new work should follow. Domain physics is explained under [`docs/explanation/`](../explanation/); user-facing algorithms are specified in [`docs/reference/ALGORITHMS.md`](../reference/ALGORITHMS.md).
@@ -23,7 +23,7 @@ Args::parse
        │    └─ event_matches_duration
        │         ├─ subgroup and description parsing
        │         ├─ database route/alias lookup
-       │         └─ duration calculation/fallbacks
+       │         └─ fixed time / personal estimate / unavailable
        └─ event_display ──> compact table or verbose output
 ```
 
@@ -48,18 +48,34 @@ The normal path is asynchronous only around external HTTP work. Filtering, estim
 
 ## Duration decision boundary
 
-Local update after the commit-scoped snapshot: `event_filtering::estimate_event()` owns the ordered fallback tree and returns `EventEstimate` (minutes, optional distance/elevation, fixed status). It may use fixed event duration, subgroup lap data, event/subgroup distance, known route data, description parsing, or an event-name distance guess. `event_matches_duration()` compares its minutes using inclusive tolerance; compact rows and verbose duration formatting use the same resolver rather than separate formulas. The final subgroup fallback uses one selected subgroup, not any matching subgroup. See `tests/duration_consistency_tests.rs` for fixed-duration, fallback visibility, metadata, lead-in, and display/filter agreement regressions.
+Checked against source checkpoint `ea787a9` during the focused documentation repair:
+`event_filtering::resolve_event()` owns `Result<EventEstimate, EstimateUnavailable>`.
+`estimate_event()` is its optional adapter. Fixed event/subgroup time wins after
+subgroup eligibility; otherwise supported ordinary races use `personal_estimation`.
+An error exposes no eligible subgroup, missing geometry or a personal unavailability
+reason. A successful estimate carries fixed status or personal method/support,
+not a category fallback reason. Unsupported personal durations remain unknown.
+Duration filtering uses inclusive tolerance; compact and verbose output call the
+same resolver independently. See [Algorithms](../reference/ALGORITHMS.md#estimation-priority)
+and `tests/duration_consistency_tests.rs`.
 
-`src/estimation.rs` bridges route lookup to pure calculations. `estimate_duration_from_route_id()` adds the stored lead-in. `estimate_duration_with_distance()` trusts its supplied distance and does not add lead-in. The multi-lap filtering branch explicitly adds lead-in before calling it; event-provided-distance branches do not. Local elevation update: route and lead-in elevation are optional, with SQLite knowledge flags distinguishing legacy unknown zeros from explicitly known zero. Pure helpers in `estimation.rs` compute exact lap totals and approximate distance-limited totals; the latter carry an approximation flag in `EventEstimate`. Client-only updates use `scripts/export_client_routes.ps1` and `src/bin/import_client_routes.rs`; `Database::import_client_routes()` atomically writes route metadata and `route_sources` provenance, with selected cache > extracted XML precedence; legacy rows remain until explicitly updated. Elevation fields are optional `f64`, lead-in distance is optional, and total elevation is rounded only at the presentation boundary. See [client-only route data](../howto/CLIENT_ROUTE_DATA.md).
+Geometry prefers the selected subgroup's route ID, then positive finite subgroup
+distance, positive subgroup laps plus one known lead-in, event distance, known
+route/multi-lap metadata, Racing Score description distance, then name-distance
+fallback. Explicit total distance gets no additional lead-in. Zero laps cannot
+produce a lead-in-only estimate. Optional route/lead-in climbing distinguishes
+unknown from known zero; proportional distance-limited climbing is approximate.
+`src/estimation.rs` supplies geometry helpers as well as retained standalone
+category-duration helpers; the active filtering branch does not call the latter
+for personal fallback. Client metadata import and provenance are described in
+[client-only route data](../howto/CLIENT_ROUTE_DATA.md).
 
-A further local correction resolves the numeric Racing Score subgroup (or exact traditional label/category token), prefers its route ID, and shares geometry across fixed/calculated duration: positive finite subgroup distance, positive subgroup laps plus one known lead-in, event distance, then existing route/description/name fallbacks. Zero laps never produce a lead-in-only estimate. Subgroup API seconds are supported; event fixed-duration precedence remains. See the [failure-led diagnosis and live replay](../project-history/PERSONAL_ESTIMATOR_DIAGNOSIS_2026-11-02.md). The earlier profile prototype remains disabled. A subsequent owner-authorized live
-personal path in `personal_estimation.rs` uses prior same-route pace or a global
-distance/ascent fit after geometry resolution. Unsupported estimates now remain unknown rather than using category fallback. The
-returned estimate carries personal method/support or an explicit fallback reason;
-filtering and rendering use the resulting rounded minutes. Fixed durations return
-before history lookup. See [live implementation](../project-history/LIVE_PERSONAL_ESTIMATOR_2026-11-02.md).
-
-Calculated duration functions now round their final result to the nearest whole minute (half-minute ties upward), rather than truncating. The shared resolver uses that result for both filtering and presentation; fixed-duration handling is unchanged. See the 2026-11-02 evaluation in the algorithms reference.
+Personal estimation uses strictly earlier dates, same-route pace first, otherwise
+distance/ascent fitting. Its one-year weighting and support thresholds are
+unchanged; new recency policies remain proposals. Calculated personal minutes
+round once for filtering/display. The disabled profile prototype is not this
+active cross-course fit. See [Algorithms](../reference/ALGORITHMS.md#personal-duration-estimates)
+for exact thresholds and fitting rules.
 
 ### Change propagation
 
@@ -90,7 +106,7 @@ Passing an immutable estimate through the pipeline is deferred application work.
 
 - Route identity is `u32` even though SQLite uses signed 64-bit integers and some external representations can appear negative.
 - Route aliases must point to a canonical route row; lookup tries direct ID before alias resolution.
-- Category strings such as `E`, `D`, `C`, `B`, `A`, and `A++` connect category mapping to speed and climbing-factor matches.
+- Category strings connect retained legacy speed/climbing helpers; event subgroup selection does not supply personal pace.
 - Description parsing depends on human-formatted event text and units.
 - Config precedence depends on first existing TOML path, then environment override; partial TOML sections can replace defaults differently from a missing section.
 - The regression result depends on the contents of the normal local database, not a versioned fixture.

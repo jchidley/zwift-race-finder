@@ -109,7 +109,7 @@ cp ~/.config/zwift-race-finder/config.toml ~/zwift-config-backup-$(date +%Y%m%d)
 
 ### Wrong Predictions
 1. Import measured history using [the ZwiftPower export/import workflow](ZWIFTPOWER_EXPORT_STEPS.md); manual result entry is removed.
-2. Check event distance/laps and source route metadata; importing history does not yet personalize predictions.
+2. Check event distance/laps and source route metadata; supported earlier race history supplies personal predictions. Imports can change predictions without proving improved accuracy; see [Algorithms](../reference/ALGORITHMS.md).
 3. Check if multi-lap race in `multi_lap_events` table
 4. Report via GitHub if consistently wrong
 

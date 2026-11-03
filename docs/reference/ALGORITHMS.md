@@ -23,9 +23,15 @@ The model uses earlier UTC dates only, before `min(today, event day)`:
 2. Otherwise at least twelve observations with known course climbing: fit
    `minutes = pace × (distance_km + h × ascent_km)`. A fixed grid
    `h = 0, 2, 4, 8, 16, 32, 64` and pace bounded to 1–4 min/km minimize
-   recency-weighted time MAE. Recency has a 365-day half-life. Pace is the
+   recency-weighted time MAE. Pace is the
    feature-weighted median; exact shape ties retain the first/smallest grid value.
 3. If neither is supported, return an explicit unavailability reason, not a category-speed duration. Unfamiliar courses still use step 2 when supported.
+
+Both branches use a **365-day half-life with no hard age cutoff**. Same-route
+support takes priority whenever its threshold is met; it is not compared against
+newer cross-course support. Older volume can dominate newer observations. These
+are current implementation choices, not an adopted optimal current-form policy.
+The unresolved recency work belongs in [Tasks](../../TASKS.md#immediate-plan--recent-performance-relevance).
 
 Calculated personal output rounds once to whole minutes. Verbose output reports
 method, sample count and descriptive fitted residual error. That error is **not**
@@ -106,18 +112,17 @@ The final multiplier on a climb is `base_multiplier × category_factor`. For exa
 | "flat", "tempus" | 1.1 |
 | (anything else) | 1.0 |
 
-### Which Multiplier Is Used Where
+### Legacy Helper Callers
 
 | Function | Multiplier Used | When Called |
 |----------|----------------|------------|
 | `estimate_duration_from_route_id` | Elevation + category | Route known, no distance override |
 | `estimate_duration_with_distance` | Elevation + category | Route known, distance provided (multi-lap) |
 | `estimate_duration_for_category` | Name-based only | No route lookup possible (fallback) |
-| `event_filtering::estimate_event` | Resolves the ordered fallback below | Shared by duration filtering, compact rows, and verbose duration output |
 
-### Estimation Priority
+## Estimation Priority
 
-`event_filtering::estimate_event()` resolves one `EventEstimate` (minutes, available distance/elevation, and fixed-versus-estimated status). `event_matches_duration()` compares those minutes to the target with an inclusive tolerance. Both compact and verbose display use the same resolver; display does not add a separate surface multiplier or extra lead-in. An unestimable event is not a match.
+`event_filtering::resolve_event()` returns `Result<EventEstimate, EstimateUnavailable>`. A successful estimate carries minutes, available distance/elevation, fixed status and optional personal method/support; an error carries the unavailability reason. `estimate_event()` is the `Option` convenience adapter. `event_matches_duration()` compares those minutes to the target with an inclusive tolerance. Both compact and verbose display use the same resolver; display does not add a separate surface multiplier or extra lead-in. An unestimable event is not a match.
 
 The resolver selects a subgroup before calculating geometry. For Racing Score events,
 it matches the numeric `rangeAccessLabel` against the supplied score rather than
@@ -212,10 +217,11 @@ claims, not the current verified test result.
 A personal pace adjustment must use only earlier observations, preserve unknown
 historical scores, and be evaluated using comparable event distances/lead-ins.
 Report out-of-sample MAE in minutes and within-window counts. Do not select an
-adjustment using the same later results presented as its validation. Existing
-category speeds already include drafting; adding a second generic draft bonus
-would double-count that benefit. Physics simulation and exact equipment are not
-prerequisites for useful race selection.
+adjustment using the same later results presented as its validation. The retained
+legacy category speeds already include drafting; adding a generic
+draft bonus to those helpers would double-count that benefit. Personal measured
+race pace also reflects drafting, but does not isolate its contribution. Physics
+simulation and exact equipment are not prerequisites for useful race selection.
 
 ## Special Cases
 

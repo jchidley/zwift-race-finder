@@ -2,33 +2,46 @@
 
 `TASKS.md` is the canonical unresolved queue. Items remain distinct and open until current evidence verifies satisfaction or an owner decision marks them superseded.
 
-## Immediate plan — personal finder acceptance
+## Immediate plan — recent-performance relevance
 
-Approved 2026-11-03: P1 plan reconciliation followed by P2 bounded acceptance,
-without changing the model. The goal is the actual score → subgroup/course →
-personal duration → time-window workflow, not another model search.
+Preserve **`v0.3.0`** as the usable active baseline while continuing bounded
+research. Owner acceptance for practical choices does not cancel the improvement
+objective. [Status](STATUS.md) owns current evidence and blockers; the
+[baseline/experiment report](docs/project-history/RECENCY_BASELINE_2026-11-03.md)
+owns this completed comparison. No production recency change is adopted.
 
-- [x] **P1:** Reconcile current versus historical work, explicitly retain delivered
-  personal integration, and separate unproven accuracy from implementation.
-- [x] **D1:** Adopt S1–S6 documentation and selected examples. No new code/test/CI
-  enforcement was included; see [decisions](docs/code-truth/DECISIONS.md#standards-adoption--documentation-only).
-- [x] **P2:** Bounded acceptance completed 2026-11-03; see the [acceptance table](STATUS.md#p2-acceptance-evidence). Known/unseen course, recency and fallback checks pass; 19 live compact/verbose matches agree and fall within 40–50 minutes. Full default suite: 192 passed, 7 ignored; release build passes and existing binary hash matches. Formatting/Clippy still fail; no clean-release or accuracy-superiority claim. No model changes, parameter sweep or normal-data writes.
-- [x] Reconcile whether the 31 October race supplied in the later session is in
-  normal history: read-only copy checked 2026-11-03; no such dated row, latest
-  stored date 29 October. This is a data-coverage finding, not an authorized import.
-- [ ] **Approved history refresh — blocked on fresh supported export:** back up, preview and reconcile that later result through the supported importer. Only the 30 October export was found in the private application history-import directory; no new import has run.
-  Do not manufacture source provenance from a chat-supplied finish time.
-- [x] **Approved personal-only duration policy:** remove category-speed substitution while retaining same-route and cross-course personal estimates and fixed duration. Unknown durations are excluded and their omission count disclosed. Fitting parameters unchanged.
-- [ ] **Release-gate preparation incomplete:** scoped formatting and functional validation pass; repository-wide formatting and Clippy still fail. Baseline Clippy: 165 library errors; post-change: 160. Do not weaken gates or represent this as release-ready.
-- [ ] Prepare a reviewable local checkpoint after acceptance; distinguish source,
-  tested release binary and published commit. Commit/push require separate approval.
-
-Current-form adaptation is a product concern; one-year weighting and support
-thresholds are implementation choices. P2 verified that recent results have more
-weight individually but older volume can dominate. Only six ordinary candidates
-in the copied history fell within 90 days (16.9% of base recency weight, not
-necessarily fit influence). Reconcile data coverage before proposing tuning.
-Keep output in whole minutes without promising ±1-minute accuracy.
+- [x] Reconcile the four supplied finishes with stored/source history and recordings.
+  Two already exist; preserve exact source seconds and the corroborated event date.
+  The other two remain absent. Detailed reconciliation stays private.
+- [x] Preserve a versioned baseline, frozen data, inputs and performance evidence.
+  Local annotated `v0.3.0` identifies the active model; private evaluation artifacts
+  remain outside Git. This is not a push or clean-release qualification.
+- [x] Review the prior last-five experiment and predeclare one stronger-recency
+  candidate for the current personal estimator: R1 uses a 90-day half-life and
+  requires three comparable same-route observations within 180 days before that
+  branch takes priority. No global hard cutoff or relaxed minimum support.
+- [x] Compare chronologically on identical frozen data: duration MAE, coverage and
+  four duration windows. Independent arithmetic matches all 364 Rust cases;
+  The supporting historical screen fails; the main recent-example comparison
+  improves 2:31 → 1:51 across three non-EVR cases. R1 is not promoted. Do not retune on the same
+  inspected outcomes or describe them as an independent holdout.
+- [ ] **Qualify missing later observations and refresh supported history:** obtain
+  source-qualified finish/event identity and verify the EVR route; back up,
+  preview and reconcile a fresh supported export. Do not bulk-import FIT/Strava
+  activities, infer provenance or add the existing results twice.
+- [ ] **Before another model candidate:** identify a specific selection failure
+  or adaptation limitation beyond this small/mixed recency result, preferably
+  with new source-qualified outcomes. Recent support is sparse; a separate
+  current-form adjustment remains open but needs an explicit mechanism/protocol.
+  Keep R1 available for comparison; useful baseline acceptance does not cancel research.
+  Preserve cross-course prediction, source/rider boundaries and earlier-only dates.
+- [ ] **Predictive qualification remains open:** use new evaluation evidence before
+  claiming general improvement. Keep functional use acceptance, retrospective
+  comparisons and release gates separate. Whole-minute output is not ±1-minute
+  precision. Existing inspected comparisons are not fresh validation data.
+- [ ] **Release-gate preparation remains incomplete:** repository-wide formatting
+  and Clippy failed previously (165 → 160 library errors). Do not weaken gates;
+  no unrelated cleanup, push or deployment is authorized by the baseline tag.
 
 ## Separate proposals — not automatically approved
 
@@ -44,7 +57,7 @@ Keep output in whole minutes without promising ±1-minute accuracy.
 ## Retained test-first validation and cleanup backlog
 
 The items below retain their individual dispositions. They are not the execution
-order for P2; OCR and general cleanup are deferred unless needed for a concrete
+order for the recency investigation; OCR and general cleanup are deferred unless needed for a concrete
 finder defect. Historical test counts are dated evidence, not current passes.
 
 
@@ -67,7 +80,7 @@ finder defect. Historical test counts are dated evidence, not current passes.
 - [ ] Select the relevant stage's distance from multi-stage event descriptions rather than the first distance in the text; current shared resolver deliberately preserves the existing parser.
 - [x] Resolve Racing Score subgroups by numeric range and traditional groups by exact label/category token; prefer subgroup route/distance, ignore zero laps, and share fixed/calculated geometry. Synthetic regressions and captured live-feed replay pass; touching numeric endpoints retain API order, not a proven unique eligibility rule. See [diagnosis](docs/project-history/PERSONAL_ESTIMATOR_DIAGNOSIS_2026-11-02.md).
 - [x] Implement optional-score, precise, source-qualified performance history and a non-writing preview; migrate/import all approved observations with backed-up reconciliation, conflict/rollback tests, preserved six confirmations and repeat no-op verification. See [history audit](docs/project-history/HISTORY_MODEL_2026-10-30.md).
-- [x] Implement the explicitly requested live history-based estimator: score selects subgroup; earlier same-route pace or personal distance/ascent fit supplies duration; shared filter/display and visible fallback. Shipped-code chronological replay and isolated tests pass. [Implementation](docs/project-history/LIVE_PERSONAL_ESTIMATOR_2026-11-02.md).
+- [x] Implement the explicitly requested live history-based estimator: score selects subgroup; earlier same-route pace or personal distance/ascent fit supplies duration. Subsequent personal-only policy exposes unknown reasons instead of category fallback. Shipped-code chronological replay and isolated tests pass. [Implementation](docs/project-history/LIVE_PERSONAL_ESTIMATOR_2026-11-02.md).
 - [ ] Establish improved personal prediction/selection accuracy beyond the mixed already-inspected historical results. Live integration is experimental, not evidence that this accuracy objective is satisfied.
 - [ ] Resolve current Clippy failures; do not treat overlapping library/library-test lint totals as distinct defects.
 - [ ] Resolve existing Rust formatting failures and ShellCheck findings without conflating them with test assertion failures.

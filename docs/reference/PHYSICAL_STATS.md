@@ -10,15 +10,24 @@ For domain background rather than application behaviour, see [Zwift Physics](../
 
 ## Current estimator inputs
 
-The production duration estimator does **not** directly use rider weight, height, or FTP. It uses:
+The live finder does **not** directly use rider weight, height, or FTP. It uses:
 
-- Zwift Racing Score → empirical category speed;
-- route or event distance;
-- route elevation gain per kilometre;
-- a category-specific climbing penalty on steeper routes;
-- route-name difficulty only when elevation data is unavailable.
+- Racing Score to select event subgroup/course geometry, not personal pace;
+- declared event time when available;
+- earlier source-qualified ordinary-race results: measured time, total distance
+  and canonical route identity for same-route pace;
+- total course distance and known climbing for cross-course personal fitting
+  when same-route support is insufficient.
 
-The category/elevation interaction is an aggregate proxy for climbing differences between rider groups. It is not an individual physics simulation.
+Unavailable personal estimates remain unknown and are excluded from duration
+matches. Unfamiliar routes can still use supported cross-course fitting.
+The retained category-speed and climbing-penalty helpers are for separate callers
+and legacy regression, not the finder's personal duration fallback. See
+[Algorithms](ALGORITHMS.md) for precedence, chronology and support rules.
+
+This is an empirical performance model, not an individual physics simulation.
+Race outcomes also reflect drafting, field, pacing and motivation; they are not
+pure measurements of physiological capacity.
 
 ## Removed unused settings
 
@@ -26,4 +35,4 @@ Unused physical-stat configuration, accessors and the manual updater were remove
 
 ## Consequence for changes
 
-Do not describe raw weight, height, or FTP as current prediction inputs. A future personalized model must establish that those inputs improve held-out predictions rather than duplicating effects already represented by Racing Score category and elevation.
+Do not describe raw weight, height, or FTP as current prediction inputs. Adding physical inputs must establish an improvement on chronological held-out predictions over the existing personal history model. Racing Score remains a subgroup selector, not a pace or fitness feature.
