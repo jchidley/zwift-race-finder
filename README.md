@@ -2,17 +2,32 @@
 
 Help a rider pace and race better through evidence-based ride reviews, practical pre-race plans, and controlled strategy experiments.
 
-This is an independent sibling of `zwift-race-finder`, not a new module inside it. The finder answers **which event fits**; the coach answers **how to prepare, pace, and learn from it**.
+This project owns ride reviews, pacing plans and controlled strategy experiments. [Fitness Bridge](https://github.com/jchidley/fitness-bridge) owns sensor acquisition, transformations and BLE/ANT+ output; the Life Fitness project owns custom hardware, Pico firmware and physical control. `zwift-race-finder` remains independent and owns event selection and route-data extraction/import. None of their implementation backlogs is a prerequisite for reviewing a recorded ride.
+
+## Getting started
+
+There is no installation or application command yet. From an existing checkout at `~/git/zwift-race-coach`, start a project session and provide an explicit path to one completed activity **outside the checkout**, permission to read it, and your question about the ride. Do not upload private activity data to Git. No runtime, account login, live bridge or upcoming event is required for this first step.
+
+The first observable result is a read-only inventory of available fields and time/data-quality limitations. That inventory determines which review metrics are supported and which parser/runtime, if any, is needed. See the [first ride-review contract](docs/explanation/FIRST_RIDE_REVIEW.md).
 
 ## First useful workflow
 
-Given one explicitly approved completed activity and an upcoming event:
+Given one explicitly approved completed activity:
 
 1. Identify which time, power, cadence, speed, altitude, and position fields are actually available.
 2. Review the distribution of effort and recovery, distinguishing observations from uncertain explanations.
-3. Produce a practical pacing plan with explicit assumptions and evidence limits.
+3. Produce a private ride review with practical takeaways and explicit evidence limits.
+4. Optionally add a pacing plan when upcoming-event details and adequate rider context are supplied; this does not block the ride review.
 
-No application, simulator, device integration, or personal-data import has been implemented yet. A language/runtime has not been selected; the initial setup intentionally contains no placeholder executable or pretend tests.
+No maintained coaching application, activity-intake/report command, simulator or device integration exists yet. One-off read-only analysis is distinct from an implemented intake pipeline; see [current progress and evidence limits](STATUS.md). The implementation language/runtime remains unselected; there is no placeholder executable or pretend test suite.
+
+The [first ride-review contract](docs/explanation/FIRST_RIDE_REVIEW.md) defines the private input, report and acceptance criteria. No live bridge is needed for that workflow.
+
+## Before and after a race
+
+Choose an event in the independent race-finder project, then supply its event link or route/format snapshot here. With adequate rider evidence, make a private pre-race plan covering the objective, likely selection points, conditional efforts, recovery opportunities and fallback. A simulator, new maximal test or reusable analysis command is not a prerequisite.
+
+After racing, provide the completed ride recording for read-only review. Compare what happened with the preserved plan, distinguishing measured effort from uncertain tactical explanations. Optional video or immediate notes help because a FIT file alone does not establish pack position or drafting. Keep the plan, rider profile and report outside Git. See the [race-planning and review standards](docs/explanation/PACING_AND_RACE_EXPERIMENTS.md#race-planning-and-review-standards--d2).
 
 ## Documentation
 
@@ -22,16 +37,18 @@ No application, simulator, device integration, or personal-data import has been 
 - [Historical simulation-tool catalogue](docs/reference/SIMULATION_TOOLS.md)
 - [Project boundaries and migration record](docs/reference/PROJECT_BOUNDARIES.md)
 - [Current status](STATUS.md) and [tasks](TASKS.md)
+- [Contributor instructions and change-specific validation](AGENTS.md)
 
 ## Boundaries
 
 - Keep personal activities, credentials, proprietary client exports, and generated experiment recordings outside Git.
-- Keep route extraction/import and the production race-finder model in the sibling project. Exchange versioned data rather than sharing writable databases.
+- Leave race-finder and its backlog alone. If this workflow needs route/event data, accept an explicit supplied snapshot; do not require finder changes or share writable databases.
 - Recorded ghosts are fixed trajectories, not responsive opponents. Client-based trials require verified inputs, telemetry, realistic effort constraints, and repeatable starting conditions.
-- netbrain/zwift is the priority candidate for multiple client instances, not an installed or validated dependency. Its documented ANT+ limitation must be resolved before assuming compatibility with vpower-based controllers.
+- Native Windows Zwift is the first live-client baseline. netbrain/zwift and same-machine multi-instance work are deferred; their input/telemetry compatibility is not assumed.
 - Synthetic inputs and controlled experiments are for offline/testing work, not automated competitive riding or substitutes for measured real-race accuracy.
 
 Start project commands and a new Pi session from this directory, not from the race-finder checkout.
+
 ## About This Code
 
 Almost all of this code is AI/LLM-generated. It's best used as a source of
