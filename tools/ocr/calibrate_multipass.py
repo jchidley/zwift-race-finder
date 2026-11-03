@@ -12,29 +12,19 @@ import cv2
 import numpy as np
 from paddleocr import PaddleOCR
 
-# Add parent directory to path to import the original OCR
 sys.path.append(str(Path(__file__).parent))
 from zwift_ocr_compact import ZwiftOCR
 
-# Preprocessing configurations to try
 PREPROCESSING_CONFIGS = [
-    # Standard bright text
     {'name': 'bright_text', 'threshold': 200, 'scale': 3, 'invert': False},
-    # Dimmer text (distance to finish)
     {'name': 'dim_text', 'threshold': 150, 'scale': 3, 'invert': False},
-    # Stylized gradient font
     {'name': 'gradient_style', 'threshold': 100, 'scale': 4, 'invert': True},
-    # Alternative gradient
     {'name': 'gradient_alt', 'threshold': 150, 'scale': 4, 'invert': False},
-    # Very bright text
     {'name': 'very_bright', 'threshold': 220, 'scale': 3, 'invert': False},
-    # Low contrast
     {'name': 'low_contrast', 'threshold': 120, 'scale': 3, 'invert': False},
-    # No threshold (for CLAHE regions)
     {'name': 'clahe_only', 'threshold': None, 'scale': 2, 'invert': False, 'clahe': True},
 ]
 
-# Known text patterns for field identification
 FIELD_PATTERNS = {
     'speed': {'pattern': r'^\d+$', 'range': (15, 60), 'unit': 'KMHA'},
     'power': {'pattern': r'^\d+w?$', 'range': (50, 500), 'unit': 'w'},
@@ -50,28 +40,23 @@ FIELD_PATTERNS = {
 
 def preprocess_image(img, config: Dict) -> np.ndarray:
     """Apply preprocessing based on config"""
-    # Convert to grayscale
     if len(img.shape) == 3:
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     else:
         gray = img.copy()
 
-    # Apply CLAHE if requested
     if config.get('clahe', False):
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         gray = clahe.apply(gray)
 
-    # Invert if requested
     if config.get('invert', False):
         gray = cv2.bitwise_not(gray)
 
-    # Apply threshold if specified
     if config.get('threshold') is not None:
         _, binary = cv2.threshold(gray, config['threshold'], 255, cv2.THRESH_BINARY)
     else:
         binary = gray
 
-    # Scale up
     scale = config.get('scale', 3)
     scaled = cv2.resize(binary, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
 
@@ -82,23 +67,19 @@ def detect_with_preprocessing(ocr: PaddleOCR, img: np.ndarray, config: Dict) -> 
     """Run OCR with specific preprocessing"""
     processed = preprocess_image(img, config)
 
-    # Run OCR
     result = ocr.ocr(processed, cls=True)
     if not result or not result[0]:
         return []
 
-    # Adjust coordinates back to original scale
     scale = config.get('scale', 3)
     detections = []
     for detection in result[0]:
         bbox, (text, confidence) = detection
 
-        # Scale bbox back to original coordinates
         scaled_bbox = []
         for point in bbox:
             scaled_bbox.append([point[0] / scale, point[1] / scale])
 
-        # Calculate center and size
         x_coords = [p[0] for p in scaled_bbox]
         y_coords = [p[1] for p in scaled_bbox]
 
@@ -126,7 +107,6 @@ def multi_pass_detection(image_path: str) -> Dict[str, List[Dict]]:
 
     ocr = PaddleOCR(use_angle_cls=True, lang='en', show_log=False)
 
-    # Collect all detections from all preprocessing methods
     all_detections = []
 
     print('Running multi-pass detection...')
@@ -136,8 +116,6 @@ def multi_pass_detection(image_path: str) -> Dict[str, List[Dict]]:
         all_detections.extend(detections)
         print(f'    Found {len(detections)} text regions')
 
-    # Group detections by location to find best preprocessing for each region
-    # Use spatial clustering to group detections of the same text
     grouped = group_detections_by_location(all_detections)
 
     return grouped
@@ -154,11 +132,9 @@ def group_detections_by_location(
         if i in used:
             continue
 
-        # Start a new group
         group = [det1]
         used.add(i)
 
-        # Find all overlapping detections
         for j, det2 in enumerate(detections):
             if j in used or i == j:
                 continue
@@ -167,10 +143,8 @@ def group_detections_by_location(
                 group.append(det2)
                 used.add(j)
 
-        # Choose the best detection from the group (highest confidence)
         best = max(group, key=lambda d: d['confidence'])
 
-        # Try to identify the field type
         field_type = identify_field_type(best['text'])
         if field_type:
             if field_type not in grouped:
@@ -202,14 +176,11 @@ def identify_field_type(text: str) -> Optional[str]:
     """Try to identify what field this text represents"""
     import re
 
-    # Clean the text
     clean_text = text.strip()
 
-    # Check each field pattern
     for field, config in FIELD_PATTERNS.items():
         pattern = config['pattern']
         if pattern and re.match(pattern, clean_text):
-            # Check numeric range if applicable
             if config['range']:
                 try:
                     value = float(re.sub(r'[^\d.]', '', clean_text))
@@ -218,7 +189,6 @@ def identify_field_type(text: str) -> Optional[str]:
                 except:
                     pass
 
-    # Check for units
     if 'KMHA' in clean_text:
         return 'speed'
     elif 'RPM' in clean_text:
@@ -239,7 +209,6 @@ def compare_with_original(image_path: str, detected_regions: Dict[str, List[Dict
     """Compare detected regions with original OCR implementation"""
     print('\nComparing with original implementation...')
 
-    # Use original OCR
     original_ocr = ZwiftOCR()
     original_results = original_ocr.extract(image_path)
 
@@ -251,7 +220,7 @@ def compare_with_original(image_path: str, detected_regions: Dict[str, List[Dict
     print('\nMulti-pass detection results:')
     for field, detections in detected_regions.items():
         if detections:
-            best = detections[0]  # Already sorted by confidence
+            best = detections[0]
             print(f'  {field}: {best["text"]} (preprocessing: {best["preprocessing"]})')
 
 
@@ -263,7 +232,7 @@ def save_calibration_config(
     height, width = img.shape[:2]
 
     config = {
-        'version': '2.0.0',  # Version 2 includes preprocessing info
+        'version': '2.0.0',
         'resolution': f'{width}x{height}',
         'created': datetime.utcnow().isoformat(),
         'calibration_image': Path(image_path).name,
@@ -271,12 +240,10 @@ def save_calibration_config(
         'preprocessing': {},
     }
 
-    # Add regions with optimal preprocessing
     for field, detections in detected_regions.items():
         if detections:
             best = detections[0]
 
-            # Add padding to regions
             padding = 10
             config['regions'][field] = {
                 'x': max(0, best['x'] - padding),
@@ -287,10 +254,8 @@ def save_calibration_config(
                 'confidence': best['confidence'],
             }
 
-            # Save preprocessing config
             config['preprocessing'][field] = best['config']
 
-    # Add hardcoded regions for fields we didn't detect
     if 'leaderboard' not in config['regions']:
         config['regions']['leaderboard'] = {
             'x': 1478,
@@ -309,7 +274,6 @@ def save_calibration_config(
             'note': 'hardcoded - edge detection',
         }
 
-    # Save config
     with open(output_path, 'w') as f:
         json.dump(config, f, indent=2)
 
@@ -324,10 +288,8 @@ def main():
 
     args = parser.parse_args()
 
-    # Run multi-pass detection
     detected_regions = multi_pass_detection(args.image)
 
-    # Show results
     print('\nDetected regions by field type:')
     for field, detections in detected_regions.items():
         if detections:
@@ -340,11 +302,9 @@ def main():
                 f'  Config: threshold={best["config"]["threshold"]}, scale={best["config"]["scale"]}, invert={best["config"]["invert"]}'
             )
 
-    # Compare if requested
     if args.compare:
         compare_with_original(args.image, detected_regions)
 
-    # Save config
     if args.output:
         output_path = args.output
     else:

@@ -1,17 +1,12 @@
-//! Snapshot tests for zwift-race-finder
-//! Historical synthetic fixtures capture arithmetic output, NOT current route facts.
-//! Their legacy labels/IDs are retained solely to avoid rewriting snapshot baselines.
-
 use insta::assert_yaml_snapshot;
 use zwift_race_finder::database::RouteData;
 
-/// Calculate duration estimation using the same logic as the main code
 fn estimate_duration(route: &RouteData, zwift_score: u32) -> f64 {
     let base_speed = match zwift_score {
-        0..=199 => 30.0,   // Cat D
-        200..=299 => 33.0, // Cat C
-        300..=399 => 36.0, // Cat B
-        _ => 39.0,         // Cat A
+        0..=199 => 30.0,
+        200..=299 => 33.0,
+        300..=399 => 36.0,
+        _ => 39.0,
     };
 
     let elevation_factor =
@@ -22,7 +17,6 @@ fn estimate_duration(route: &RouteData, zwift_score: u32) -> f64 {
 
 #[test]
 fn test_known_flat_routes() {
-    // Test flat routes with minimal elevation
     let routes = vec![
         (
             "Bell Lap",
@@ -104,7 +98,6 @@ fn test_known_flat_routes() {
 
 #[test]
 fn test_known_hilly_routes() {
-    // Test routes with moderate elevation
     let routes = vec![
         (
             "Castle to Castle",
@@ -186,7 +179,6 @@ fn test_known_hilly_routes() {
 
 #[test]
 fn test_known_mountain_routes() {
-    // Test routes with significant elevation
     let routes = vec![
         (
             "Mt. Fuji",
@@ -268,7 +260,6 @@ fn test_known_mountain_routes() {
 
 #[test]
 fn test_short_crit_race() {
-    // Test very short criterium race
     let route = RouteData {
         route_id: 3765339356,
         distance_km: 3.0,

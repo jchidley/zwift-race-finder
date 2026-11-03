@@ -1,11 +1,10 @@
--- Check manual mappings results
 SELECT 'Events mapped from route 9999:' as Report;
 
-SELECT 
+SELECT
     event_name,
     route_id,
     actual_minutes
-FROM race_results 
+FROM race_results
 WHERE event_name LIKE 'EVO CC%'
    OR event_name LIKE '%Sydkysten%'
    OR event_name LIKE '%Tofu Tornado%'
@@ -19,10 +18,10 @@ LIMIT 20;
 SELECT '---' as separator;
 SELECT 'Summary by route:' as Report;
 
-SELECT 
+SELECT
     route_id,
     COUNT(*) as events_mapped
-FROM race_results 
+FROM race_results
 WHERE route_id IN (3733109212, 3369744027, 2143464829, 1258415487, 9001, 9002, 9003)
 GROUP BY route_id
 ORDER BY events_mapped DESC;

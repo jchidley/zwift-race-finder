@@ -1,6 +1,3 @@
-//! Configuration tests
-//! These tests verify configuration loading and precedence
-
 use std::env;
 use std::fs;
 use tempfile::TempDir;
@@ -10,11 +7,9 @@ use zwift_race_finder::config::Config;
 fn test_default_config() {
     let config = Config::default();
 
-    // Test defaults structure - these have default values
     assert_eq!(config.defaults.zwift_score, Some(195));
     assert_eq!(config.defaults.category, Some("D".to_string()));
 
-    // Test preferences - defaults should have Some values
     assert_eq!(config.preferences.default_duration, Some(120));
     assert_eq!(config.preferences.default_tolerance, Some(30));
     assert_eq!(config.preferences.default_days, Some(1));
@@ -59,7 +54,6 @@ default_duration = 45
 
     fs::write(&config_path, config_content).unwrap();
 
-    // Config::load() looks for config.toml in current directory
     let original_dir = env::current_dir().unwrap();
     env::set_current_dir(&temp_dir).unwrap();
 
@@ -73,7 +67,6 @@ default_duration = 45
 
 #[test]
 fn test_partial_config() {
-    // Test that partial configs work (only some fields specified)
     let toml_content = r#"
 [defaults]
 zwift_score = 350
@@ -81,23 +74,18 @@ zwift_score = 350
 
     let config: Config = toml::from_str(toml_content).unwrap();
 
-    // Specified value
     assert_eq!(config.defaults.zwift_score, Some(350));
 
-    // Other fields in [defaults] section become None when not specified
-    assert_eq!(config.defaults.category, None); // Not specified in partial config
-                                                // But preferences section uses default because entire section is missing
-    assert_eq!(config.preferences.default_duration, Some(120)); // Uses default
+    assert_eq!(config.defaults.category, None);
+    assert_eq!(config.preferences.default_duration, Some(120));
 }
 
 #[test]
 fn test_empty_config() {
-    // Empty config should parse successfully
     let config: Config = toml::from_str("").unwrap();
 
-    // All fields should use defaults from Default trait
-    assert_eq!(config.defaults.zwift_score, Some(195)); // Default value
-    assert_eq!(config.preferences.default_duration, Some(120)); // Default value
+    assert_eq!(config.defaults.zwift_score, Some(195));
+    assert_eq!(config.preferences.default_duration, Some(120));
 }
 
 #[test]
@@ -105,7 +93,6 @@ fn test_invalid_config_handling() {
     let temp_dir = TempDir::new().unwrap();
     let config_path = temp_dir.path().join("config.toml");
 
-    // Write invalid TOML
     fs::write(&config_path, "invalid toml content { ] }").unwrap();
 
     let original_dir = env::current_dir().unwrap();

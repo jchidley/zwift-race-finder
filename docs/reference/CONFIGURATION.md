@@ -55,6 +55,5 @@ On Linux, the usual resolved paths are:
 
 Other platforms use paths returned by the Rust `dirs` crate.
 
-## Removed inert settings
-
-Physical-stat defaults/overrides, `[import]` download-path settings, and `[display]` color/debug fields were removed because the application never used them. Legacy TOML extra fields are ignored; no stored database records are deleted. Use `--debug` for diagnostic output and the standard `NO_COLOR` environment variable to disable color.
+Use `--debug` for filtering diagnostics and `NO_COLOR` to disable colour. Weight,
+height and FTP are not estimator configuration inputs.

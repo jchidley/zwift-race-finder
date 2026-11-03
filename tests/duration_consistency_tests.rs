@@ -1,4 +1,3 @@
-//! Filtering and presentation must agree on the duration of every match.
 use chrono::Utc;
 use zwift_race_finder::{
     estimation::get_route_data,
@@ -9,8 +8,6 @@ use zwift_race_finder::{
     personal_estimation::{PersonalBasis, PersonalFallback},
 };
 
-// Immutable, source-qualified synthetic observations. OnceLock prevents parallel
-// tests from rewriting a route while another resolver is reading its geometry.
 fn personal_route() -> u32 {
     static ROUTE: std::sync::OnceLock<u32> = std::sync::OnceLock::new();
     *ROUTE.get_or_init(|| {
@@ -136,8 +133,6 @@ fn assert_consistent(event: &ZwiftEvent) {
 fn fixed_duration_overrides_lap_estimate_krg_regression() {
     let mut race = event();
     race.name = "KRG Thursday Night Crit".into();
-    // Live KRG data declares 2700 seconds as well as subgroup laps.
-    // Explicit synthetic metadata makes this independent of imported client data.
     personal_route();
     race.duration_in_seconds = Some(2700);
     race.route_id = Some(4_000_001_130);
@@ -212,7 +207,6 @@ fn known_route_distance_and_laps_use_filter_estimate() {
     race.route_id = Some(4_000_001_130);
     race.distance_in_meters = Some(30000.0);
     assert_consistent(&race);
-    // Explicit event distance already includes its lead-in.
     assert_eq!(prepare_event_row(&race, 195).distance, "30.0 km");
     assert_eq!(displayed_minutes(&race), 60);
 
@@ -261,15 +255,12 @@ fn event_fixed_minutes_take_precedence_over_seconds_and_subgroup() {
     race.event_sub_groups.push(group);
     assert_eq!(displayed_minutes(&race), 40);
     assert_eq!(prepare_event_row(&race, 195).distance, "30.0 km");
-    // The synthetic fixture deliberately has unknown lead-in climbing.
     assert_eq!(prepare_event_row(&race, 195).elevation, "?m");
     assert_consistent(&race);
 }
 
-// Both IDs exceed i32::MAX; differing lap geometry exposes accidental use of
-// the event route for subgroup duration or elevation.
 fn subgroup_route() -> u32 {
-    personal_route(); // One initialization gate for all fixture writes.
+    personal_route();
     4_000_001_120
 }
 
@@ -300,17 +291,15 @@ fn subgroup_route_controls_laps_duration_and_elevation_in_both_paths() {
     group.laps = Some(2);
     race.event_sub_groups.push(group);
     let row = prepare_event_row(&race, 195);
-    assert_eq!(row.distance, "13.0 km"); // 2 * 6 km + 1 km lead-in
-    assert_eq!(row.elevation, "125m"); // 2 * 60 m + 5 m lead-in
+    assert_eq!(row.distance, "13.0 km");
+    assert_eq!(row.elevation, "125m");
     assert_eq!(displayed_minutes(&race), 26);
     assert_fixed_geometry_matches_resolved(&race);
 
-    // An absent event route must not discard a known subgroup route.
     race.route_id = None;
     assert_eq!(prepare_event_row(&race, 195).distance, "13.0 km");
     assert_fixed_geometry_matches_resolved(&race);
 
-    // A positive explicit subgroup total wins over laps; don't add lead-in.
     race.event_sub_groups[0].distance_in_meters = Some(19000.0);
     let row = prepare_event_row(&race, 195);
     assert_eq!(row.distance, "19.0 km");
@@ -340,12 +329,10 @@ fn invalid_distances_and_zero_laps_do_not_mask_event_distance() {
         assert_fixed_geometry_matches_resolved(&race);
     }
 
-    // Zero laps must also leave a positive subgroup distance intact.
     race.event_sub_groups[0].distance_in_meters = Some(13000.0);
     assert_eq!(prepare_event_row(&race, 195).distance, "13.0 km");
     assert_fixed_geometry_matches_resolved(&race);
 
-    // Invalid event distances must not poison the known-route fallback.
     race.event_sub_groups[0].distance_in_meters = None;
     for distance in [Some(0.0), Some(-1.0), Some(f64::NAN), Some(f64::INFINITY)] {
         race.distance_in_meters = distance;
@@ -361,7 +348,7 @@ fn score_ranges_override_category_names_and_touching_bands_keep_api_order() {
     race.distance_in_meters = Some(30000.0);
     let mut wrong = subgroup();
     wrong.id = 11;
-    wrong.name = "D".into(); // Traditional category would wrongly pick this.
+    wrong.name = "D".into();
     wrong.range_access_label = Some("200-300".into());
     wrong.distance_in_meters = Some(9000.0);
     let mut actual = subgroup();
@@ -376,7 +363,6 @@ fn score_ranges_override_category_names_and_touching_bands_keep_api_order() {
     assert_eq!(prepare_event_row(&race, 195).elevation, "125m");
     assert_fixed_geometry_matches_resolved(&race);
 
-    // Both inclusive ranges contain 200; first API subgroup wins.
     assert_eq!(find_user_subgroup(&race, 200).unwrap().id, 11);
     race.event_sub_groups.swap(0, 1);
     assert_eq!(find_user_subgroup(&race, 200).unwrap().id, 12);
@@ -418,7 +404,6 @@ fn traditional_selection_uses_exact_labels_then_category_tokens_not_title_letter
     race.event_sub_groups[2].subgroup_label = Some("D+".into());
     assert!(find_user_subgroup(&race, 195).is_none());
 
-    // Preserve D-to-E eligibility but prefer an actual D, even if E is first.
     race.event_sub_groups[0].name = "E".into();
     race.event_sub_groups[2].subgroup_label = Some("D".into());
     assert_eq!(find_user_subgroup(&race, 195).unwrap().id, 3);
@@ -572,7 +557,6 @@ fn subminute_fixed_seconds_do_not_mask_a_calculated_duration() {
 #[test]
 fn rounded_prediction_is_shared_by_filter_compact_and_verbose_output() {
     let mut race = event();
-    // Same-route measured pace is 2 min/km: 45.75 rounds once to 46.
     race.route_id = Some(personal_route());
     race.distance_in_meters = Some(22_875.0);
     assert_eq!(displayed_minutes(&race), 46);
@@ -587,8 +571,6 @@ fn unavailable_history_and_unsupported_formats_never_match_without_fixed_time() 
     let mut race = event();
     race.route_id = Some(personal_route());
     race.distance_in_meters = Some(20_500.0);
-    // A cutoff before every synthetic observation deterministically models an
-    // empty eligible history even while other tests install shared fixtures.
     race.event_start = chrono::DateTime::parse_from_rfc3339("1970-01-01T12:00:00Z")
         .unwrap()
         .with_timezone(&Utc);

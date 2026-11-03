@@ -4,14 +4,9 @@ use crate::errors::*;
 use crate::models::ZwiftEvent;
 
 pub async fn fetch_events() -> Result<Vec<ZwiftEvent>> {
-    // API has a hard limit of 200 events (about 12 hours worth)
-    // The API ignores pagination parameters (limit/offset) and date filters
-    // This is a Zwift API limitation, not a bug in this tool
     fetch_events_from_url("https://us-or-rly101.zwift.com/api/public/events/upcoming").await
 }
 
-/// Fetch typed events from a supplied URL using the production request and error handling.
-/// The normal CLI always uses the fixed endpoint in [`fetch_events`].
 pub async fn fetch_events_from_url(url: &str) -> Result<Vec<ZwiftEvent>> {
     let client = reqwest::Client::builder()
         .user_agent("Zwift Race Finder")
@@ -32,13 +27,11 @@ pub async fn fetch_events_from_url(url: &str) -> Result<Vec<ZwiftEvent>> {
         }
     };
 
-    // Check for rate limiting
     if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
         api_rate_limit().display();
         return Err(anyhow::anyhow!("API rate limit exceeded"));
     }
 
-    // Check for other HTTP errors
     if !response.status().is_success() {
         let status = response.status();
         let error = UserError::new(

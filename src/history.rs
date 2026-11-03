@@ -1,7 +1,3 @@
-//! Validated observations from an explicitly exported ZwiftPower profile.
-//!
-//! No network access, score inference, route-distance inference, or persistence occurs here.
-
 use std::collections::HashSet;
 
 use anyhow::{bail, ensure, Context, Result};
@@ -13,7 +9,6 @@ const SOURCE: &str = "zwiftpower-profile";
 const EXPORT_SOURCE: &str = "ZwiftPower profile results DataTable";
 const MAX_ID_LENGTH: usize = 256;
 
-/// A measured result with source provenance, independent of Racing Score.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct HistoryRecord {
     pub route_id: u32,
@@ -35,7 +30,6 @@ pub struct HistoryRecord {
 }
 
 impl HistoryRecord {
-    /// Validate before persistence, including the rounded-minute compatibility field.
     pub fn validate(&self) -> Result<()> {
         ensure!(
             !self.event_name.trim().is_empty(),
@@ -159,7 +153,6 @@ fn parse_row(row: &Value, sha256: &str) -> Result<HistoryRecord> {
         .context("time must be an array")?;
     ensure!(time.len() == 2, "time must contain exactly two numbers");
     let actual_seconds = number(&time[0], "time[0]")?;
-    // The second number is contextual source data, never a duration or score.
     number(&time[1], "time[1]")?;
     let timestamp = row
         .get("event_date")
@@ -206,18 +199,12 @@ fn parse_row(row: &Value, sha256: &str) -> Result<HistoryRecord> {
         source_result_id: result_id.to_owned(),
         source_event_id: event_id.to_owned(),
         source_sha256: sha256.to_owned(),
-        // serde_json's ordered object maps provide deterministic key ordering.
         source_payload_json: serde_json::to_string(row)?,
     };
     record.validate()?;
     Ok(record)
 }
 
-/// Parse and validate the entire version-1 envelope before returning any rows.
-///
-/// The caller hashes the original bytes; this function validates the supplied
-/// digest's shape, not its correspondence to those bytes. Errors identify row
-/// positions without including private source measurements or identifiers.
 pub fn parse_zwiftpower_export(bytes: &[u8], sha256: &str) -> Result<Vec<HistoryRecord>> {
     validate_sha256(sha256)?;
     let envelope: Value = serde_json::from_slice(bytes).context("invalid export JSON")?;

@@ -1,4 +1,3 @@
-//! Import a private export of installed-client metadata. Never download assets.
 use anyhow::{ensure, Context, Result};
 use clap::Parser;
 use serde::Deserialize;
@@ -10,10 +9,10 @@ use zwift_race_finder::database::{ClientRouteRecord, Database};
     about = "Import client routes as the supported route source, preserving fractional climbing and provenance"
 )]
 struct Args {
-    /// Private JSON produced by scripts/export_client_routes.ps1
+    #[arg(help = "Private JSON produced by scripts/export_client_routes.ps1")]
     #[arg(long)]
     input: PathBuf,
-    /// Preview route changes; database initialization/schema migration may still occur
+    #[arg(help = "Preview route changes; database initialization/schema migration may still occur")]
     #[arg(long)]
     dry_run: bool,
 }

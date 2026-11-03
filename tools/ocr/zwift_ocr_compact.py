@@ -14,7 +14,6 @@ from paddleocr import PaddleOCR
 class ZwiftOCR:
     def __init__(self):
         self.ocr = PaddleOCR(use_angle_cls=True, lang='en', show_log=False)
-        # Optimized regions from visual mapper
         self.regions = {
             'speed': (693, 44, 71, 61),
             'distance': (833, 44, 84, 55),
@@ -35,15 +34,12 @@ class ZwiftOCR:
 
         results = {}
 
-        # Extract numeric fields
         for field in ['speed', 'altitude', 'power', 'cadence', 'heart_rate']:
             results[field] = self._extract_number(img, field)
 
-        # Extract decimal fields
         for field in ['distance', 'distance_to_finish']:
             results[field] = self._extract_decimal(img, field)
 
-        # Special extractions
         results['race_time'] = self._extract_time(img)
         results['gradient'] = self._extract_gradient(img)
         results['leaderboard'] = self._extract_leaderboard(img)
@@ -89,7 +85,6 @@ class ZwiftOCR:
             match = re.search(r'(\d{1,2}:\d{2})', text)
             if match:
                 return match.group(1)
-            # Insert colon if missing
             digits = re.sub(r'[^0-9]', '', text)
             if len(digits) == 4:
                 return f'{digits[:2]}:{digits[2:]}'
@@ -100,7 +95,6 @@ class ZwiftOCR:
     def _extract_gradient(self, img):
         roi = self._get_roi(img, 'gradient')
         gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-        # Special processing for stylized gradient font
         inverted = cv2.bitwise_not(gray)
         _, binary = cv2.threshold(inverted, 100, 255, cv2.THRESH_BINARY)
         scaled = cv2.resize(binary, None, fx=4, fy=4, interpolation=cv2.INTER_CUBIC)
@@ -123,7 +117,6 @@ class ZwiftOCR:
         if not result or not result[0]:
             return []
 
-        # Collect all detections
         detections = []
         for det in result[0]:
             bbox, (text, _) = det
@@ -133,7 +126,6 @@ class ZwiftOCR:
 
         detections.sort(key=lambda d: d['y'])
 
-        # Find names (contain dots or start with uppercase)
         def is_name(text):
             if 'KM' in text.upper() or 'w/kg' in text.lower():
                 return False
@@ -143,22 +135,18 @@ class ZwiftOCR:
         entries = []
 
         for name_det in names:
-            # Get data from row below (10-40 pixels)
             data_row = [d for d in detections if name_det['y'] + 10 <= d['y'] <= name_det['y'] + 40]
 
             entry = {'name': name_det['text'], 'current': False}
 
             for d in data_row:
                 text = d['text']
-                # Time delta
                 if ':' in text and any(c in text for c in ['+', '-']):
                     entry['delta'] = text
-                # Distance
                 elif 'KM' in text.upper():
                     m = re.search(r'(\d+\.?\d*)', text)
                     if m:
                         entry['km'] = float(m.group(1))
-                # W/kg (middle column)
                 elif 80 < d['x'] < 180:
                     m = re.search(r'(\d+\.?\d*)', text)
                     if m:
@@ -166,17 +154,15 @@ class ZwiftOCR:
                         if 0.5 <= val <= 7.0:
                             entry['wkg'] = val
 
-            # Current rider has no time delta
             if 'delta' not in entry and ('wkg' in entry or 'km' in entry):
                 entry['current'] = True
 
-            if len(entry) > 2:  # Has name + at least one data field
+            if len(entry) > 2:
                 entries.append(entry)
 
         return entries
 
 
-# Usage
 if __name__ == '__main__':
     import sys
 
@@ -184,7 +170,6 @@ if __name__ == '__main__':
         ocr = ZwiftOCR()
         results = ocr.extract(sys.argv[1])
 
-        # Display results
         print(f'Speed: {results.get("speed")} km/h')
         print(f'Distance: {results.get("distance")} km')
         print(f'Altitude: {results.get("altitude")} m')
@@ -204,6 +189,5 @@ if __name__ == '__main__':
                     f'{i}. {e["name"]:<15} {delta:>6} {e.get("wkg", 0):>3.1f}w/kg {e.get("km", 0):>4.1f}km{you}'
                 )
 
-        # Save JSON
         with open('telemetry.json', 'w') as f:
             json.dump(results, f, indent=2)

@@ -1,4 +1,3 @@
-//! Synthetic history fixtures only. No normal database or private export access.
 use rusqlite::{params, Connection};
 use serde_json::{json, Value};
 use std::{fs, path::Path, process::Command};

@@ -1,16 +1,9 @@
-//! Event analysis utilities
-//!
-//! This module contains functions for analyzing Zwift events.
-
 use crate::category::get_category_from_score;
 use crate::models::{is_racing_score_event, EventSubGroup, ZwiftEvent};
 use std::collections::HashMap;
 
-/// Find the user's actual score band, or traditional category subgroup.
 pub fn find_user_subgroup(event: &ZwiftEvent, zwift_score: u32) -> Option<&EventSubGroup> {
     if is_racing_score_event(event) {
-        // API ranges are inclusive. Touching endpoints are ambiguous: retain
-        // API order rather than guessing which band's geometry was intended.
         return event.event_sub_groups.iter().find(|sg| {
             sg.range_access_label
                 .as_deref()
@@ -30,7 +23,6 @@ pub fn find_user_subgroup(event: &ZwiftEvent, zwift_score: u32) -> Option<&Event
         if let Some(label) = &sg.subgroup_label {
             return label == wanted;
         }
-        // Match category tokens, never letters embedded in an event title.
         sg.name
             .split(|c: char| !c.is_ascii_alphanumeric() && c != '+' && c != '-')
             .any(|token| token == wanted)
@@ -38,11 +30,9 @@ pub fn find_user_subgroup(event: &ZwiftEvent, zwift_score: u32) -> Option<&Event
     let find = |wanted| event.event_sub_groups.iter().find(|sg| matches(sg, wanted));
     find(category)
         .or_else(|| (category == "A++").then(|| find("A")).flatten())
-        // Preserve traditional D eligibility for E only after an exact D match.
         .or_else(|| (category == "D").then(|| find("E")).flatten())
 }
 
-/// Route identity for the selected subgroup, shared by estimates and metadata.
 pub fn selected_route_id(event: &ZwiftEvent, zwift_score: u32) -> Option<u32> {
     let subgroup = find_user_subgroup(event, zwift_score);
     if is_racing_score_event(event) && subgroup.is_none() {
@@ -51,7 +41,6 @@ pub fn selected_route_id(event: &ZwiftEvent, zwift_score: u32) -> Option<u32> {
     subgroup.and_then(|sg| sg.route_id).or(event.route_id)
 }
 
-/// Count events by type for display
 pub fn count_events_by_type(events: &[ZwiftEvent]) -> Vec<(String, usize)> {
     let mut event_counts = HashMap::new();
     for event in events {
@@ -141,7 +130,6 @@ mod tests {
 
         let counts = count_events_by_type(&events);
 
-        // Should have 2 races and 1 group ride (running excluded)
         assert_eq!(counts.len(), 2);
         assert_eq!(counts[0], ("RACE".to_string(), 2));
         assert_eq!(counts[1], ("GROUP_RIDE".to_string(), 1));
@@ -149,7 +137,6 @@ mod tests {
 
     #[test]
     fn test_find_user_subgroup() {
-        // Create test event with subgroups
         let mut event = ZwiftEvent {
             id: 1,
             name: "Test Race".to_string(),
@@ -228,36 +215,29 @@ mod tests {
             ],
         };
 
-        // Test Cat D rider
         let subgroup = find_user_subgroup(&event, 195).unwrap();
         assert_eq!(subgroup.name, "D");
         assert_eq!(subgroup.distance_in_meters, Some(15000.0));
 
-        // Test Cat C rider
         let subgroup = find_user_subgroup(&event, 250).unwrap();
         assert_eq!(subgroup.name, "C");
         assert_eq!(subgroup.distance_in_meters, Some(20000.0));
 
-        // Test Cat B rider
         let subgroup = find_user_subgroup(&event, 350).unwrap();
         assert_eq!(subgroup.name, "B");
         assert_eq!(subgroup.distance_in_meters, Some(30000.0));
 
-        // Test Cat A rider
         let subgroup = find_user_subgroup(&event, 450).unwrap();
         assert_eq!(subgroup.name, "A");
         assert_eq!(subgroup.distance_in_meters, Some(40000.0));
 
-        // Test Cat E rider
         let subgroup = find_user_subgroup(&event, 50).unwrap();
         assert_eq!(subgroup.name, "E");
         assert_eq!(subgroup.distance_in_meters, Some(10000.0));
 
-        // Test event with no subgroups
         event.event_sub_groups.clear();
         assert!(find_user_subgroup(&event, 195).is_none());
 
-        // Test category boundaries
         event.event_sub_groups = vec![
             EventSubGroup {
                 id: 1,
@@ -285,11 +265,9 @@ mod tests {
             },
         ];
 
-        // 199 should be D (boundary)
         let subgroup = find_user_subgroup(&event, 199).unwrap();
         assert_eq!(subgroup.name, "D");
 
-        // 200 should be C (boundary)
         let subgroup = find_user_subgroup(&event, 200).unwrap();
         assert_eq!(subgroup.name, "C");
     }

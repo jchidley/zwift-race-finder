@@ -1,6 +1,3 @@
-// ABOUTME: Simple OCR test binary to verify config loading works
-// Usage: cargo run --bin test_ocr --features ocr -- path/to/image.png
-
 use anyhow::Result;
 use clap::Parser;
 use std::path::PathBuf;
@@ -10,30 +7,29 @@ use zwift_race_finder::ocr_compact::extract_telemetry;
 #[command(name = "test_ocr")]
 #[command(about = "Test OCR extraction on a Zwift screenshot")]
 struct Args {
-    /// Path to the screenshot image
+    #[arg(help = "Path to the screenshot image")]
     image_path: PathBuf,
-    
-    /// Enable debug output
+
+    #[arg(help = "Enable debug output")]
     #[arg(short, long)]
     debug: bool,
 }
 
 fn main() -> Result<()> {
     let args = Args::parse();
-    
+
     if args.debug {
         std::env::set_var("DEBUG_OCR", "1");
     }
-    
+
     println!("Testing OCR on: {:?}", args.image_path);
     println!("{}", "=".repeat(60));
-    
+
     match extract_telemetry(&args.image_path) {
         Ok(data) => {
             println!("✓ OCR extraction successful!");
             println!();
-            
-            // Display extracted data
+
             if let Some(speed) = data.speed {
                 println!("Speed: {} km/h", speed);
             }
@@ -61,11 +57,11 @@ fn main() -> Result<()> {
             if let Some(distance_to_finish) = data.distance_to_finish {
                 println!("Distance to Finish: {:.1} km", distance_to_finish);
             }
-            
+
             if let Some(ref pose) = data.rider_pose {
                 println!("Rider Pose: {:?}", pose);
             }
-            
+
             if let Some(ref leaderboard) = data.leaderboard {
                 println!("\nLeaderboard ({} riders):", leaderboard.len());
                 for (i, entry) in leaderboard.iter().take(5).enumerate() {
@@ -88,8 +84,7 @@ fn main() -> Result<()> {
                     println!("  ... and {} more", leaderboard.len() - 5);
                 }
             }
-            
-            // Save result as JSON
+
             let json_path = args.image_path.with_extension("ocr.json");
             let json = serde_json::to_string_pretty(&data)?;
             std::fs::write(&json_path, json)?;
@@ -100,6 +95,6 @@ fn main() -> Result<()> {
             std::process::exit(1);
         }
     }
-    
+
     Ok(())
 }

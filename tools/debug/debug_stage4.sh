@@ -1,5 +1,4 @@
 #!/bin/bash
-# Debug script to examine Stage 4 event data
 
 echo "Fetching Stage 4 event data..."
 cargo run --bin zwift-race-finder -- --debug 2>&1 | \
@@ -8,10 +7,8 @@ cargo run --bin zwift-race-finder -- --debug 2>&1 | \
 
 echo "Stage 4 debug data saved to stage4_debug.txt"
 
-# Look for key fields
 echo -e "\n=== Key Information ==="
 grep -E "Distance:|Description:|laps:|Subgroups:" stage4_debug.txt || echo "No key fields found"
 
-# Check for lap info in subgroups
 echo -e "\n=== Subgroup Details ==="
 grep -A5 "Subgroups:" stage4_debug.txt || echo "No subgroup info found"

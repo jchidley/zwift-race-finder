@@ -1,4 +1,3 @@
-# \!/usr/bin/env python3
 """
 Analyze .fit file recording intervals to understand sensor data frequencies
 """
@@ -27,7 +26,6 @@ def analyze_strava_streams(file_path: str) -> Dict[str, Any]:
         "available_streams": {},
     }
 
-    # Check data availability for each stream
     for stream_name, stream_data in data.items():
         if stream_name == "time":
             continue
@@ -39,7 +37,7 @@ def analyze_strava_streams(file_path: str) -> Dict[str, Any]:
             "total_points": len(stream_points),
             "non_null_points": non_null_count,
             "data_completeness": (non_null_count / len(stream_points)) * 100,
-            "sample_values": stream_points[:10],  # First 10 values
+            "sample_values": stream_points[:10],
         }
 
     return analysis
@@ -64,12 +62,10 @@ def print_analysis(analysis: Dict[str, Any]):
 
 
 if __name__ == "__main__":
-    # Analyze the recent race streams
     try:
         analysis = analyze_strava_streams("recent_race_streams.json")
         print_analysis(analysis)
 
-        # Key findings
         print("\n=== Key Findings ===")
         print(
             f"✅ Sensor data (power, cadence, HR) available at {analysis['frequency_hz']:.0f}Hz from Strava"

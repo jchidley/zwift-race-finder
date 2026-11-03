@@ -1,9 +1,3 @@
-//! Property-based tests for zwift-race-finder
-//!
-//! These tests verify behavioral invariants by calling production functions
-//! with randomly generated inputs. Every assertion references actual production
-//! code — no reimplemented logic.
-
 use proptest::prelude::*;
 use zwift_race_finder::category::{
     get_category_from_score, get_category_speed, CAT_A_PLUS_SPEED, CAT_A_SPEED, CAT_B_SPEED,
@@ -15,7 +9,6 @@ use zwift_race_finder::duration_estimation::{
 };
 use zwift_race_finder::parsing::{parse_distance_from_name, parse_description_data};
 
-// ── Monotonicity: longer routes take more time ──────────────────────────────
 
 proptest! {
     #[test]
@@ -24,7 +17,6 @@ proptest! {
         extra_km in 1.0..50.0,
         zwift_score in 0u32..800
     ) {
-        // Use a route name that gets the default multiplier (1.0)
         let short = estimate_duration_for_category(base_km, "Test Route", zwift_score);
         let long = estimate_duration_for_category(base_km + extra_km, "Test Route", zwift_score);
         prop_assert!(
@@ -35,7 +27,6 @@ proptest! {
     }
 }
 
-// ── Monotonicity: more elevation slows you down ─────────────────────────────
 
 proptest! {
     #[test]
@@ -54,7 +45,6 @@ proptest! {
     }
 }
 
-// ── Monotonicity: higher category = faster speed ────────────────────────────
 
 proptest! {
     #[test]
@@ -63,7 +53,6 @@ proptest! {
         zwift_score_low in 0u32..200,
         zwift_score_high in 400u32..800
     ) {
-        // Higher score = higher category = faster
         let slow = estimate_duration_for_category(distance_km, "Test Route", zwift_score_low);
         let fast = estimate_duration_for_category(distance_km, "Test Route", zwift_score_high);
         prop_assert!(
@@ -74,11 +63,9 @@ proptest! {
     }
 }
 
-// ── Category speed ordering is strictly monotonic ───────────────────────────
 
 #[test]
 fn category_speeds_are_strictly_ordered() {
-    // This is an exhaustive check (6 values), not a property test — appropriate
     assert!(CAT_E_SPEED < CAT_D_SPEED);
     assert!(CAT_D_SPEED < CAT_C_SPEED);
     assert!(CAT_C_SPEED < CAT_B_SPEED);
@@ -86,7 +73,6 @@ fn category_speeds_are_strictly_ordered() {
     assert!(CAT_A_SPEED < CAT_A_PLUS_SPEED);
 }
 
-// ── Score→category→speed pipeline is monotonically non-decreasing ───────────
 
 proptest! {
     #[test]
@@ -107,15 +93,13 @@ proptest! {
     }
 }
 
-// ── Category-aware elevation: lower categories suffer more on climbs ────────
 
 proptest! {
     #[test]
     fn lower_category_suffers_more_on_steep_climbs(
         distance_km in 10.0..50.0,
-        elevation_m in 400u32..2000   // > 15 m/km to trigger category penalty
+        elevation_m in 400u32..2000
     ) {
-        // Only test when meters_per_km > 15 (where category penalty applies)
         let meters_per_km = elevation_m as f64 / distance_km;
         prop_assume!(meters_per_km > 15.0);
 
@@ -130,7 +114,6 @@ proptest! {
     }
 }
 
-// ── Difficulty multiplier is always positive ────────────────────────────────
 
 proptest! {
     #[test]
@@ -144,7 +127,6 @@ proptest! {
     }
 }
 
-// ── Route name-based multiplier: flat routes faster than hilly routes ───────
 
 #[test]
 fn named_route_multiplier_ordering() {
@@ -158,7 +140,6 @@ fn named_route_multiplier_ordering() {
     assert!(mountain > alpe, "Mountain ({}) > alpe ({})", mountain, alpe);
 }
 
-// ── Duration is always positive and bounded ─────────────────────────────────
 
 proptest! {
     #[test]
@@ -167,21 +148,17 @@ proptest! {
         zwift_score in 0u32..800
     ) {
         let duration = estimate_duration_for_category(distance_km, "Test Route", zwift_score);
-        // 1 km at 45 km/h A++ speed ≈ 1.3 min → rounds to 1
-        // 200 km at 28 km/h E speed with 0.7 alpe multiplier ≈ 612 min
         prop_assert!(duration > 0, "Duration should be > 0, got {} for {} km", duration, distance_km);
         prop_assert!(duration < 700, "Duration should be < 700 min, got {} for {} km", duration, distance_km);
     }
 }
 
-// ── Roundtrip: formatted km distance parses back correctly ──────────────────
 
 proptest! {
     #[test]
     fn km_distance_roundtrip(
         distance in 1.0f64..999.0
     ) {
-        // Format as "X km" string, then parse — should recover the same value
         let formatted = format!("{:.1} km race", distance);
         let parsed = parse_distance_from_name(&formatted);
         prop_assert!(
@@ -189,7 +166,6 @@ proptest! {
             "Should parse distance from '{}'", formatted
         );
         let parsed_val = parsed.unwrap();
-        // Allow for floating-point formatting round-trip (1 decimal place)
         let expected = (distance * 10.0).round() / 10.0;
         prop_assert!(
             (parsed_val - expected).abs() < 0.01,
@@ -198,7 +174,6 @@ proptest! {
     }
 }
 
-// ── Roundtrip: lap count formatting parses back correctly ───────────────────
 
 proptest! {
     #[test]

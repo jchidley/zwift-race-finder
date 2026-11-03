@@ -14,8 +14,10 @@ on Debian/Ubuntu, `libssl-dev` and `pkg-config`. See the
 
 Searches read the public Zwift API and can initialize/migrate the local SQLite
 database and create a user-stat cache. A fresh database has **no route metadata**;
-only event-provided or heuristic estimates are available until you complete the
-[client-only route import](docs/howto/CLIENT_ROUTE_DATA.md). No route dataset is
+fixed-time events can still match, but calculated personal estimates need
+supported measured history and course geometry. Complete the
+[client-only route import](docs/howto/CLIENT_ROUTE_DATA.md) and
+[measured-history import](docs/howto/ZWIFTPOWER_EXPORT_STEPS.md). No route dataset is
 bundled; existing database rows and race history are retained. Back up an existing
 database before imports or schema upgrades.
 
@@ -106,29 +108,24 @@ Start at the [documentation map](docs/README.md) for maintained procedures and o
 | Install, update, or troubleshoot setup | [Deployment guide](docs/howto/DEPLOYMENT.md) and [testing prerequisites](docs/howto/TESTING_GUIDE.md) |
 | Change the implementation | [Agent operations](AGENTS.md), [code-truth map](docs/code-truth/README.md), and [architecture](docs/reference/ARCHITECTURE.md) |
 | Look something up | [Reference](docs/reference/) — algorithms, architecture, database, configuration |
-| Understand why | [Explanation](docs/explanation/) — Zwift physics, racing tactics, testing philosophy |
+| Compare estimators | [Baseline and recency experiment](docs/project-history/RECENCY_BASELINE_2026-11-03.md) |
 
 The main CLI is in `src/main.rs`, reusable modules in `src/lib.rs`, secondary
 import/analysis binaries in `src/bin/`, and tests in `tests/`. Optional OCR tools
 have separate [setup requirements](tools/ocr/SETUP_GUIDE.md) and need the `ocr`
 Cargo feature plus native Leptonica/Tesseract libraries.
 
-[Project history](docs/project-history/) and [PROJECT_WISDOM.md](PROJECT_WISDOM.md)
-preserve discoveries and the dated learning log. `archive/` is historical evidence,
-not current operating guidance.
+## Baseline and scope
 
-## About This Code
+`v0.3.0` preserves the usable personal-estimator baseline. Recency/current-form
+experiments are compared against it; useful baseline acceptance does not stop
+research or automatically promote a candidate. See [Status](STATUS.md) and
+[Tasks](TASKS.md) for current work and evidence limits.
 
-Almost all of this code is AI/LLM-generated. It's best used as a source of
-inspiration for your own AI/LLM efforts rather than as a traditional library.
-
-**This is personal alpha software.** If you want to use it:
-
-- **Pin to a specific commit** — don't track `main`, it changes without warning
-- **Use AI/LLM to adapt** — without AI assistance, this project is hard to use
-- **Treat as inspiration** — build your own version rather than depending on mine
-
-Suggestions welcome as inspiration for future improvements.
+This is a personal race selector, not a coaching, physics-simulation or sensor
+application. Older investigations and learning logs are retrievable from Git at
+`v0.3.0`; they are not current operating instructions. `archive/` is immutable
+historical evidence. Pin a version when reproducing behaviour.
 
 ## License
 

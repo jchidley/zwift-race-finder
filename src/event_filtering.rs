@@ -1,19 +1,13 @@
-//! Event filtering logic extracted from main.rs
-//!
-//! This module contains predicates and filtering functions for Zwift events
-
 use crate::database::Database;
 use crate::models::ZwiftEvent;
 use chrono::{DateTime, Utc};
 
-/// Statistics tracking what was filtered out
 #[derive(Debug, Default)]
 pub struct FilterStats {
     pub sport_filtered: u32,
     pub time_filtered: u32,
     pub type_filtered: u32,
     pub duration_filtered: u32,
-    /// Eligible events omitted because no evidence-based duration is available.
     pub duration_unknown: u32,
     pub subgroup_filtered: u32,
     pub tag_filtered: u32,
@@ -31,14 +25,12 @@ impl FilterStats {
     }
 }
 
-/// Filter events by sport (cycling only)
 pub fn filter_by_sport(events: &mut Vec<ZwiftEvent>) -> u32 {
     let pre_count = events.len();
     events.retain(|event| event.sport.to_uppercase() == "CYCLING");
     (pre_count - events.len()) as u32
 }
 
-/// Filter events by time range
 pub fn filter_by_time(
     events: &mut Vec<ZwiftEvent>,
     now: DateTime<Utc>,
@@ -49,7 +41,6 @@ pub fn filter_by_time(
     (pre_count - events.len()) as u32
 }
 
-/// Filter events by type
 pub fn filter_by_event_type(events: &mut Vec<ZwiftEvent>, event_type: &str) -> u32 {
     let pre_count = events.len();
     events.retain(|event| match event_type.to_lowercase().as_str() {
@@ -79,7 +70,6 @@ pub fn filter_by_event_type(events: &mut Vec<ZwiftEvent>, event_type: &str) -> u
     (pre_count - events.len()) as u32
 }
 
-/// Filter events by tags (include)
 pub fn filter_by_tags(events: &mut Vec<ZwiftEvent>, tags: &[String]) -> u32 {
     if tags.is_empty() {
         return 0;
@@ -92,7 +82,6 @@ pub fn filter_by_tags(events: &mut Vec<ZwiftEvent>, tags: &[String]) -> u32 {
     (pre_count - events.len()) as u32
 }
 
-/// Filter events by excluded tags
 pub fn filter_by_excluded_tags(events: &mut Vec<ZwiftEvent>, exclude_tags: &[String]) -> u32 {
     if exclude_tags.is_empty() {
         return 0;
@@ -106,7 +95,6 @@ pub fn filter_by_excluded_tags(events: &mut Vec<ZwiftEvent>, exclude_tags: &[Str
     (pre_count - events.len()) as u32
 }
 
-/// The event estimate shared by duration filtering and both display modes.
 #[derive(Debug, Clone)]
 pub struct EventEstimate {
     pub duration_minutes: u32,
@@ -164,11 +152,9 @@ impl EventEstimate {
     }
 }
 
-/// Geometry is resolved once, independently of whether duration is fixed.
 struct EventGeometry {
     distance_km: f64,
     route_id: Option<u32>,
-    // Only lap-derived geometry has exact lap elevation.
     laps: Option<u32>,
 }
 
@@ -185,8 +171,6 @@ pub(crate) fn fixed_minutes(minutes: Option<u32>, seconds: Option<u32>) -> Optio
     })
 }
 
-/// Selected subgroup distance > selected subgroup laps > event distance >
-/// existing route/description/name fallbacks. Lead-in is added only for laps.
 fn resolve_geometry(
     event: &ZwiftEvent,
     subgroup: Option<&crate::models::EventSubGroup>,
@@ -246,7 +230,6 @@ fn resolve_geometry(
         .map(|distance_km| geometry(distance_km, None))
 }
 
-/// Why an event cannot receive an evidence-based duration.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EstimateUnavailable {
     NoEligibleSubgroup,
@@ -264,12 +247,6 @@ impl std::fmt::Display for EstimateUnavailable {
     }
 }
 
-/// Resolve fixed duration or a supported personal estimate. Score selects only
-/// subgroup geometry: no category speed is substituted for unavailable history.
-///
-/// # Errors
-/// Returns an unavailable reason when no subgroup is eligible, distance is absent,
-/// or the personal model cannot support an estimate (including retrieval errors).
 pub fn resolve_event(
     event: &ZwiftEvent,
     zwift_score: u32,
@@ -322,12 +299,10 @@ pub fn resolve_event(
     Ok(estimate)
 }
 
-/// Convenience predicate/display adapter; use `resolve_event` for the reason.
 pub fn estimate_event(event: &ZwiftEvent, zwift_score: u32) -> Option<EventEstimate> {
     resolve_event(event, zwift_score).ok()
 }
 
-/// Check the same duration that the table and verbose output display.
 pub fn event_matches_duration(
     event: &ZwiftEvent,
     target_duration: u32,
@@ -379,7 +354,7 @@ mod tests {
         let mut events = vec![
             create_test_event("Cycling Race", "CYCLING", "RACE"),
             create_test_event("Running Event", "RUNNING", "RACE"),
-            create_test_event("Cycling TT", "cycling", "TIME_TRIAL"), // lowercase
+            create_test_event("Cycling TT", "cycling", "TIME_TRIAL"),
             create_test_event("Run TT", "RUN", "TIME_TRIAL"),
         ];
 
@@ -413,7 +388,7 @@ mod tests {
         let max_date = now + Duration::days(1);
         let filtered = filter_by_time(&mut events, now, max_date);
 
-        assert_eq!(filtered, 2); // Past and too far future
+        assert_eq!(filtered, 2);
         assert_eq!(events.len(), 1);
         assert!(events[0].name == "Future Event 1h");
     }
@@ -445,7 +420,6 @@ mod tests {
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].event_type, "TIME_TRIAL");
 
-        // Test alias
         let mut events2 = vec![
             create_test_event("Race", "CYCLING", "RACE"),
             create_test_event("TT", "CYCLING", "TIME_TRIAL"),
@@ -465,7 +439,7 @@ mod tests {
         ];
 
         let filtered = filter_by_event_type(&mut events, "group");
-        assert_eq!(filtered, 3); // Excludes fondo, sportive, and race
+        assert_eq!(filtered, 3);
         assert_eq!(events.len(), 1);
         assert!(events[0].name == "Group Ride");
     }
@@ -481,7 +455,7 @@ mod tests {
         ];
 
         let filtered = filter_by_event_type(&mut events, "fondo");
-        assert_eq!(filtered, 2); // Only fondo/sportive/century remain
+        assert_eq!(filtered, 2);
         assert_eq!(events.len(), 3);
         assert!(events
             .iter()
@@ -507,7 +481,6 @@ mod tests {
     fn test_filter_by_event_type_unknown() {
         let mut events = vec![create_test_event("Race", "CYCLING", "RACE")];
 
-        // Unknown type should keep all events
         let filtered = filter_by_event_type(&mut events, "unknown_type");
         assert_eq!(filtered, 0);
         assert_eq!(events.len(), 1);
@@ -536,7 +509,7 @@ mod tests {
         let tags = vec!["climbing".to_string()];
         let filtered = filter_by_tags(&mut events, &tags);
 
-        assert_eq!(filtered, 1); // One without climbing tag
+        assert_eq!(filtered, 1);
         assert_eq!(events.len(), 2);
         assert!(events
             .iter()
@@ -577,7 +550,7 @@ mod tests {
         let exclude_tags = vec!["climbing".to_string()];
         let filtered = filter_by_excluded_tags(&mut events, &exclude_tags);
 
-        assert_eq!(filtered, 2); // Two with climbing tag
+        assert_eq!(filtered, 2);
         assert_eq!(events.len(), 1);
         assert!(events
             .iter()
@@ -610,7 +583,7 @@ mod tests {
     #[test]
     fn test_event_matches_duration_fixed_seconds() {
         let mut event = create_test_event("Race", "CYCLING", "RACE");
-        event.duration_in_seconds = Some(3600); // 60 minutes
+        event.duration_in_seconds = Some(3600);
 
         assert!(event_matches_duration(&event, 60, 10, 200));
         assert!(event_matches_duration(&event, 55, 10, 200));
@@ -621,10 +594,8 @@ mod tests {
     #[test]
     fn test_event_matches_duration_with_route() {
         let mut event = create_test_event("Race", "CYCLING", "RACE");
-        event.route_id = Some(1258415487); // Bell Lap
+        event.route_id = Some(1258415487);
 
-        // With route_id, it should estimate duration
-        // This may fail if database is not available, so we just check it doesn't panic
         let _ = event_matches_duration(&event, 30, 10, 200);
     }
 
@@ -634,7 +605,6 @@ mod tests {
         event.duration_in_minutes = Some(0);
         event.duration_in_seconds = Some(0);
 
-        // Zero durations are filtered out
         assert!(!event_matches_duration(&event, 60, 10, 200));
     }
 
@@ -642,39 +612,28 @@ mod tests {
     fn test_event_matches_duration_minutes_takes_precedence() {
         let mut event = create_test_event("Race", "CYCLING", "RACE");
         event.duration_in_minutes = Some(60);
-        event.duration_in_seconds = Some(7200); // 120 minutes
+        event.duration_in_seconds = Some(7200);
 
-        // Minutes takes precedence over seconds
         assert!(event_matches_duration(&event, 60, 10, 200));
         assert!(!event_matches_duration(&event, 120, 10, 200));
     }
 
     #[test]
     fn test_event_matches_duration_comparison_operators() {
-        // Test <= comparison in event_matches_duration
-        // Mutations: replace <= with <, <=  with >, <= with ==
 
-        // Test edge case: duration exactly at tolerance boundary
         let mut event = create_test_event("Edge Case Race", "CYCLING", "RACE");
-        event.duration_in_minutes = Some(30); // Exact duration isolates the boundary predicate
+        event.duration_in_minutes = Some(30);
 
-        // With tolerance 0, only exact matches should pass
         assert!(event_matches_duration(&event, 30, 0, 195));
 
-        // Test that <= includes the boundary
-        assert!(event_matches_duration(&event, 30, 5, 195)); // Within tolerance
-        assert!(event_matches_duration(&event, 25, 5, 195)); // Exactly at upper bound
-        assert!(event_matches_duration(&event, 35, 5, 195)); // Exactly at lower bound
+        assert!(event_matches_duration(&event, 30, 5, 195));
+        assert!(event_matches_duration(&event, 25, 5, 195));
+        assert!(event_matches_duration(&event, 35, 5, 195));
 
-        // If <= became <, exact boundary would fail
-        // If <= became >, opposite results
-        // If <= became ==, only exact matches would pass
     }
 
     #[test]
     fn test_filter_stats_arithmetic_operations() {
-        // Test addition in FilterStats::total_filtered
-        // Mutation: replace + with -
         let stats = FilterStats {
             sport_filtered: 10,
             time_filtered: 5,
@@ -686,9 +645,8 @@ mod tests {
         };
 
         let total = stats.total_filtered();
-        assert_eq!(total, 28); // 10 + 5 + 3 + 8 + 2 = 28
+        assert_eq!(total, 28);
 
-        // If + became -, we'd get negative or very different values
         assert!(total > 20);
         assert!(total < 40);
     }
@@ -697,13 +655,10 @@ mod tests {
     fn test_is_racing_score_event_conditions() {
         use crate::models::{is_racing_score_event, EventSubGroup};
 
-        // Test various conditions that identify racing score events
         let mut event = create_test_event("Test Race", "CYCLING", "RACE");
 
-        // Not a racing score event by default
         assert!(!is_racing_score_event(&event));
 
-        // Add racing score subgroup
         event.event_sub_groups = vec![EventSubGroup {
             id: 1,
             name: "0-199".to_string(),
@@ -719,7 +674,6 @@ mod tests {
 
         assert!(is_racing_score_event(&event));
 
-        // Test with different range labels
         event.event_sub_groups[0].range_access_label = Some("200-299".to_string());
         assert!(is_racing_score_event(&event));
 
@@ -729,7 +683,6 @@ mod tests {
 
     #[test]
     fn test_filter_by_tags_inclusion() {
-        // Test tag filtering logic
         let mut events = vec![
             {
                 let mut e = create_test_event("Tagged Race", "CYCLING", "RACE");
@@ -751,14 +704,13 @@ mod tests {
         let tags = vec!["3R".to_string()];
         let filtered = filter_by_tags(&mut events, &tags);
 
-        assert_eq!(filtered, 2); // Should filter out 2 events
-        assert_eq!(events.len(), 1); // Only one event with "3R" tag remains
+        assert_eq!(filtered, 2);
+        assert_eq!(events.len(), 1);
         assert_eq!(events[0].name, "Tagged Race");
     }
 
     #[test]
     fn test_filter_by_excluded_tags_comprehensive() {
-        // Test exclude tag filtering
         let mut events = vec![
             {
                 let mut e = create_test_event("Women's Race", "CYCLING", "RACE");
@@ -780,20 +732,16 @@ mod tests {
         let exclude = vec!["women_only".to_string()];
         let filtered = filter_by_excluded_tags(&mut events, &exclude);
 
-        assert_eq!(filtered, 2); // Should filter out 2 events with "women_only"
-        assert_eq!(events.len(), 1); // Only "Open Race" remains
+        assert_eq!(filtered, 2);
+        assert_eq!(events.len(), 1);
         assert_eq!(events[0].name, "Open Race");
     }
 
     #[test]
     fn test_event_matches_duration_exact_tolerance_boundary() {
-        // Exercises the <= boundary in tolerance check.
-        // With duration=60, target=50, tolerance=10: diff=10, should match (<=10).
-        // With duration=60, target=49, tolerance=10: diff=11, should NOT match (>10).
         let mut event = create_test_event("Boundary Race", "CYCLING", "RACE");
         event.duration_in_minutes = Some(60);
 
-        // Diff exactly equal to tolerance — must match (<=)
         assert!(
             event_matches_duration(&event, 50, 10, 200),
             "diff=10, tolerance=10: should match (<=)"
@@ -803,7 +751,6 @@ mod tests {
             "diff=10, tolerance=10: should match (<=)"
         );
 
-        // Diff one beyond tolerance — must NOT match
         assert!(
             !event_matches_duration(&event, 49, 10, 200),
             "diff=11, tolerance=10: should not match"
@@ -813,7 +760,6 @@ mod tests {
             "diff=11, tolerance=10: should not match"
         );
 
-        // Zero tolerance — only exact match
         assert!(
             event_matches_duration(&event, 60, 0, 200),
             "diff=0, tolerance=0: exact match"

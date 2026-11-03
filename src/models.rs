@@ -1,5 +1,3 @@
-//! Data models for Zwift Race Finder
-
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -33,8 +31,6 @@ pub fn default_sport() -> String {
 }
 
 pub fn is_racing_score_event(event: &ZwiftEvent) -> bool {
-    // Blank labels also occur on traditional events. A nonblank restriction
-    // remains score-based even if malformed; do not silently ignore it.
     event
         .event_sub_groups
         .iter()
@@ -76,7 +72,7 @@ pub struct RouteData {
     pub name: &'static str,
     #[allow(dead_code)]
     pub world: &'static str,
-    pub surface: &'static str, // "road", "gravel", "mixed"
+    pub surface: &'static str,
     pub lead_in_distance_km: Option<f64>,
     pub lead_in_elevation_m: Option<f64>,
 }
@@ -92,7 +88,6 @@ mod tests {
 
     #[test]
     fn test_is_racing_score_event() {
-        // Test event without Racing Score (traditional event)
         let traditional_event = ZwiftEvent {
             id: 1,
             name: "Traditional Race".to_string(),
@@ -114,7 +109,7 @@ mod tests {
                 duration_in_seconds: None,
                 subgroup_label: None,
                 category_enforcement: None,
-                range_access_label: None, // No range label for traditional events
+                range_access_label: None,
                 laps: None,
             }],
             sport: "CYCLING".to_string(),
@@ -123,13 +118,12 @@ mod tests {
 
         assert!(!is_racing_score_event(&traditional_event));
 
-        // Test Racing Score event
         let racing_score_event = ZwiftEvent {
             id: 2,
             name: "Three Village Loop Race".to_string(),
             event_start: Utc::now(),
             event_type: "RACE".to_string(),
-            distance_in_meters: Some(0.0), // Racing Score events have 0 distance
+            distance_in_meters: Some(0.0),
             duration_in_minutes: None,
             duration_in_seconds: None,
             route_id: Some(9),
@@ -145,7 +139,7 @@ mod tests {
                 duration_in_seconds: None,
                 subgroup_label: None,
                 category_enforcement: None,
-                range_access_label: Some("0-199".to_string()), // This indicates Racing Score
+                range_access_label: Some("0-199".to_string()),
                 laps: None,
             }],
             sport: "CYCLING".to_string(),
@@ -154,7 +148,6 @@ mod tests {
 
         assert!(is_racing_score_event(&racing_score_event));
 
-        // Test event with no subgroups
         let no_subgroups_event = ZwiftEvent {
             id: 3,
             name: "Solo Event".to_string(),
@@ -167,7 +160,7 @@ mod tests {
             route: Some("Watopia".to_string()),
             description: None,
             category_enforcement: false,
-            event_sub_groups: vec![], // No subgroups at all
+            event_sub_groups: vec![],
             sport: "CYCLING".to_string(),
             tags: vec![],
         };

@@ -1,4 +1,3 @@
-//! Synthetic route fixture, not a statement about any real Zwift route.
 pub fn install_route() -> u32 {
     let route = serde_json::from_value(serde_json::json!({
         "route_id": 4_000_001_100u32, "name": "Synthetic test circuit", "world": "Test",

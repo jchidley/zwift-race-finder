@@ -1,4 +1,3 @@
-//! History storage migration and source-identified ingestion. No network access.
 use super::{Database, RaceResult};
 use crate::history::HistoryRecord;
 use anyhow::{bail, ensure, Result};
@@ -12,7 +11,6 @@ pub struct HistoryImportSummary {
     pub unchanged: usize,
 }
 
-/// Observations are queryable without requiring a historical Racing Score.
 #[derive(Debug, Clone)]
 pub struct HistoryObservation {
     pub result: RaceResult,
@@ -33,7 +31,6 @@ pub struct HistoryObservation {
 }
 
 pub(super) fn create_table(conn: &Connection, name: &str) -> Result<()> {
-    // Only internal constant table names are accepted.
     ensure!(
         matches!(name, "race_results" | "race_results_history_migration"),
         "Invalid migration table"
@@ -67,7 +64,6 @@ pub(super) fn create_table(conn: &Connection, name: &str) -> Result<()> {
     Ok(())
 }
 
-/// Called inside the database initialization transaction. Never discard unknown schema.
 pub(super) fn migrate(conn: &Connection) -> Result<bool> {
     let columns: Vec<(String, bool)> = conn
         .prepare("PRAGMA table_info(race_results)")?
@@ -227,7 +223,6 @@ impl Database {
         Ok(result)
     }
 
-    /// Atomic source-identified import. Missing scores never erase confirmed scores.
     pub fn import_history(&self, records: &[HistoryRecord]) -> Result<HistoryImportSummary> {
         ensure!(!records.is_empty(), "History export contains no records");
         let mut identities = HashSet::new();
@@ -312,7 +307,6 @@ impl Database {
                 summary.enriched += 1;
                 (old.result.id, score)
             } else {
-                // Do not duplicate a manual/legacy record just because it lacks source IDs.
                 ensure!(!existing.iter().any(|old| old.result.route_id == r.route_id
                     && old.result.race_date == r.race_date && old.result.event_name == r.event_name),
                     "Possible existing manual result without matching source identity; reconcile explicitly");

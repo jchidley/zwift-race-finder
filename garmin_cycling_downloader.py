@@ -47,7 +47,6 @@ except ImportError as e:
 class GarminDownloader:
     """Streamlined Garmin Connect cycling activities downloader."""
 
-    # Cycling activity types from Garmin Connect
     CYCLING_TYPES = {
         "cycling",
         "road_biking",
@@ -57,15 +56,14 @@ class GarminDownloader:
         "track_cycling",
         "bmx",
         "indoor_cycling",
-        "virtual_ride",     # Zwift, TrainerRoad, etc.
-        "virtual_cycling",  # Alternative naming
+        "virtual_ride",
+        "virtual_cycling",
     }
 
-    # Supported download formats
     FORMATS = {
-        "fit": "ORIGINAL",  # Best data preservation
-        "tcx": "TCX",  # Good compatibility with power/HR
-        "gpx": "GPX",  # Basic GPS only
+        "fit": "ORIGINAL",
+        "tcx": "TCX",
+        "gpx": "GPX",
     }
 
     def __init__(
@@ -84,11 +82,9 @@ class GarminDownloader:
         self.mode = mode
         self.limit = limit
 
-        # Validate format
         if self.format_type not in self.FORMATS:
             raise ValueError(f"Format must be one of: {', '.join(self.FORMATS.keys())}")
 
-        # Setup
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.console = Console()
         self.client: Optional[Garmin] = None
@@ -115,19 +111,16 @@ class GarminDownloader:
         activity_id = activity["activityId"]
         name = activity.get("activityName", "Unnamed Activity")
         start_time = activity.get("startTimeLocal", "")
-        
-        # Extract date and time parts
+
         if "T" in start_time:
             date_part, time_part = start_time.split("T")
-            time_part = time_part.split(".")[0]  # Remove milliseconds if present
+            time_part = time_part.split(".")[0]
         else:
             date_part = start_time
             time_part = ""
 
-        # Sanitize name
         safe_name = "".join(c for c in name if c.isalnum() or c in " -_").strip()
 
-        # Include time in filename for uniqueness
         if time_part:
             return f"{date_part} {time_part}_{safe_name}_{activity_id}.{self.format_type}"
         else:
@@ -148,41 +141,29 @@ class GarminDownloader:
         latest_date = None
         activity_ids = set()
 
-        # Pattern to match our filename formats:
-        # - New: YYYY-MM-DD HH:MM:SS_*_activityId.extension  
-        # - Old: YYYY-MM-DD_*_activityId.extension
         for file in self.output_dir.glob(f"*.{self.format_type}"):
             parts = file.stem.split("_")
             if len(parts) >= 2:
                 try:
-                    # Extract date from the beginning of filename
-                    # Handle format with timestamp: "2025-06-02 10:22:21"
                     first_part = parts[0]
-                    
-                    # Check if this is the timestamp format
+
                     if " " in first_part and len(parts) >= 3:
-                        # Format: "YYYY-MM-DD HH:MM:SS_name_id"
-                        # The date and time are in the first part
                         date_str = first_part.split(" ")[0]
                         date = datetime.strptime(date_str, "%Y-%m-%d")
                         activity_id = parts[-1]
                     else:
-                        # Format: "YYYY-MM-DD_name_id" 
                         date_str = first_part
                         date = datetime.strptime(date_str, "%Y-%m-%d")
                         activity_id = parts[-1]
 
-                    # Track earliest and latest
                     if earliest_date is None or date < earliest_date:
                         earliest_date = date
                     if latest_date is None or date > latest_date:
                         latest_date = date
 
-                    # Add activity ID
                     activity_ids.add(activity_id)
 
                 except (ValueError, IndexError):
-                    # Skip files that don't match expected format
                     continue
 
         return earliest_date, latest_date, activity_ids
@@ -208,7 +189,6 @@ class GarminDownloader:
         if not self.client:
             raise RuntimeError("Not authenticated")
 
-        # Determine date range based on mode
         if self.mode == "newer":
             earliest, latest, existing_ids = self._scan_existing_activities()
             if latest is None:
@@ -235,7 +215,7 @@ class GarminDownloader:
                 start_date = end_date - timedelta(days=self.limit)
                 self.logger.info(f"Looking for activities older than {earliest.date()}")
 
-        else:  # mode == "days" (default)
+        else:
             end_date = datetime.now()
             start_date = end_date - timedelta(days=self.days)
             existing_ids = set()
@@ -251,14 +231,12 @@ class GarminDownloader:
                 start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")
             )
 
-            # Filter for cycling activities
             cycling_activities = [
                 activity
                 for activity in all_activities
                 if activity.get("activityType", {}).get("typeKey") in self.CYCLING_TYPES
             ]
 
-            # Filter out existing activities if requested
             if skip_existing and existing_ids:
                 original_count = len(cycling_activities)
                 cycling_activities = [
@@ -287,32 +265,25 @@ class GarminDownloader:
         filename = self._make_filename(activity)
         filepath = self.output_dir / filename
 
-        # Skip if file already exists
         if filepath.exists():
             self.logger.debug(f"Skipping existing file: {filename}")
             return True
 
         try:
-            # Get the format constant from Garmin client
             format_attr = getattr(
                 self.client.ActivityDownloadFormat, self.FORMATS[self.format_type]
             )
             data = self.client.download_activity(activity_id, dl_fmt=format_attr)
 
-            # Validate downloaded data
             if not data:
                 self.logger.warning(f"Empty data for activity {activity_id}")
                 return False
 
-            # Check if data is a ZIP file (PK header)
             if len(data) > 4 and data[:4] == b"PK\x03\x04":
                 try:
-                    # Extract the actual file from the ZIP
                     with zipfile.ZipFile(io.BytesIO(data)) as zf:
-                        # Get the first file in the ZIP
                         file_list = zf.namelist()
                         if file_list:
-                            # Extract the first file (should be the activity file)
                             data = zf.read(file_list[0])
                             self.logger.debug(f"Extracted {file_list[0]} from ZIP")
                         else:
@@ -341,13 +312,11 @@ class GarminDownloader:
         successful = 0
 
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            # Submit all download tasks
             future_to_activity = {
                 executor.submit(self.download_single_activity, activity): activity
                 for activity in activities
             }
 
-            # Track progress
             for future in track(
                 as_completed(future_to_activity),
                 total=len(activities),
@@ -371,7 +340,6 @@ class GarminDownloader:
         table.add_column("Duration", justify="right", style="blue", width=10)
 
         for activity in activities:
-            # Format data consistently
             date = activity.get("startTimeLocal", "").split("T")[0]
             name = activity.get("activityName", "Unnamed")[:28]
             activity_type = (
@@ -406,7 +374,6 @@ class GarminDownloader:
         self.console.print(f"📁 Output: {self.output_dir.absolute()}")
         self.console.print(f"📊 Format: {self.format_type.upper()}")
 
-        # Display mode information
         if self.mode == "newer":
             self.console.print("🔄 Mode: Download newer activities")
         elif self.mode == "older":
@@ -416,7 +383,6 @@ class GarminDownloader:
         else:
             self.console.print(f"🔄 Mode: Download last {self.days} days")
 
-        # Check existing activities for context
         if self.mode in ["newer", "older"]:
             earliest, latest, existing_count = self._scan_existing_activities()
             if earliest and latest:
@@ -424,11 +390,9 @@ class GarminDownloader:
                     f"📅 Existing activities: {earliest.date()} to {latest.date()} ({len(existing_count)} files)"
                 )
 
-        # Authenticate
         if not self.authenticate():
             return
 
-        # Get activities
         activities = self.get_activities()
         if not activities:
             if self.mode == "newer":
@@ -439,18 +403,14 @@ class GarminDownloader:
                 )
             return
 
-        # Show what we found
         self.display_activities(activities)
 
-        # Confirm download
         if not Confirm.ask(f"\nDownload {len(activities)} activities?", default=True):
             self.console.print("Cancelled")
             return
 
-        # Download
         successful = self.download_activities(activities)
 
-        # Results
         self.console.print("\n🎉 [bold green]Complete![/bold green]")
         self.console.print(f"✅ Downloaded: {successful}/{len(activities)} activities")
 

@@ -1,5 +1,3 @@
-// Run only on your own logged-in ZwiftPower profile. No network/credential access.
-// Exports source observations, never estimated times or inferred Racing Scores.
 (() => {
     if (location.hostname !== 'zwiftpower.com' || location.pathname !== '/profile.php') {
         throw new Error('Open your own ZwiftPower profile before exporting.');
@@ -27,7 +25,6 @@
         schema_version: 1,
         source: 'ZwiftPower profile results DataTable',
         exported_at: exportedAt,
-        // Deliberately omit all other URL parameters/fragments.
         profile_url: `https://zwiftpower.com/profile.php?z=${profileId}`,
         row_count: rows.length,
         results: rows,

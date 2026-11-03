@@ -58,4 +58,6 @@ Before substantive changes, read the applicable constraints in [Architecture](do
 - `docs/code-truth/`: commit-scoped implementation map for directing changes.
 - `docs/reference/`: stable current facts; `docs/project-history/` and `archive/` are historical evidence.
 
+Keep explanatory prose in the maintained docs rather than code comments. Preserve executable metadata such as CLI help attributes, shebangs and required tool directives.
+
 Keep volatile counts and current work out of this file. Verify implementation details against code and the code-truth snapshot before changing them.

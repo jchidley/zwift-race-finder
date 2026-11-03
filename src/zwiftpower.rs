@@ -8,14 +8,12 @@ use zwift_race_finder::models::*;
 
 pub async fn fetch_zwiftpower_stats(secrets: &Secrets) -> Result<Option<UserStats>> {
     let debug = std::env::var("ZRF_ZP_DEBUG").is_ok();
-    // Only try to fetch if we have profile ID configured
     let (profile_id, session_id) = match (
         &secrets.zwiftpower_profile_id,
         &secrets.zwiftpower_session_id,
     ) {
         (Some(pid), Some(sid)) => (pid, sid),
         (Some(pid), None) => {
-            // Try without session ID (might work for public profiles)
             let url = format!("https://zwiftpower.com/profile.php?z={}", pid);
             if debug {
                 eprintln!("ZP: no session ID configured, trying public profile access");
@@ -46,7 +44,6 @@ pub async fn fetch_zwiftpower_stats(secrets: &Secrets) -> Result<Option<UserStat
         Ok(resp) if resp.status().is_success() => {
             let html = resp.text().await?;
 
-            // Parse Zwift Racing Score from the HTML
             let score_regex = Regex::new(r"(?s)Zwift Racing Score.*?(\d+)").unwrap();
             let category_regex =
                 Regex::new(r"Category(?:[^A-Z]+)?([A-E]\\+?)").unwrap();
@@ -78,7 +75,6 @@ pub async fn fetch_zwiftpower_stats(secrets: &Secrets) -> Result<Option<UserStat
             }
         }
         _ => {
-            // If we can't fetch from ZwiftPower, return None to use defaults
             return Ok(None);
         }
     }
@@ -87,34 +83,28 @@ pub async fn fetch_zwiftpower_stats(secrets: &Secrets) -> Result<Option<UserStat
 }
 
 async fn fetch_zwiftpower_public(url: &str) -> Result<Option<UserStats>> {
-    // Simplified version for public profile access
     let client = reqwest::Client::builder()
         .user_agent("Zwift Race Finder")
         .build()?;
 
     match client.get(url).send().await {
         Ok(resp) if resp.status().is_success() => {
-            // Try to parse what we can from public page
-            Ok(None) // Public pages might be limited
+            Ok(None)
         }
         _ => Ok(None),
     }
 }
 
 pub async fn get_user_stats(config: &FullConfig) -> Result<UserStats> {
-    // Try to load from cache first
     if let Ok(Some(stats)) = load_cached_stats() {
         return Ok(stats);
     }
 
-    // Try to fetch from ZwiftPower
     if let Ok(Some(stats)) = fetch_zwiftpower_stats(&config.secrets).await {
-        // Cache the fetched stats
         let _ = save_cached_stats(&stats);
         return Ok(stats);
     }
 
-    // Use configured defaults or fallback
     let zwift_score = config.default_zwift_score().unwrap_or(195);
     Ok(UserStats {
         zwift_score,

@@ -1,15 +1,11 @@
 #!/usr/bin/env bash
-# ABOUTME: Install system dependencies for OCR functionality
-# Installs Tesseract and Leptonica for both Python and Rust OCR
 
 set -euo pipefail
 
 echo "Installing OCR system dependencies..."
 
-# Update package list
 sudo apt-get update
 
-# Install Tesseract and Leptonica development libraries
 echo "Installing Tesseract and Leptonica..."
 sudo apt-get install -y \
     libleptonica-dev \
@@ -20,7 +16,6 @@ sudo apt-get install -y \
     sudo apt-get install -f -y
 }
 
-# Since we're using Debian trixie packages, we can install everything directly
 echo "Installing OpenCV and dependencies..."
 sudo apt-get install -y \
     libzstd-dev \
@@ -31,7 +26,6 @@ sudo apt-get install -y \
 }
 
 
-# Verify installation
 echo ""
 echo "Checking installed packages..."
 echo "=========================="

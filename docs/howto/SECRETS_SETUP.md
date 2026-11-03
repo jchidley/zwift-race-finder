@@ -1,57 +1,29 @@
-# How to Set Up Secrets with direnv and ak
+# Optional credentials
 
-This project expects a profile ID in the environment:
+No credentials are needed to fetch public Zwift events. Supplying your current
+Racing Score is sufficient for subgroup selection.
+
+The optional ZwiftPower lookup reads these environment variables through
+`FullConfig`:
 
 - `ZWIFTPOWER_PROFILE_ID`
+- `ZWIFTPOWER_SESSION_ID`
 
-## Prerequisites
+If configured, that lookup can run even when `--zwift-score` is supplied. Keep
+credentials out of TOML, command arguments, source, exported logs and Git. Load
+only approved variables through the machine's reviewed secret-management process;
+this repository does not install a vault or prescribe a credential migration.
+Do not use debugging output as a credential export mechanism.
 
-1. `direnv` installed and hooked into your shell.
-2. `ak` installed from `~/tools/api-keys` with GPG set up.
+## Browser-based cache refresh
 
-## One-Time Setup
+`scripts/refresh_zwiftpower_stats.sh` is a separate optional browser/cache utility,
+not part of the supported measured-history importer. It persists authenticated
+browser storage under the user cache, which must be treated as sensitive. Review
+its current behaviour and explicitly authorize login before using it; do not run
+it merely to validate setup or documentation. No refresh is needed for a public
+search with an explicit score.
 
-1. Create `ak` service metadata for proper env var names:
-   ```bash
-   ak edit zwiftpower-profile-id
-   ```
-   Set `env_var` to `ZWIFTPOWER_PROFILE_ID`.
-
-2. Store the profile ID:
-   ```bash
-   ak set zwiftpower-profile-id
-   ```
-
-3. Allow direnv in this repo:
-   ```bash
-   direnv allow
-   ```
-
-## Daily Usage
-
-With direnv allowed, the environment variables are loaded automatically when you `cd` into the repo.
-
-## Refresh ZwiftPower Stats (No Stored Session Cookie)
-
-To avoid storing a session cookie, refresh stats through a browser session state file.
-
-```bash
-bash scripts/refresh_zwiftpower_stats.sh
-# Or pass your profile ID directly:
-bash scripts/refresh_zwiftpower_stats.sh <PROFILE_ID>
-```
-
-This will:
-- Open a browser to your ZwiftPower profile
-- Let you log in once
-- Save a Playwright storage state file under your cache directory
-- Refresh `~/.cache/zwift-race-finder/user_stats.json` for 24 hours
-
-Delete the storage state file anytime to require a fresh login.
-
-## Bitwarden Migration (One-Off)
-
-If you previously stored the profile ID in Bitwarden, convert once:
-```bash
-ak set zwiftpower-profile-id "$(bw get item 'Zwift Race Finder' | jq -r '.fields[] | select(.name=="zwiftpower_profile_id") | .value')"
-```
+The [history export procedure](ZWIFTPOWER_EXPORT_STEPS.md) uses your own logged-in
+profile and keeps exports private. It does not require copying cookies into source
+or manufacturing database observations from browser activity.

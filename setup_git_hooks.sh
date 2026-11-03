@@ -1,14 +1,11 @@
 #!/bin/bash
-# Setup git hooks to prevent committing secrets
 
 set -e
 
 echo "Setting up git hooks..."
 
-# Create hooks directory if it doesn't exist
 mkdir -p .git/hooks
 
-# Create pre-commit hook
 cat > .git/hooks/pre-commit << 'EOF'
 #!/bin/bash
 # Pre-commit hook to check for secrets
@@ -51,7 +48,6 @@ fi
 echo "✅ Pre-commit checks passed!"
 EOF
 
-# Make hook executable
 chmod +x .git/hooks/pre-commit
 
 echo "✅ Git hooks installed!"

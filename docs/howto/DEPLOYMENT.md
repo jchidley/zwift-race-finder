@@ -1,160 +1,56 @@
-# How to Deploy Zwift Race Finder
+# Install and update
 
-This guide covers deployment and production usage of Zwift Race Finder.
+Use Bash on Linux/WSL from an existing checkout root. Build prerequisites and the
+shortest useful search are in [Quick Start](../../README.md#quick-start). This is a
+personal CLI, not a deployed service. The versioned baseline is `v0.3.0`; pin the
+intended source version when reproducing predictions.
 
-## Production Installation
+## Install a built version
 
-### Quick Install (Recommended)
+This replaces an existing user-local binary:
+
 ```bash
-# Clone, build, and install in one step
-git clone https://github.com/jchidley/zwift-race-finder.git
-cd zwift-race-finder
-./install.sh
-```
-
-This will:
-1. Build the release version with optimizations
-2. Install to `~/.local/bin/zwift-race-finder`
-3. Show basic usage examples
-
-### Manual Installation
-```bash
-# Build release version
-cargo build --release
-
-# Copy to local bin
+cargo build --release --bin zwift-race-finder
+mkdir -p ~/.local/bin
 cp target/release/zwift-race-finder ~/.local/bin/
-
-# Ensure ~/.local/bin is in PATH
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
-source ~/.bashrc
 ```
 
-## First Run
+With `~/.local/bin` on PATH, verify the installed executable:
 
-### Basic Usage (No Config Needed)
 ```bash
-# Find races for next 24 hours with default settings
-zwift-race-finder
-
-# The tool will show what it found:
-# "Found: 91 group rides, 52 races, 33 group workouts, 5 time trials"
-
-# Common searches:
-zwift-race-finder -d 30 -t 30    # 20-60 minute races
-zwift-race-finder -d 90 -t 30    # 60-120 minute races
-zwift-race-finder -e tt           # Time trials only
+zwift-race-finder --version
+zwift-race-finder --help
 ```
 
-### With Personal Config (Optional)
+Updating source/builds does not import history or refresh client metadata. Back up
+an existing database before any operation that can initialize/migrate schema or
+apply data. Follow [client routes](CLIENT_ROUTE_DATA.md) and
+[measured history](ZWIFTPOWER_EXPORT_STEPS.md) for preview/reconciliation.
+
+## Configure and search
+
+[Configuration](CONFIG_MANAGEMENT.md) owns defaults and precedence. Secrets come
+only from environment variables; no credentials are needed for public events.
+A normal search calls live services and may create/migrate local state:
+
 ```bash
-# Create config from template
-cp config.example.toml ~/.config/zwift-race-finder/config.toml
-
-# Edit with your Zwift Racing Score
-editor ~/.config/zwift-race-finder/config.toml
-
-# Tool will auto-load config from this location
-zwift-race-finder
+zwift-race-finder --zwift-score 195 --duration 45 --tolerance 5
 ```
 
-## Operational characteristics
+Replace the score with your own. Success is a list of matching events or an
+explanation of exclusions/no matches. Personal estimates need supported measured
+history and geometry; fixed durations remain usable without those inputs.
 
-- The normal search requires the live Zwift public event endpoint; event responses are not cached for offline use.
-- ZwiftPower-derived user stats are cached locally for 24 hours.
-- Route, result, completion, and discovery data are stored in SQLite under `~/.local/share/zwift-race-finder/` on Linux.
-- The latest retained calibration record reports 16.6% MAE on 125 matched races in the owner's local database. Re-run the focused regression before making a current accuracy claim; see [Algorithms](../reference/ALGORITHMS.md).
+## Diagnose results
 
-## Monitoring & Maintenance
-
-### Check Database Health
-```bash
-# Database location
-sqlite3 ~/.local/share/zwift-race-finder/races.db "PRAGMA integrity_check;"
-
-# Database size
-du -h ~/.local/share/zwift-race-finder/races.db
-
-# Route count
-sqlite3 ~/.local/share/zwift-race-finder/races.db "SELECT COUNT(*) FROM routes;"
-```
-
-### Update Route Data
-```bash
-# Verify the selected client archive, export privately, and back up the database.
-# Preview before applying:
-cargo run --release --bin import_client_routes -- --input /path/to/client-routes.json --dry-run
-cargo run --release --bin import_client_routes -- --input /path/to/client-routes.json
-
-# Check for unknown routes
-zwift-race-finder --show-unknown-routes
-```
-
-### Backup Data
-```bash
-# Backup database
-cp ~/.local/share/zwift-race-finder/races.db ~/zwift-races-backup-$(date +%Y%m%d).db
-
-# Backup config
-cp ~/.config/zwift-race-finder/config.toml ~/zwift-config-backup-$(date +%Y%m%d).toml
-```
-
-## Troubleshooting
-
-### No Events Found
-1. Check API is accessible: `curl -s https://us-or-rly101.zwift.com/api/public/events/upcoming | head`
-2. Try wider tolerance: `-t 60` for ±60 minutes
-3. Try all event types: `-e all`
-4. Remember API limit: only ~12 hours of events available
-
-### Wrong Predictions
-1. Import measured history using [the ZwiftPower export/import workflow](ZWIFTPOWER_EXPORT_STEPS.md); manual result entry is removed.
-2. Check event distance/laps and source route metadata; supported earlier race history supplies personal predictions. Imports can change predictions without proving improved accuracy; see [Algorithms](../reference/ALGORITHMS.md).
-3. Check if multi-lap race in `multi_lap_events` table
-4. Report via GitHub if consistently wrong
-
-### Performance Issues
-1. Check disk space: `df -h ~/.local/share/`
-2. Vacuum database: `sqlite3 ~/.local/share/zwift-race-finder/races.db "VACUUM;"`
-3. Clear old logs if any exist
-4. Rebuild with latest version
-
-## Integration
-
-### Shell Aliases
-Add to `~/.bashrc` or `~/.zshrc`:
-```bash
-# Quick race searches
-alias zr='zwift-race-finder'
-alias zr30='zwift-race-finder -d 30 -t 30'
-alias zr60='zwift-race-finder -d 60 -t 30'
-alias zr90='zwift-race-finder -d 90 -t 30'
-alias zrtt='zwift-race-finder -e tt'
-```
-
-### Cron Jobs
-Schedule regular updates:
-```bash
-# Route refresh is manual: verify the selected client archive and preview the import.
-# Do not schedule guessed mappings or unreviewed client imports.
-
-# Backup database monthly
-0 2 1 * * cp ~/.local/share/zwift-race-finder/races.db ~/backups/zwift-races-$(date +\%Y\%m).db
-```
-
-## Security Best Practices
-
-1. **Never share** your config.toml if it contains personal data
-2. **Use environment variables** for any API tokens:
-   ```bash
-   export ZWIFT_SCORE=195
-   zwift-race-finder -s $ZWIFT_SCORE
-   ```
-3. **Regular updates**: `git pull` for security fixes
-4. **Check permissions**: `ls -la ~/.config/zwift-race-finder/`
-
-## Support
-
-- **Issues**: https://github.com/jchidley/zwift-race-finder/issues
-- **Feedback**: See FEEDBACK.md
-- **Updates**: Watch the GitHub repo for new releases
+- Use `--debug` for exclusion reasons and `--show-unknown-routes` for metadata gaps.
+- The public endpoint has limited event coverage; increasing `--days` cannot force
+  it to return more events. No endpoint failover is implemented.
+- Check subgroup distance/laps and input history before changing a formula.
+  Recordings, titles and moving time do not establish race finish observations.
+- Judge predictions against race-only outcomes, not full activity duration. See
+  [Algorithms](../reference/ALGORITHMS.md) and the
+  [baseline comparison](../project-history/RECENCY_BASELINE_2026-11-03.md).
+- Build/test success and owner acceptance do not establish clean release gates.
+  [Status](../../STATUS.md) records current limits; [testing](TESTING_GUIDE.md)
+  describes validation without touching normal user state.

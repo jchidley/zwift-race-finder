@@ -24,7 +24,7 @@ class Region:
     y: int
     width: int
     height: int
-    char_type: str  # 'number', 'decimal', 'time', 'letters', 'mixed'
+    char_type: str
     color: Tuple[int, int, int] = (0, 255, 0)
 
     def contains_point(self, x: int, y: int) -> bool:
@@ -52,13 +52,11 @@ class VisualRegionMapper:
         self.resize_mode = False
         self.drag_start = None
 
-        # OCR engine
         if PADDLE_AVAILABLE:
             self.ocr = PaddleOCR(use_angle_cls=True, lang='en', show_log=False)
         else:
             self.ocr = None
 
-        # Window setup
         self.window_name = 'Zwift Region Mapper'
         cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
         cv2.resizeWindow(self.window_name, 1400, 800)
@@ -67,18 +65,15 @@ class VisualRegionMapper:
     def _init_regions(self) -> Dict[str, Region]:
         """Initialize default regions based on known UI layout"""
         return {
-            # Top bar
             'speed': Region('speed', 690, 40, 100, 40, 'number', (255, 0, 0)),
             'distance': Region('distance', 810, 40, 100, 40, 'decimal', (255, 0, 0)),
             'altitude': Region('altitude', 930, 40, 80, 40, 'number', (255, 0, 0)),
             'race_time': Region('race_time', 1040, 40, 120, 40, 'time', (255, 0, 0)),
-            # Power panel
             'power': Region('power', 271, 49, 148, 61, 'number', (0, 255, 0)),
             'cadence': Region('cadence', 240, 135, 60, 40, 'number', (0, 255, 0)),
             'heart_rate': Region('heart_rate', 311, 128, 98, 44, 'number', (0, 255, 0)),
             'avg_power': Region('avg_power', 222, 191, 60, 31, 'number', (0, 255, 0)),
             'energy': Region('energy', 338, 189, 68, 29, 'number', (0, 255, 0)),
-            # Optional elements
             'gradient': Region('gradient', 1700, 75, 50, 50, 'number', (0, 0, 255)),
             'distance_to_finish': Region(
                 'distance_to_finish', 1720, 90, 150, 50, 'decimal', (0, 0, 255)
@@ -90,7 +85,6 @@ class VisualRegionMapper:
         """Handle mouse events"""
 
         if event == cv2.EVENT_LBUTTONDOWN:
-            # Check if clicking on a region
             for name, region in self.regions.items():
                 if region.contains_point(x, y):
                     self.selected_region = name
@@ -104,11 +98,9 @@ class VisualRegionMapper:
                 region = self.regions[self.selected_region]
 
                 if self.resize_mode:
-                    # Resize mode (Shift + drag)
                     region.width = max(20, x - region.x)
                     region.height = max(20, y - region.y)
                 else:
-                    # Move mode
                     region.x = x - self.drag_start[0]
                     region.y = y - self.drag_start[1]
 
@@ -117,21 +109,17 @@ class VisualRegionMapper:
         elif event == cv2.EVENT_LBUTTONUP:
             if self.dragging:
                 self.dragging = False
-                # Test OCR on the selected region
                 if self.selected_region and self.ocr:
                     self._test_region(self.selected_region)
 
         elif event == cv2.EVENT_RBUTTONDOWN:
-            # Right click to test all regions
             self._test_all_regions()
 
     def _update_display(self):
         """Update the display with current regions"""
         self.display_image = self.image.copy()
 
-        # Draw all regions
         for name, region in self.regions.items():
-            # Draw rectangle
             thickness = 3 if name == self.selected_region else 2
             cv2.rectangle(
                 self.display_image,
@@ -141,7 +129,6 @@ class VisualRegionMapper:
                 thickness,
             )
 
-            # Draw label with character type
             label = f'{name} [{region.char_type[0].upper()}]'
             label_pos = (region.x, region.y - 5)
             cv2.putText(
@@ -163,17 +150,14 @@ class VisualRegionMapper:
         region = self.regions[region_name]
         roi = self.image[region.y : region.y + region.height, region.x : region.x + region.width]
 
-        # Preprocess
         gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
         _, binary = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)
 
-        # Run OCR
         result = self.ocr.ocr(binary, cls=True)
 
         if result and result[0]:
             text = result[0][0][1][0]
 
-            # Apply character constraints
             filtered = self._apply_constraints(text, region.char_type)
 
             print(f'\n{region_name}:')
@@ -213,11 +197,9 @@ class VisualRegionMapper:
                     region.x : region.x + region.width,
                 ]
 
-                # Preprocess
                 gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
                 _, binary = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)
 
-                # Run OCR
                 result = self.ocr.ocr(binary, cls=True)
 
                 if result and result[0]:
@@ -235,7 +217,6 @@ class VisualRegionMapper:
                     results[name] = None
                     print(f'✗ {name}: Not detected')
 
-        # Save results
         self._save_results(results)
 
     def _convert_value(self, text: str, char_type: str):
@@ -262,13 +243,11 @@ class VisualRegionMapper:
         """Save test results and region definitions"""
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 
-        # Save results
         results_file = f'ocr_results_{timestamp}.json'
         with open(results_file, 'w') as f:
             json.dump(results, f, indent=2)
         print(f'\nResults saved to: {results_file}')
 
-        # Save region definitions
         regions_data = {
             name: {
                 'x': r.x,
@@ -285,7 +264,6 @@ class VisualRegionMapper:
             json.dump(regions_data, f, indent=2)
         print(f'Regions saved to: {regions_file}')
 
-        # Generate Python code
         print('\nPython code for regions:')
         print('-' * 40)
         for name, r in self.regions.items():
@@ -321,30 +299,23 @@ class VisualRegionMapper:
             if key == ord('q'):
                 break
             elif key == ord('s'):
-                # Save current configuration
                 self._test_all_regions()
             elif key == ord('r'):
-                # Reset to defaults
                 self.regions = self._init_regions()
                 self._update_display()
             elif key == ord('1') and self.selected_region:
-                # Change selected region to number type
                 self.regions[self.selected_region].char_type = 'number'
                 self._update_display()
             elif key == ord('2') and self.selected_region:
-                # Change to decimal type
                 self.regions[self.selected_region].char_type = 'decimal'
                 self._update_display()
             elif key == ord('3') and self.selected_region:
-                # Change to time type
                 self.regions[self.selected_region].char_type = 'time'
                 self._update_display()
             elif key == ord('4') and self.selected_region:
-                # Change to letters type
                 self.regions[self.selected_region].char_type = 'letters'
                 self._update_display()
             elif key == ord('5') and self.selected_region:
-                # Change to mixed type
                 self.regions[self.selected_region].char_type = 'mixed'
                 self._update_display()
 

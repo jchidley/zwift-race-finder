@@ -61,8 +61,8 @@ Most reusable modules contain adjacent unit tests:
 
 ## Important limitations
 
-- The former `performance` and `ocr_benchmarks` Cargo targets were empty placeholders and have been removed. No Criterion benchmark suite is currently implemented. The separate `zwift_ocr_benchmark` executable remains available with the `ocr` feature.
-- The inactive `tests/uom_integration_tests.rs` and `tests/behavioral/` scaffolding has been removed: it depended on an undeclared `uom-migration` feature and absent UOM implementations. The real `src/ab_testing.rs` utility and its unit tests remain.
+- No default Criterion benchmark suite is implemented. The optional
+  `zwift_ocr_benchmark` executable is a separate OCR diagnostic.
 
 - The loopback HTTP suite exercises production request/decoding and HTTP error handling, not availability or compatibility of the hard-coded live endpoint.
 - CLI integration is not hermetic: several cases call the live API. Subprocess state is isolated, but in-process default-path consumers still require outer isolation.
@@ -73,24 +73,5 @@ Most reusable modules contain adjacent unit tests:
 - Filter/display tests check agreement under their fixtures. Callers still resolve estimates independently against time/database state; a once-per-event immutable snapshot is not implemented.
 - OCR coverage is split between default-disabled feature code, ignored model/image tests, and Python tooling.
 
-For task-oriented instructions, see [How to Test the Project](../howto/TESTING_GUIDE.md). Historical UOM migration coverage notes are preserved in [project history](../project-history/UOM_INTEGRATION_TEST_COVERAGE_2025.md).
-
-## Historical checkpoints (not current qualification)
-
-The following dated results are retained as historical evidence. Current focus
-and blockers belong in `STATUS.md`; these counts do not establish that today's
-working tree passes.
-
-### History-model verification — 2026-10-30
-
-At that checkpoint, the isolated default suite reported: **195 passed, 0 failed, 7 ignored**. This adds seven parser and six history migration/import tests to the 182-test client-only state. Browser exporter checks use synthetic data (`node tests/history_export_tests.js`). Release binaries and all-feature test compilation pass; OCR execution is not requalified. Private before/after legacy score-based regression: **13.3% MAPE on the same six records**; after import it explicitly excludes 188 unknown-score records. This is not MAE or evidence of a new predictor. See [history audit](../project-history/HISTORY_MODEL_2026-10-30.md).
-
-### CLI simplification — 2026-10-30
-
-After removing completion marking/filtering and description-analysis/discovery commands, the isolated default suite passes **190 tests, 0 failures, 7 ignored**. Five executions were removed: four dedicated obsolete tests and the duplicate binary-side description-parser test (the library parser and its test remain). The standalone analysis binary is removed. Existing stored completion/discovery data is preserved; no discovery-attempt table is created in fresh databases. Direct release-binary checks verify removed options are absent from help and rejected before database creation.
-
-#### Follow-up: remove completion presentation and manual recording
-
-The subsequent cleanup removes progress/indicators and manual result entry, their database APIs and three dedicated tests. At that stage the isolated default suite passed **187 tests, 0 failures, 7 ignored**. History query and nullable-score migration coverage remain, using synthetic SQL fixtures and the supported importer rather than the removed insertion API. Fresh databases no longer create the completion table; existing tables/data are preserved.
-
-The final associated-code sweep removes the unused-for-estimation route-name guessing module and its remaining test: **186 passed, 0 failed, 7 ignored**. The actual event-distance/elevation/lap parsers remain.
+For task-oriented instructions, see [How to Test the Project](../howto/TESTING_GUIDE.md).
+Current validation results belong in `STATUS.md`, not this test map.

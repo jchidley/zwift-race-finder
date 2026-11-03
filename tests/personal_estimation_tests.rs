@@ -1,4 +1,3 @@
-//! One isolated live-path fixture: no network, normal user state, or private records.
 use chrono::{Duration, Utc};
 use rusqlite::Connection;
 use zwift_race_finder::{
@@ -51,7 +50,6 @@ fn record(i: i64) -> HistoryRecord {
     HistoryRecord {
         route_id: ROUTE,
         event_name: format!("Synthetic result {i}"),
-        // Deliberately not a rounded-minute measurement.
         actual_seconds: 3600.25,
         zwift_score: None,
         race_date: start.format("%Y-%m-%d").to_string(),
@@ -71,7 +69,6 @@ fn record(i: i64) -> HistoryRecord {
 
 #[test]
 fn live_history_changes_filter_and_display_with_explicit_honest_fallbacks() {
-    // Only test in this executable. Isolate default-path consumers as well as adapters.
     let state = tempfile::tempdir().unwrap();
     std::env::set_var("HOME", state.path());
     std::env::set_var("XDG_DATA_HOME", state.path().join("data"));
@@ -100,13 +97,11 @@ fn live_history_changes_filter_and_display_with_explicit_honest_fallbacks() {
     ));
     assert!(format_duration_info(&race, 195).contains("unknown"));
     assert!(prepare_event_row(&race, 195).basis.contains("insufficient"));
-    // Even an all-inclusive window must not treat an unsupported duration as a match.
     assert!(!event_matches_duration(&race, 60, u32::MAX, 195));
     assert!(!event_matches_duration(&race, 60, 0, 195));
 
     let records: Vec<_> = (0..12).map(record).collect();
     db.import_history(&records).unwrap();
-    // Simulate legacy alias-backed history; modern imports require direct foreign keys.
     sql.pragma_update(None, "foreign_keys", false).unwrap();
     sql.execute(
         "UPDATE race_results SET route_id=?1 WHERE id % 2 = 0",
@@ -140,10 +135,8 @@ fn live_history_changes_filter_and_display_with_explicit_honest_fallbacks() {
     ] {
         assert!(verbose.contains(text), "{verbose}");
     }
-    // Scores cannot change the personal model when they select identical geometry.
     assert_eq!(estimate_event(&race, 650).unwrap().duration_minutes, 60);
 
-    // Score still chooses the subgroup; it is not a model feature.
     race.event_sub_groups = vec![
         EventSubGroup {
             id: 1,
@@ -174,7 +167,6 @@ fn live_history_changes_filter_and_display_with_explicit_honest_fallbacks() {
     assert_eq!(estimate_event(&race, 210).unwrap().duration_minutes, 75);
     race.event_sub_groups.clear();
 
-    // Unsupported formats stay unknown, even with ample ordinary-race history.
     for kind in ["TIME_TRIAL", "GROUP_RIDE", "UNKNOWN"] {
         race.event_type = kind.into();
         assert!(estimate_event(&race, 195).is_none());
@@ -195,7 +187,6 @@ fn live_history_changes_filter_and_display_with_explicit_honest_fallbacks() {
         estimate_event(&race, 195).unwrap().personal.unwrap().basis,
         PersonalBasis::DistanceAscent
     );
-    // Unknown target gain: no global fit, but the same-route method still works.
     db.add_route(&route(OTHER, None)).unwrap();
     assert_eq!(
         resolve_event(&race, 195)
@@ -214,7 +205,6 @@ fn live_history_changes_filter_and_display_with_explicit_honest_fallbacks() {
         PersonalBasis::SameRoute
     );
 
-    // Never combine different riders into a "personal" pace.
     sql.execute(
         "UPDATE race_results SET source_rider_id='2' WHERE source_result_id='synthetic-0'",
         [],
@@ -236,12 +226,10 @@ fn live_history_changes_filter_and_display_with_explicit_honest_fallbacks() {
     )
     .unwrap();
 
-    // Exercise global minimum support below, not the separate three-result same-route branch.
     db.add_route(&route(ROUTE, Some(0.0))).unwrap();
     db.add_route(&route(OTHER, Some(0.0))).unwrap();
     race.route_id = Some(OTHER);
 
-    // Flat-course smoke check; nonzero varying-ascent regression follows below.
     let before_laps = estimate_event(&race, 195).unwrap().duration_minutes;
     sql.execute("UPDATE race_results SET laps=100", []).unwrap();
     assert_eq!(
@@ -251,7 +239,6 @@ fn live_history_changes_filter_and_display_with_explicit_honest_fallbacks() {
     sql.execute("UPDATE race_results SET laps=NULL", [])
         .unwrap();
 
-    // Unknown source formats cannot silently provide the twelfth race.
     sql.execute(
         "UPDATE race_results SET source_payload_json='{}' WHERE source_result_id='synthetic-0'",
         [],
@@ -269,7 +256,6 @@ fn live_history_changes_filter_and_display_with_explicit_honest_fallbacks() {
             required: 12
         })
     ));
-    // Explicit format supports history even without f_t, but TT/mixed does not.
     sql.execute(
         "UPDATE race_results SET event_type='RACE' WHERE source_result_id='synthetic-0'",
         [],
@@ -290,7 +276,6 @@ fn live_history_changes_filter_and_display_with_explicit_honest_fallbacks() {
     )
     .unwrap();
 
-    // Unsupported sources or invalid provenance cannot supply the twelfth global observation.
     for (column, value) in [
         ("source", "unverified"),
         ("source_sha256", "not-a-hash"),
@@ -306,7 +291,6 @@ fn live_history_changes_filter_and_display_with_explicit_honest_fallbacks() {
         sql.execute("UPDATE race_results SET source='zwiftpower-profile',source_sha256=?1,source_rider_id='1',source_event_id='1' WHERE source_result_id='synthetic-0'", ["a".repeat(64)]).unwrap();
     }
 
-    // Adapter excludes same-day and future records, including future target events.
     let today = Utc::now().date_naive();
     let original = records[0].clone();
     for day in [today, today + Duration::days(1)] {
@@ -328,7 +312,6 @@ fn live_history_changes_filter_and_display_with_explicit_honest_fallbacks() {
     sql.execute("UPDATE race_results SET race_date=?1,event_start_utc=?2 WHERE source_result_id='synthetic-0'",
         [&original.race_date, &original.event_start_utc]).unwrap();
 
-    // Missing measured geometry or seconds cannot fall back to legacy minutes/base distance.
     for column in ["event_distance_km", "actual_seconds"] {
         sql.execute(
             &format!("UPDATE race_results SET {column}=NULL WHERE source_result_id='synthetic-0'"),
@@ -339,7 +322,6 @@ fn live_history_changes_filter_and_display_with_explicit_honest_fallbacks() {
         sql.execute("UPDATE race_results SET event_distance_km=20,actual_seconds=3600.25 WHERE source_result_id='synthetic-0'", []).unwrap();
     }
 
-    // Broken retrieval is not reported as adequate/merely insufficient history.
     sql.execute(
         "UPDATE race_results SET actual_seconds='invalid' WHERE source_result_id='synthetic-0'",
         [],
@@ -359,7 +341,6 @@ fn live_history_changes_filter_and_display_with_explicit_honest_fallbacks() {
         .basis
         .contains("history database unavailable"));
 
-    // Fixed-duration events never query malformed history, including subgroup seconds.
     race.duration_in_minutes = Some(45);
     let fixed = estimate_event(&race, 195).unwrap();
     assert!(fixed.is_fixed);
@@ -383,7 +364,6 @@ fn live_history_changes_filter_and_display_with_explicit_honest_fallbacks() {
     });
     assert_eq!(estimate_event(&race, 195).unwrap().duration_minutes, 30);
 
-    // The DB adapter also exposes direct read errors instead of a pretend fit.
     let target = PersonalTarget {
         event_day: today,
         route_id: Some(ALIAS),
@@ -395,7 +375,6 @@ fn live_history_changes_filter_and_display_with_explicit_honest_fallbacks() {
         Err(PersonalFallback::HistoryUnavailable(_))
     ));
 
-    // Nonzero, varying climbing makes accidental source-lap use observable.
     let terrain_db = Database::open(&state.path().join("terrain.db")).unwrap();
     let terrain_target = 4_000_004_100;
     terrain_db
@@ -412,7 +391,7 @@ fn live_history_changes_filter_and_display_with_explicit_honest_fallbacks() {
             r.route_id = id;
             let distance = 10.0 + i as f64;
             r.event_distance_km = Some(distance);
-            r.laps = Some(100); // Deliberately conflicts with reported total distance.
+            r.laps = Some(100);
             let total_gain = gain_per_lap * distance / 10.0;
             r.actual_seconds = 60.0 * 2.0 * (distance + 8.0 * total_gain / 1000.0);
             r

@@ -1,17 +1,13 @@
 #!/bin/bash
-# Initialize git repository and create first commit
 
 set -e
 
 echo "🚴 Initializing Zwift Race Finder repository..."
 
-# Initialize git repo
 git init
 
-# Add all files
 git add .
 
-# Create initial commit
 git commit -m "feat: initial commit of Zwift Race Finder
 
 - CLI tool to find Zwift races by duration and racing score

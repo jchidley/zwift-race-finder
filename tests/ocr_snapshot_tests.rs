@@ -1,6 +1,3 @@
-//! Snapshot tests for OCR telemetry extraction
-//! These tests capture the current output and alert on changes
-
 #[cfg(all(test, feature = "ocr"))]
 mod snapshot_tests {
     use anyhow::Result;
@@ -11,7 +8,6 @@ mod snapshot_tests {
         TelemetryData,
     };
 
-    /// Test parse_time with various inputs
     #[test]
     fn snapshot_parse_time_variations() {
         let test_cases = vec![
@@ -37,12 +33,11 @@ mod snapshot_tests {
         assert_yaml_snapshot!(results);
     }
 
-    /// Test is_likely_name with various inputs
     #[test]
     fn snapshot_is_likely_name_variations() {
         let thirty_chars = "A".repeat(30);
         let thirty_one_chars = "A".repeat(31);
-        
+
         let test_cases = vec![
             ("J.Chidley", "typical format"),
             ("John Doe", "full name"),
@@ -75,7 +70,6 @@ mod snapshot_tests {
         assert_yaml_snapshot!(results);
     }
 
-    /// Test parse_leaderboard_data with various inputs
     #[test]
     fn snapshot_parse_leaderboard_data_variations() {
         let test_cases = vec![
@@ -114,59 +108,54 @@ mod snapshot_tests {
         assert_yaml_snapshot!(results);
     }
 
-    /// Helper to get test image path
     fn test_image(filename: &str) -> std::path::PathBuf {
         Path::new("docs/screenshots").join(filename)
     }
 
-    /// Test full telemetry extraction from normal riding image
     #[test]
-    #[ignore] // Remove ignore when test images are available
+    #[ignore]
     fn snapshot_telemetry_normal_ride() -> Result<()> {
         let image_path = test_image("normal_1_01_16_02_21.jpg");
-        
+
         if !image_path.exists() {
             eprintln!("Skipping test: {} not found", image_path.display());
             return Ok(());
         }
 
         let telemetry = extract_telemetry(&image_path)?;
-        
-        // Snapshot with settings to handle potential variations
+
         with_settings!({
             description => "Normal riding telemetry extraction",
             omit_expression => true
         }, {
             assert_yaml_snapshot!(telemetry);
         });
-        
+
         Ok(())
     }
 
-    /// Test full telemetry extraction from climbing image
     #[test]
-    #[ignore] // Remove ignore when test images are available
+    #[ignore]
     fn snapshot_telemetry_climbing() -> Result<()> {
         let image_path = test_image("with_climbing_1_01_36_01_42.jpg");
-        
+
         if !image_path.exists() {
             eprintln!("Skipping test: {} not found", image_path.display());
             return Ok(());
         }
 
         let telemetry = extract_telemetry(&image_path)?;
-        
+
         with_settings!({
             description => "Climbing telemetry extraction",
             omit_expression => true
         }, {
             assert_yaml_snapshot!(telemetry);
         });
-        
+
         Ok(())
     }
 
-    /// Test telemetry structure with mock data
     #[test]
     fn snapshot_telemetry_structure() {
         let telemetry = TelemetryData {
@@ -213,13 +202,10 @@ mod snapshot_tests {
         });
     }
 
-    /// Test edge cases in telemetry
     #[test]
     fn snapshot_telemetry_edge_cases() {
-        // All None values
         let empty_telemetry = TelemetryData::default();
-        
-        // Mix of Some and None
+
         let partial_telemetry = TelemetryData {
             speed: Some(0),
             distance: Some(0.0),
@@ -233,8 +219,7 @@ mod snapshot_tests {
             leaderboard: Some(vec![]),
             rider_pose: Some(zwift_race_finder::ocr_compact::RiderPose::Unknown),
         };
-        
-        // Maximum realistic values
+
         let max_telemetry = TelemetryData {
             speed: Some(99),
             distance: Some(999.9),
@@ -258,11 +243,9 @@ mod snapshot_tests {
         assert_yaml_snapshot!(edge_cases);
     }
 
-    /// Test leaderboard extraction patterns
     #[test]
     fn snapshot_leaderboard_patterns() {
         let test_entries = vec![
-            // Standard entry
             LeaderboardEntry {
                 name: "J.Rider".to_string(),
                 current: false,
@@ -270,7 +253,6 @@ mod snapshot_tests {
                 km: Some(42.5),
                 wkg: Some(3.8),
             },
-            // Current rider (no delta)
             LeaderboardEntry {
                 name: "Current".to_string(),
                 current: true,
@@ -278,7 +260,6 @@ mod snapshot_tests {
                 km: Some(41.2),
                 wkg: Some(3.5),
             },
-            // Minimal data
             LeaderboardEntry {
                 name: "MinData".to_string(),
                 current: false,
@@ -286,7 +267,6 @@ mod snapshot_tests {
                 km: None,
                 wkg: None,
             },
-            // Edge case values
             LeaderboardEntry {
                 name: "Edge".to_string(),
                 current: false,
@@ -294,7 +274,6 @@ mod snapshot_tests {
                 km: Some(0.0),
                 wkg: Some(0.0),
             },
-            // Unicode name
             LeaderboardEntry {
                 name: "José García".to_string(),
                 current: false,

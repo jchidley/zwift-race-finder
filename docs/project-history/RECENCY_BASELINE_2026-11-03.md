@@ -8,7 +8,7 @@ and approximate duration filtering. That acceptance does not end recency researc
 or imply universal accuracy, ±1-minute precision, or clean release gates.
 No local version tags existed before this checkpoint. The minor version separates
 the personal-only estimator from the earlier `0.2.0` category-based release.
-The annotated tag is local only; no publication is authorized.
+Publishing the annotated tag does not promote R1 or establish clean release gates.
 
 The active estimator source is unchanged from `ea787a9`. Version metadata and
 documentation changed; no model, threshold, normal database or importer changed.
@@ -26,7 +26,8 @@ response to a mixed candidate. [Status](../../STATUS.md) and
 
 ## Why this is not a repeat of the last-five experiment
 
-The [earlier last-five experiment](PRACTICAL_ESTIMATOR_2026-11-02.md) multiplied a
+The earlier last-five experiment (retained at
+`git show v0.3.0:docs/project-history/PRACTICAL_ESTIMATOR_2026-11-02.md`) multiplied a
 neutral category-speed/terrain reference by a recent measured/reference ratio.
 Its mixed historical results did not establish improvement and it worsened the
 small known-score comparison. It did not compare stronger weighting in today's

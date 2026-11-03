@@ -1,6 +1,3 @@
-//! Score-independent personal race estimates. Pure fitting plus a read-only history adapter.
-//!
-//! Training residuals describe the fitted observations; they are not forecast intervals.
 use crate::database::{Database, HistoryObservation, RouteData};
 use chrono::{DateTime, NaiveDate, Utc};
 use std::fmt;
@@ -28,7 +25,6 @@ pub struct PersonalEstimate {
     pub minutes: f64,
     pub basis: PersonalBasis,
     pub sample_count: usize,
-    /// Recency-weighted mean absolute fitted residual in minutes, not uncertainty.
     pub typical_error_minutes: f64,
 }
 
@@ -57,8 +53,6 @@ impl fmt::Display for PersonalFallback {
     }
 }
 
-/// A source-qualified ordinary-race measurement (enforced by the database adapter).
-/// Route IDs here are canonical, never display-name identities. No score input.
 #[derive(Debug, Clone)]
 pub struct TrainingRace {
     pub day: NaiveDate,
@@ -84,7 +78,6 @@ fn known_gain(value: Option<f64>) -> Option<f64> {
     value.filter(|gain| gain.is_finite() && *gain >= 0.0)
 }
 
-/// Explicit type is authoritative. Unknown/mixed source types are never assumed races.
 pub fn is_ordinary_race(explicit: Option<&str>, payload: Option<&str>) -> bool {
     if let Some(kind) = explicit.filter(|kind| !kind.trim().is_empty()) {
         return matches!(kind.trim(), "RACE" | "TYPE_RACE");
@@ -121,8 +114,6 @@ fn residual_error(rows: &[(&TrainingRace, f64)], predict: impl Fn(&TrainingRace)
         / rows.iter().map(|(_, weight)| weight).sum::<f64>()
 }
 
-/// Train strictly before min(today UTC, event UTC day), excluding all same-day outcomes.
-/// Recency uses a 365-day half-life, not a hard history window.
 pub fn predict(
     target: &PersonalTarget,
     history: &[TrainingRace],
@@ -187,7 +178,6 @@ pub fn predict(
     let mut best: Option<(f64, f64, f64)> = None;
     for h in H_GRID {
         let feature = |row: &TrainingRace| row.distance_km + h * row.ascent_m.unwrap() / 1000.0;
-        // |t - pace*f| = f*|t/f - pace|: feature-weighted median minimizes TIME MAE.
         let pace = weighted_median(
             global
                 .iter()
@@ -199,7 +189,6 @@ pub fn predict(
         )
         .clamp(1.0, 4.0);
         let loss = residual_error(&global, |row| pace * feature(row));
-        // Stable grid order selects the smaller h on an exact tie.
         if best.is_none_or(|(best_loss, _, _)| loss < best_loss) {
             best = Some((loss, h, pace));
         }
@@ -214,7 +203,6 @@ pub fn predict(
 }
 
 fn event_gain(route: &RouteData, distance: f64, laps: Option<u32>) -> Option<f64> {
-    // Borrow numeric metadata without leaking database strings into static model fields.
     let geometry = crate::models::RouteData {
         distance_km: route.distance_km,
         elevation_m: route.elevation_m,
@@ -262,8 +250,6 @@ fn observation_day(row: &HistoryObservation) -> Option<NaiveDate> {
     Some(day)
 }
 
-/// No imports, score inference, schema changes or result writes. Database initialization
-/// remains the caller's existing policy. Retrieval/alias errors fail to explicit fallback.
 pub fn predict_from_database(
     db: &Database,
     mut target: PersonalTarget,
@@ -327,8 +313,6 @@ pub fn predict_from_database(
                 day,
                 route_id: route.as_ref().map(|route| route.route_id),
                 distance_km: distance,
-                // Reported total distance wins over potentially conflicting lap metadata,
-                // just as explicit target event distance does in the live resolver.
                 ascent_m: route
                     .as_ref()
                     .and_then(|route| event_gain(route, distance, None)),
@@ -390,7 +374,6 @@ mod tests {
         }))
         .unwrap();
         assert_eq!(event_gain(&route, 26.0, None), Some(136.375));
-        // Exact laps take precedence over proportional-distance gain.
         assert_eq!(event_gain(&route, 26.0, Some(3)), Some(161.5));
         route.elevation_m = Some(0.0);
         route.lead_in_elevation_m = Some(0.0);
@@ -431,7 +414,6 @@ mod tests {
             PersonalFallback::MissingGeometry
         );
         target.ascent_m = Some(0.0);
-        // Nine known-gain global observations cannot bypass twelve-row support.
         assert_eq!(
             predict(&target, &rows, day()).unwrap_err(),
             PersonalFallback::InsufficientHistory {

@@ -22,14 +22,12 @@ def analyze_race_speeds(activities: List[Dict[str, Any]]) -> None:
     print("🏁 Zwift Race Speed Analysis")
     print("=" * 50)
 
-    # Filter for races
     races = [a for a in activities if is_race(a["name"])]
 
     if not races:
         print("No races found in activities")
         return
 
-    # Calculate statistics
     speeds = [a["average_speed_kmh"] for a in races if a.get("average_speed_kmh")]
     durations = [a["moving_time_minutes"] for a in races]
     distances = [a["distance_km"] for a in races]
@@ -45,7 +43,6 @@ def analyze_race_speeds(activities: List[Dict[str, Any]]) -> None:
     print(f"  Min: {min(durations)}")
     print(f"  Max: {max(durations)}")
 
-    # Group by duration ranges
     print("\n🕐 Speed by Race Duration:")
     duration_buckets = {
         "Short (< 45 min)": [],
@@ -69,7 +66,6 @@ def analyze_race_speeds(activities: List[Dict[str, Any]]) -> None:
             avg_speed = sum(speeds) / len(speeds)
             print(f"  {bucket}: {avg_speed:.1f} km/h (n={len(speeds)})")
 
-    # Show recent races for context
     print("\n📅 Recent Race Results:")
     for race in sorted(races, key=lambda x: x["start_date"], reverse=True)[:10]:
         date = race["start_date"].split("T")[0]
@@ -95,12 +91,10 @@ def is_race(name: str) -> bool:
 
     name_lower = name.lower()
 
-    # Exclude non-races
     for keyword in exclude_keywords:
         if keyword in name_lower:
             return False
 
-    # Include races
     for keyword in race_keywords:
         if keyword in name_lower:
             return True
@@ -115,7 +109,6 @@ def update_database_with_insights(
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    # Calculate Jack's actual average race speed
     races = [a for a in activities if is_race(a["name"])]
     if races:
         avg_speed = sum(r["average_speed_kmh"] for r in races) / len(races)
@@ -128,7 +121,6 @@ def update_database_with_insights(
 
 def main():
     """Main analysis function"""
-    # Load activities
     activities_file = Path(__file__).parent / "strava_zwift_activities.json"
 
     if not activities_file.exists():
@@ -137,10 +129,8 @@ def main():
 
     activities = load_activities(str(activities_file))
 
-    # Run analysis
     analyze_race_speeds(activities)
 
-    # Update database insights
     db_path = Path.home() / ".local/share/zwift-race-finder/races.db"
     if db_path.exists():
         update_database_with_insights(str(db_path), activities)

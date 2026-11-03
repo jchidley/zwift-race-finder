@@ -1,5 +1,3 @@
-//! Exercise the production API adapter with synthetic, loopback-only responses.
-
 use mockito::Server;
 use rstest::rstest;
 use serde_json::json;
@@ -76,7 +74,6 @@ async fn test_fetch_events_success() {
     assert_eq!(event.sport, "CYCLING");
     assert_eq!(event.tags, ["ranked", "racing_score"]);
 
-    // This must use the API's exact eventSubgroups spelling, not eventSubGroups.
     assert_eq!(event.event_sub_groups.len(), 1);
     let subgroup = &event.event_sub_groups[0];
     assert_eq!(subgroup.id, 10);
@@ -192,7 +189,6 @@ async fn test_fetch_events_incompatible_json(#[case] body: serde_json::Value) {
 #[case::server_error(500, "API returned status: 500 Internal Server Error")]
 #[tokio::test]
 async fn test_fetch_events_http_errors(#[case] status: usize, #[case] expected: &str) {
-    // Invalid JSON also proves HTTP errors are handled before response parsing.
     let error = fetch_mocked(status, "not JSON").await.unwrap_err();
     assert_eq!(error.to_string(), expected);
 }

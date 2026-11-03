@@ -1,7 +1,9 @@
-<!-- code-truth: ea787a9 source checked during focused duration-boundary reconciliation; other sections retain the scope in README.md -->
 # Implementation Architecture
 
-This page describes observed code boundaries and change propagation, including unpublished changes after the checkpoint in [README.md](README.md). Adopted constraints live in [the architecture reference](../reference/ARCHITECTURE.md); [selected examples](PATTERNS.md#selected-first-party-examples) identify what new work should follow. Domain physics is explained under [`docs/explanation/`](../explanation/); user-facing algorithms are specified in [`docs/reference/ALGORITHMS.md`](../reference/ALGORITHMS.md).
+This page maps call boundaries and change propagation for the current finder.
+The behavioural baseline is `v0.3.0`; comment/document cleanup does not replace the
+estimator. [Architecture constraints](../reference/ARCHITECTURE.md) and
+[selected examples](PATTERNS.md#selected-first-party-examples) direct new work.
 
 ## Executable and library boundary
 
@@ -48,7 +50,7 @@ The normal path is asynchronous only around external HTTP work. Filtering, estim
 
 ## Duration decision boundary
 
-Checked against source checkpoint `ea787a9` during the focused documentation repair:
+The active duration boundary:
 `event_filtering::resolve_event()` owns `Result<EventEstimate, EstimateUnavailable>`.
 `estimate_event()` is its optional adapter. Fixed event/subgroup time wins after
 subgroup eligibility; otherwise supported ordinary races use `personal_estimation`.
@@ -109,9 +111,9 @@ Passing an immutable estimate through the pipeline is deferred application work.
 - Category strings connect retained legacy speed/climbing helpers; event subgroup selection does not supply personal pace.
 - Description parsing depends on human-formatted event text and units.
 - Config precedence depends on first existing TOML path, then environment override; partial TOML sections can replace defaults differently from a missing section.
-- The regression result depends on the contents of the normal local database, not a versioned fixture.
+- The legacy regression result depends on the approved populated database copy; an empty test state does not qualify accuracy.
 - Application connections enable `PRAGMA foreign_keys=ON` before initialization; a foreign-key check guards migrated history. Tests cover supported preservation/rollback paths, not arbitrary corruption or concurrent writers.
-- The code comments treat the event endpoint as limited to roughly 200 events/~12 hours; this is an external observation, not enforced by the response type. **[UNCERTAIN]**
+- The CLI assumes roughly 200 events/~12 hours from the endpoint; this is an external observation, not enforced by the response type.
 
 ## Performance-history migration/import
 

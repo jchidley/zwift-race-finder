@@ -1,10 +1,8 @@
-<!-- code-truth: checkpoint 3e13a78 plus unpublished working-tree observations; see README.md -->
 # Implementation Patterns
 
-The selected examples below are adopted guidance for their named patterns. The
-remaining entries describe observed implementation, not universal Rust prescriptions
-or automatic approval of every existing API. This page includes unpublished
-working-tree observations; see the [snapshot boundary](README.md).
+These are selected maintained examples for named change patterns, not blanket
+approval of their modules. Use the current diff and matching tests when changing
+behaviour; the baseline is `v0.3.0`.
 
 ## Selected first-party examples
 

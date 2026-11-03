@@ -1,4 +1,3 @@
-//! Primary-source import tests use only private subprocess databases.
 use rusqlite::Connection;
 use serde_json::{json, Value};
 use std::{fs, path::Path, process::Command};
@@ -167,7 +166,6 @@ fn invalid_duplicate_and_failed_batches_do_not_partially_apply() {
         .unwrap(),
         16.6176948547
     );
-    // Force failure after the first row's update, testing actual transaction rollback.
     db.execute_batch(
         "CREATE TRIGGER reject_fixture BEFORE INSERT ON routes WHEN NEW.route_id=4000000000
         BEGIN SELECT RAISE(ABORT, 'fixture failure'); END;",

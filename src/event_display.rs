@@ -1,7 +1,3 @@
-//! Event display functionality
-//!
-//! This module contains functions for displaying event information in a formatted way.
-
 use crate::constants::METERS_PER_KILOMETER;
 use crate::database::Database;
 use crate::estimation::{get_route_data, get_route_data_from_db};
@@ -13,7 +9,6 @@ use crate::parsing::parse_description_data;
 use chrono::{DateTime, Local};
 use colored::Colorize;
 
-/// Display the basic event header information
 pub fn display_event_header(event: &ZwiftEvent, zwift_score: u32) {
     let local_time: DateTime<Local> = event.event_start.into();
 
@@ -44,7 +39,6 @@ pub fn display_event_header(event: &ZwiftEvent, zwift_score: u32) {
     }
 }
 
-/// Display route metadata
 pub fn display_route_info(event: &ZwiftEvent, zwift_score: u32) {
     if let Some(info) = format_route_info(event, zwift_score) {
         println!("{}", info);
@@ -52,7 +46,6 @@ pub fn display_route_info(event: &ZwiftEvent, zwift_score: u32) {
     log_unknown_route(event, zwift_score);
 }
 
-/// Format metadata for the same route used by the duration resolver.
 pub fn format_route_info(event: &ZwiftEvent, zwift_score: u32) -> Option<String> {
     let route_id = selected_route_id(event, zwift_score)?;
     Some(if let Some(route_data) = get_route_data(route_id) {
@@ -73,7 +66,6 @@ pub fn format_route_info(event: &ZwiftEvent, zwift_score: u32) -> Option<String>
     })
 }
 
-/// Record missing route IDs for a future client-metadata refresh.
 pub fn log_unknown_route(event: &ZwiftEvent, zwift_score: u32) {
     if let Some(route_id) = selected_route_id(event, zwift_score) {
         if get_route_data(route_id).is_none() {
@@ -84,7 +76,6 @@ pub fn log_unknown_route(event: &ZwiftEvent, zwift_score: u32) {
     }
 }
 
-/// Format the same resolved estimate used for filtering and the compact table.
 pub fn format_duration_info(event: &ZwiftEvent, zwift_score: u32) -> String {
     let resolution = resolve_event(event, zwift_score);
     if let Ok(estimate) = &resolution {
@@ -132,19 +123,16 @@ pub fn format_duration_info(event: &ZwiftEvent, zwift_score: u32) -> String {
     }
 }
 
-/// Display duration information without another calculation path.
 pub fn display_duration_info(event: &ZwiftEvent, zwift_score: u32) {
     println!("{}", format_duration_info(event, zwift_score));
 }
 
-/// Display category enforcement status
 pub fn display_category_enforcement(event: &ZwiftEvent) {
     if event.category_enforcement {
         println!("{}: {}", "Category".bright_blue(), "Enforced ✓".green());
     }
 }
 
-/// Display event subgroups with details
 pub fn display_subgroups(event: &ZwiftEvent, zwift_score: u32) {
     if event.event_sub_groups.is_empty() {
         return;
@@ -159,7 +147,6 @@ pub fn display_subgroups(event: &ZwiftEvent, zwift_score: u32) {
 
         print!("  • {}", group.name);
 
-        // Show distance and calculate laps if possible
         if let Some(dist) = group
             .distance_in_meters
             .filter(|d| d.is_finite() && *d > 0.0)
@@ -167,7 +154,6 @@ pub fn display_subgroups(event: &ZwiftEvent, zwift_score: u32) {
             let dist_km = dist / METERS_PER_KILOMETER;
             print!(" ({:.1} km", dist_km);
 
-            // Try to calculate laps based on base route distance
             if let Some(route_id) = group.route_id.or(event.route_id) {
                 if let Some(route_data) = get_route_data(route_id) {
                     let base_distance = route_data.distance_km;
@@ -194,8 +180,6 @@ pub fn display_subgroups(event: &ZwiftEvent, zwift_score: u32) {
             print!(" ({})", format_duration(dur));
         }
 
-        // Highlight exactly the subgroup whose geometry drives the main row,
-        // including lap-only groups with no explicit distance.
         if is_user_category {
             if let Some(estimate) = estimate_event(event, zwift_score) {
                 print!(
@@ -214,7 +198,6 @@ pub fn display_subgroups(event: &ZwiftEvent, zwift_score: u32) {
     }
 }
 
-/// Display parsed description data
 pub fn display_description_info(event: &ZwiftEvent) {
     if event.description.is_none() {
         return;
@@ -222,7 +205,6 @@ pub fn display_description_info(event: &ZwiftEvent) {
 
     let desc_data = parse_description_data(&event.description);
 
-    // Show parsed distance/elevation from description
     let mut parsed_info = Vec::new();
     if let Some(dist) = desc_data.distance_km {
         parsed_info.push(format!("{:.1} km", dist));
@@ -242,7 +224,6 @@ pub fn display_description_info(event: &ZwiftEvent) {
         );
     }
 
-    // Show first 2 lines of description
     if let Some(desc) = &event.description {
         let cleaned_desc = desc
             .lines()
@@ -257,14 +238,12 @@ pub fn display_description_info(event: &ZwiftEvent) {
     }
 }
 
-/// Display external route information URL
 pub fn display_external_url(event: &ZwiftEvent, zwift_score: u32) {
     if let Some(url) = external_route_url(event, zwift_score) {
         println!("{}: {}", "Route Info".bright_blue(), url.dimmed());
     }
 }
 
-/// External route metadata must refer to the selected subgroup's route too.
 pub fn external_route_url(event: &ZwiftEvent, zwift_score: u32) -> Option<String> {
     if let Some(route_id) = selected_route_id(event, zwift_score) {
         if let Some(db_route) = get_route_data_from_db(route_id) {
@@ -281,7 +260,7 @@ pub fn external_route_url(event: &ZwiftEvent, zwift_score: u32) -> Option<String
                     "Scotland" => "scotland",
                     "Bologna" => "bologna",
                     "Crit City" => "crit-city",
-                    _ => "watopia", // Default
+                    _ => "watopia",
                 };
                 let url = format!(
                     "https://whatsonzwift.com/world/{}/route/{}",
@@ -294,7 +273,6 @@ pub fn external_route_url(event: &ZwiftEvent, zwift_score: u32) -> Option<String
     None
 }
 
-/// Main function to print a single event with all details
 pub fn print_event(event: &ZwiftEvent, zwift_score: u32) {
     display_event_header(event, zwift_score);
     display_route_info(event, zwift_score);
@@ -305,7 +283,6 @@ pub fn print_event(event: &ZwiftEvent, zwift_score: u32) {
     display_external_url(event, zwift_score);
 }
 
-/// Structure to hold table row data for compact display
 pub struct EventTableRow {
     pub name: String,
     pub time: String,
@@ -315,7 +292,6 @@ pub struct EventTableRow {
     pub basis: String,
 }
 
-/// Prepare event data for table display
 pub fn prepare_event_row(event: &ZwiftEvent, zwift_score: u32) -> EventTableRow {
     let local_time: DateTime<Local> = event.event_start.into();
     let time_str = local_time.format("%H:%M").to_string();
@@ -368,18 +344,15 @@ pub fn prepare_event_row(event: &ZwiftEvent, zwift_score: u32) -> EventTableRow 
     }
 }
 
-/// Print events in table format
 pub fn print_events_table(events: &[ZwiftEvent], zwift_score: u32) {
     if events.is_empty() {
         return;
     }
 
-    // Check if events span multiple days
     let first_event_time: DateTime<Local> = events[0].event_start.into();
     let last_event_time: DateTime<Local> = events[events.len() - 1].event_start.into();
     let spans_multiple_days = first_event_time.date_naive() != last_event_time.date_naive();
 
-    // Collect data for all events
     let mut rows: Vec<(EventTableRow, DateTime<Local>)> = Vec::new();
 
     for event in events {
@@ -388,7 +361,6 @@ pub fn print_events_table(events: &[ZwiftEvent], zwift_score: u32) {
         rows.push((row, local_time));
     }
 
-    // Calculate column widths
     let name_width = rows
         .iter()
         .map(|(r, _)| r.name.len())
@@ -433,7 +405,6 @@ pub fn print_events_table(events: &[ZwiftEvent], zwift_score: u32) {
         + basis_width
         + 20;
 
-    // Print header
     println!("\n{}", "─".repeat(total_width).dimmed());
     println!(
         "{:<width1$} │ {:<width2$} │ {:<width3$} │ {:<width4$} │ {:<width5$} │ {:<width6$}",
@@ -452,19 +423,16 @@ pub fn print_events_table(events: &[ZwiftEvent], zwift_score: u32) {
     );
     println!("{}", "─".repeat(total_width).dimmed());
 
-    // Print rows with day separators if needed
     let mut current_date = None;
     for (row, event_time) in rows {
         let event_date = event_time.date_naive();
 
-        // Insert day separator if date changes and we span multiple days
         if spans_multiple_days && current_date.is_some() && current_date != Some(event_date) {
             println!("{}", "─".repeat(total_width).dimmed());
             let day_label = event_time.format("%A, %B %d").to_string();
             println!("{:^width$}", day_label.yellow(), width = total_width);
             println!("{}", "─".repeat(total_width).dimmed());
         } else if spans_multiple_days && current_date.is_none() {
-            // First day label
             let day_label = event_time.format("%A, %B %d").to_string();
             println!("{:^width$}", day_label.yellow(), width = total_width);
             println!("{}", "─".repeat(total_width).dimmed());
@@ -492,12 +460,11 @@ pub fn print_events_table(events: &[ZwiftEvent], zwift_score: u32) {
     println!("{}", "─".repeat(total_width).dimmed());
 }
 
-/// Display filter statistics and actionable fixes
 pub fn display_filter_stats(stats: &FilterStats, _total_fetched: usize) {
     let total_filtered = stats.total_filtered();
 
     if total_filtered == 0 {
-        return; // No issues to report
+        return;
     }
 
     println!("\n{}", "─".repeat(80).dimmed());
@@ -543,7 +510,6 @@ pub fn display_filter_stats(stats: &FilterStats, _total_fetched: usize) {
         );
     }
 
-    // Suggest actions for large numbers of filtered events
     if stats.duration_filtered > 20 {
         println!("\n{}: Many events filtered by duration", "Tip".green());
         println!("  • Try wider tolerance: {}", "--tolerance 60".cyan());
@@ -579,44 +545,31 @@ mod tests {
 
     #[test]
     fn test_prepare_event_row_distance_conversion() {
-        // Test distance conversion: distance / 1000.0
-        // Targets mutation: replace / with * and / with %
         let mut event = create_test_event("Test Race", 42.195, "Test Route", "CYCLING");
         event.duration_in_minutes = Some(77);
         let row = prepare_event_row(&event, 195);
 
-        // 42.195 km should be displayed as "42.2 km" (with lead-in it might be different)
-        // If / becomes *, we'd get 42195 km
-        // If / becomes %, we'd get a remainder instead
         assert_eq!(row.distance, "42.2 km");
         assert_eq!(row.duration, "01:17");
-        assert!(!row.distance.contains("42195")); // Would appear if / became *
+        assert!(!row.distance.contains("42195"));
     }
 
     #[test]
     fn test_prepare_event_row_time_formatting() {
-        // Test time formatting calculations
-        // hours = duration / 60, minutes = duration % 60
-        // Targets mutations: replace / with %, replace % with /
 
-        // Create event with known duration
         let mut event = create_test_event("Test Race", 40.0, "Test Route", "CYCLING");
-        event.route_id = Some(1); // Known route
+        event.route_id = Some(1);
         event.duration_in_minutes = Some(77);
 
         let row = prepare_event_row(&event, 195);
 
-        // Duration should be formatted as "H:MM"
-        // Declared 77 minutes = "01:17"
         assert_eq!(row.duration, "01:17");
 
-        // Wrong arithmetic would produce weird results
-        assert!(!row.duration.contains("77:")); // Would appear if / became %
+        assert!(!row.duration.contains("77:"));
     }
 
     #[test]
     fn test_prepare_event_row() {
-        // Create a test event with route data
         let event = ZwiftEvent {
             id: 1,
             name: "Test Race".to_string(),
@@ -625,7 +578,7 @@ mod tests {
             distance_in_meters: Some(20000.0),
             duration_in_minutes: Some(40),
             duration_in_seconds: None,
-            route_id: Some(1), // Watopia's Ocean Boulevard
+            route_id: Some(1),
             route: Some("Ocean Boulevard".to_string()),
             description: None,
             category_enforcement: false,
@@ -634,19 +587,17 @@ mod tests {
             tags: vec![],
         };
 
-        let row = prepare_event_row(&event, 195); // Cat D rider
+        let row = prepare_event_row(&event, 195);
 
-        // Verify the row has expected format
         assert_eq!(row.name, "Test Race");
-        assert!(row.time.contains(":")); // Should be HH:MM format
-        assert!(row.distance.contains("km")); // Should include km
-        assert!(row.elevation.contains("m")); // Should include m
-        assert!(row.duration.contains(":")); // Should be MM:SS or HH:MM format
+        assert!(row.time.contains(":"));
+        assert!(row.distance.contains("km"));
+        assert!(row.elevation.contains("m"));
+        assert!(row.duration.contains(":"));
     }
 
     #[test]
     fn test_log_unknown_route() {
-        // Create a test event
         let event = ZwiftEvent {
             id: 999,
             name: "Unknown Route Race".to_string(),
@@ -655,7 +606,7 @@ mod tests {
             distance_in_meters: Some(25000.0),
             duration_in_minutes: None,
             duration_in_seconds: None,
-            route_id: Some(9999), // Unknown route ID
+            route_id: Some(9999),
             route: Some("Mystery Route".to_string()),
             description: Some("A mysterious 25km race".to_string()),
             category_enforcement: false,
@@ -664,17 +615,14 @@ mod tests {
             tags: vec![],
         };
 
-        // This should not panic
         log_unknown_route(&event, 195);
     }
 
     #[test]
     fn test_display_filter_stats() {
-        // Test with no filtering
         let empty_stats = FilterStats::default();
-        display_filter_stats(&empty_stats, 100); // Should not print anything
+        display_filter_stats(&empty_stats, 100);
 
-        // Test with some filtering
         let stats = FilterStats {
             sport_filtered: 5,
             time_filtered: 3,
@@ -685,30 +633,23 @@ mod tests {
             subgroup_filtered: 0,
         };
 
-        // We can't easily capture println! output, but we can verify the function runs
-        display_filter_stats(&stats, 100); // Should print statistics
+        display_filter_stats(&stats, 100);
     }
 
     #[test]
     fn test_log_unknown_route_conditions() {
-        // Test the || condition in log_unknown_route
-        // Mutation: replace || with &&
         let mut event = create_test_event("Test Race", 25.0, "Test Route", "CYCLING");
 
-        // Case 1: No route_id - should not call record_unknown_route
         event.route_id = None;
         log_unknown_route(&event, 195);
 
-        // Case 2: Known route_id - should not call record_unknown_route
-        event.route_id = Some(1); // This is a known route in the test data
+        event.route_id = Some(1);
         log_unknown_route(&event, 195);
 
-        // Case 3: Unknown route_id with description
         event.route_id = Some(999999);
         event.description = Some("3 laps of Ocean Boulevard".to_string());
         log_unknown_route(&event, 195);
 
-        // Case 4: Unknown route_id without description
         event.description = None;
         log_unknown_route(&event, 195);
     }
@@ -741,21 +682,16 @@ mod tests {
         let total_events = 100;
         display_filter_stats(&stats, total_events);
 
-        // Test that FilterStats::total_filtered works correctly
         let total = stats.total_filtered();
-        assert_eq!(total, 28); // 10 + 5 + 3 + 8 + 2 = 28
+        assert_eq!(total, 28);
     }
 
     #[test]
     fn test_display_filter_stats_empty_case() {
-        // Test mutation: if total_filtered == 0 (line 717)
-        // This should NOT display anything when all counts are zero
         use crate::event_filtering::FilterStats;
 
         let empty_stats = FilterStats::default();
 
-        // Capture the fact that display_filter_stats returns early for empty stats
-        // by checking the condition that causes early return
         let total_filtered = empty_stats.sport_filtered
             + empty_stats.time_filtered
             + empty_stats.type_filtered
@@ -764,14 +700,11 @@ mod tests {
 
         assert_eq!(total_filtered, 0);
 
-        // The function should return early and not print anything
         display_filter_stats(&empty_stats, 100);
     }
 
     #[test]
     fn test_prepare_event_row_multi_lap_calculation() {
-        // Test mutation: actual_distance_km = route_data.distance_km * laps (line 515)
-        // Ensures multiplication is used, not addition
 
         let mut event = create_test_event("Multi-Lap Race", 10.0, "Test Route", "CYCLING");
         let route_id = 4_000_001_102;
@@ -787,7 +720,6 @@ mod tests {
             .unwrap();
         event.route_id = Some(route_id);
 
-        // Add subgroup with 3 laps
         event.event_sub_groups = vec![EventSubGroup {
             id: 1,
             name: "Cat D".to_string(),
@@ -801,28 +733,22 @@ mod tests {
             laps: Some(3),
         }];
 
-        // Also need to find the user's subgroup - add the score range
         event.event_sub_groups[0].range_access_label = Some("0-199".to_string());
         event.duration_in_minutes = Some(60);
 
-        let row = prepare_event_row(&event, 195); // Cat D rider
+        let row = prepare_event_row(&event, 195);
 
-        // The test verifies that multiplication is used for laps
         assert!(row.distance.contains("km"));
 
-        // Parse the distance value
         let distance_str = row.distance.replace(" km", "");
         let distance: f64 = distance_str.parse().unwrap_or(0.0);
 
-        // With 3 laps, distance should be significantly more than base route
-        // If * was replaced with +, we'd get base_distance + 3 instead of base_distance * 3
         assert!(
             distance > 15.0,
             "Distance should be > 15km for 3 laps, got {}",
             distance
         );
 
-        // Also verify it's not just adding 3 to the base distance
         assert_ne!(
             distance, 13.0,
             "Distance shouldn't be exactly 13km (10 + 3)"

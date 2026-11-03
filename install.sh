@@ -1,14 +1,11 @@
 #!/bin/bash
-# Install script for zwift-race-finder
 
 set -e
 
 echo "🚴 Installing Zwift Race Finder..."
 
-# Build the release version
 cargo build --release
 
-# Copy to ~/.local/bin
 mkdir -p ~/.local/bin
 cp target/release/zwift-race-finder ~/.local/bin/
 

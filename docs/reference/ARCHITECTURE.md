@@ -15,11 +15,11 @@ Optional ZwiftPower profile lookup/cache → rider score
 
 Keep the existing concrete CLI/library modules; SQL and row mapping belong to `database.rs` and its `database_history.rs` child. Pure numerical fitting takes explicit inputs, including its date cutoff, without opening a database or making HTTP calls. Introduce abstractions only for a demonstrated need, not to turn this CLI into a service framework.
 
-`event_filtering::estimate_event()` owns subgroup/geometry resolution and estimate priority. Duration filtering and both presentation modes use it; display must not add another formula or lead-in. The current callers invoke it independently: this is a shared resolver, **not** a once-per-event snapshot of time and database state. Passing a single immutable estimate through the pipeline remains a separate migration, not a documented guarantee.
+`event_filtering::resolve_event()` owns subgroup/geometry resolution and estimate priority; `estimate_event()` is its optional adapter. Duration filtering and both presentation modes use it; display must not add another formula or lead-in. The current callers invoke it independently: this is a shared resolver, **not** a once-per-event snapshot of time and database state. Passing a single immutable estimate through the pipeline remains a separate migration, not a documented guarantee.
 
 Use `u32` route IDs, explicit units in names, optional unknown measurements, and source-qualified measured history. Preserve known zero, measured seconds, event geometry, chronology and rider boundaries. Do not infer scores or treat training residuals as uncertainty. Exact numerical rules remain in [Algorithms](ALGORITHMS.md).
 
-For new work, follow the [selected first-party examples with tests](../code-truth/PATTERNS.md#selected-first-party-examples). They demonstrate bounded patterns, not blanket approval of their modules. Keep OCR feature-gated; do not require native OCR dependencies for the default CLI.
+For new work, follow the [selected first-party examples with tests](../code-truth/PATTERNS.md#selected-first-party-examples). They demonstrate bounded patterns, not blanket approval of their modules. Keep OCR feature-gated; do not require native OCR dependencies for the default CLI. Keep consequential invariants in types/APIs, derive positive and negative tests from requirements, preserve unrelated work and use bounded recovery rather than broad rollback.
 
 ## Core Components
 
@@ -103,7 +103,7 @@ For new work, follow the [selected first-party examples with tests](../code-trut
 
 ## Implementation detail
 
-For call relationships, persistence ownership and change propagation, see the [code-truth architecture](../code-truth/ARCHITECTURE.md). The map distinguishes its Git checkpoint from subsequent unpublished working-tree observations; it is not evidence of a clean committed implementation.
+For call relationships, persistence ownership and change propagation, see the [code-truth architecture](../code-truth/ARCHITECTURE.md). The map directs implementation work against the current diff; it is not evidence of clean release gates.
 
 ## Route ID System
 

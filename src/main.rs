@@ -1,8 +1,3 @@
-//! Zwift Race Finder - Find races that match your target duration and racing score
-//!
-//! This tool fetches upcoming Zwift events and filters them based on estimated
-//! completion time for your specific Zwift Racing Score.
-
 mod commands;
 use zwift_race_finder::{api, config, database};
 mod zwiftpower;
@@ -26,55 +21,50 @@ use zwift_race_finder::models::*;
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// Target Zwift racing score (auto-detected from ZwiftPower if available)
+    #[arg(help = "Target Zwift racing score (auto-detected from ZwiftPower if available)")]
     #[arg(short = 's', long)]
     zwift_score: Option<u32>,
 
-    /// Target race duration in minutes (default: 120)
+    #[arg(help = "Target race duration in minutes (default: 120)")]
     #[arg(short = 'd', long, default_value = "120")]
     duration: u32,
 
-    /// Duration tolerance in minutes (default: 30 for 1.5-2.5h range)
+    #[arg(help = "Duration tolerance in minutes (default: 30 for 1.5-2.5h range)")]
     #[arg(short = 't', long, default_value = "30")]
     tolerance: u32,
 
-    /// Event type filter: all, race, fondo, group, workout, tt (time trial)
+    #[arg(help = "Event type filter: all, race, fondo, group, workout, tt (time trial)")]
     #[arg(short = 'e', long, default_value = "race")]
     event_type: String,
 
-    /// Show next N days of events (default: 1)
+    #[arg(help = "Show next N days of events (default: 1)")]
     #[arg(short = 'n', long, default_value = "1")]
     days: u32,
 
-    /// Debug mode - show why events are filtered out
+    #[arg(help = "Debug mode - show why events are filtered out")]
     #[arg(long)]
     debug: bool,
 
-    /// Show event route IDs missing from the local route catalogue
+    #[arg(help = "Show event route IDs missing from the local route catalogue")]
     #[arg(long)]
     show_unknown_routes: bool,
 
-    /// Filter by event tags (e.g., "ranked", "zracing", "jerseyunlock")
+    #[arg(help = "Filter by event tags (e.g., \"ranked\", \"zracing\", \"jerseyunlock\")")]
     #[arg(long, value_delimiter = ',')]
     tags: Vec<String>,
 
-    /// Exclude events with specific tags
+    #[arg(help = "Exclude events with specific tags")]
     #[arg(long, value_delimiter = ',')]
     exclude_tags: Vec<String>,
 
-    /// Use verbose output format (default: compact table)
+    #[arg(help = "Use verbose output format (default: compact table)")]
     #[arg(short = 'v', long)]
     verbose: bool,
 }
 
-// Zwift route database - route_id is the primary key for all calculations
-// This should be expanded with Jack's actual race data
 
-// Get route data from database
 
-// Get just the distance for backward compatibility
 
-// Generate no results suggestions based on search criteria
 fn generate_no_results_suggestions(args: &Args) -> Vec<String> {
     let mut suggestions = Vec::new();
 
@@ -137,7 +127,6 @@ fn generate_no_results_suggestions(args: &Args) -> Vec<String> {
         ));
     }
 
-    // Add API limitation note if searching multiple days
     if args.days > 1 {
         suggestions.push("".to_string());
         suggestions.push("⚠️  Note: The Zwift API only returns ~12 hours of events regardless of days requested.".to_string());
@@ -146,15 +135,11 @@ fn generate_no_results_suggestions(args: &Args) -> Vec<String> {
     suggestions
 }
 
-// Try to determine distance from event name patterns
 
-// Primary duration estimation - uses route_id when available
 
-/// Generate a descriptive filter summary based on active filters
 fn generate_filter_description(args: &Args, min_duration: u32, max_duration: u32) -> String {
     let mut parts = Vec::new();
 
-    // Always show event type (even if it's the default "race")
     let event_type_desc = match args.event_type.to_lowercase().as_str() {
         "race" => "races",
         "tt" | "time_trial" => "time trials",
@@ -166,23 +151,19 @@ fn generate_filter_description(args: &Args, min_duration: u32, max_duration: u32
     };
     parts.push(event_type_desc.to_string());
 
-    // Duration filter (always shown)
     parts.push(format!("{}-{} min", min_duration, max_duration));
 
-    // Time range (show if not default 1 day, or always for clarity)
     if args.days == 1 {
         parts.push("next 24h".to_string());
     } else {
         parts.push(format!("next {} days", args.days));
     }
 
-    // Tag filters
     if !args.tags.is_empty() {
         let tags_str = args.tags.join(", ");
         parts.push(format!("with tags: {}", tags_str));
     }
 
-    // Exclude tags
     if !args.exclude_tags.is_empty() {
         let exclude_str = args.exclude_tags.join(", ");
         parts.push(format!("excluding: {}", exclude_str));
@@ -204,37 +185,31 @@ fn filter_events(
         eprintln!("Debug: Starting with {} events", events.len());
     }
 
-    // Sport filter
     stats.sport_filtered = filter_by_sport(&mut events);
     if args.debug {
         eprintln!("Debug: {} events after sport filter", events.len());
     }
 
-    // Time filter
     stats.time_filtered = filter_by_time(&mut events, now, max_date);
     if args.debug {
         eprintln!("Debug: {} events after time filter", events.len());
     }
 
-    // Event type filter
     stats.type_filtered = filter_by_event_type(&mut events, &args.event_type);
     if args.debug {
         eprintln!("Debug: {} events after event type filter", events.len());
     }
 
-    // Tag filtering
     stats.tag_filtered = filter_by_tags(&mut events, &args.tags);
     if args.debug && !args.tags.is_empty() {
         eprintln!("Debug: {} events after tag filter", events.len());
     }
 
-    // Exclude tags filtering
     stats.tag_filtered += filter_by_excluded_tags(&mut events, &args.exclude_tags);
     if args.debug && !args.exclude_tags.is_empty() {
         eprintln!("Debug: {} events after exclude tag filter", events.len());
     }
 
-    // Duration filter
     events.retain(|event| match resolve_event(event, zwift_score) {
         Ok(estimate) => {
             let matches = estimate.duration_minutes.abs_diff(args.duration) <= args.tolerance;
@@ -277,7 +252,6 @@ async fn main() -> Result<()> {
         concat!("v", env!("CARGO_PKG_VERSION")).dimmed()
     );
 
-    // Handle special commands first
     if args.show_unknown_routes {
         commands::show_unknown_routes()?;
         return Ok(());
@@ -287,11 +261,9 @@ async fn main() -> Result<()> {
         eprintln!("No route metadata is installed. Export client routes with scripts/export_client_routes.ps1, then run import_client_routes --input /path/to/client-routes.json. Fixed durations remain available; personal estimates require supported measured history and course geometry. No category-speed estimates are substituted.");
     }
 
-    // Load configuration
     let config = match FullConfig::load() {
         Ok(cfg) => cfg,
         Err(e) => {
-            // Show warning but continue with defaults
             eprintln!(
                 "{} Failed to load configuration: {}",
                 "⚠️  Warning:".yellow(),
@@ -303,11 +275,7 @@ async fn main() -> Result<()> {
         }
     };
 
-    // Apply config defaults to args where not specified
-    // For duration and tolerance, we need to check if they were explicitly set
-    // Since clap sets defaults, we'll use Option types in Args instead
     let duration = if args.duration == 120 && config.config.preferences.default_duration.is_some() {
-        // If using clap's default and config has a preference, use config
         config.config.preferences.default_duration.unwrap_or(120)
     } else {
         args.duration
@@ -315,34 +283,28 @@ async fn main() -> Result<()> {
 
     let tolerance = if args.tolerance == 30 && config.config.preferences.default_tolerance.is_some()
     {
-        // If using clap's default and config has a preference, use config
         config.config.preferences.default_tolerance.unwrap_or(30)
     } else {
         args.tolerance
     };
 
     let days = if args.days == 1 && config.config.preferences.default_days.is_some() {
-        // If using clap's default and config has a preference, use config
         config.config.preferences.default_days.unwrap_or(1)
     } else {
         args.days
     };
 
-    // Get user stats (auto-detected or from command line)
     let user_stats = zwiftpower::get_user_stats(&config).await?;
     let zwift_score = args.zwift_score.unwrap_or(user_stats.zwift_score);
 
-    // Validate Zwift score
     if zwift_score > 1000 {
         invalid_zwift_score(zwift_score).display();
         return Err(anyhow::anyhow!("Invalid Zwift Racing Score"));
     }
 
-    // Show what stats we're using
     if args.zwift_score.is_some() {
         println!("Using provided Zwift Score: {}", zwift_score);
     } else if user_stats.username == "User" {
-        // Using defaults - provide guidance
         println!(
             "Using default Zwift Score: {} (Cat {})",
             zwift_score.to_string().yellow(),
@@ -379,7 +341,6 @@ async fn main() -> Result<()> {
 
     println!("Fetched {} upcoming events", events.len());
 
-    // Notify if API returns unexpected number of events
     if events.len() > 250 {
         println!(
             "\n{} Zwift API returned {} events (expected ~200)",
@@ -390,12 +351,10 @@ async fn main() -> Result<()> {
         println!("   Please report this at: https://github.com/anthropics/claude-code/issues");
     }
 
-    // Display the actual time range covered by the fetched events
     if !events.is_empty() {
         let earliest_start = events.iter().map(|e| e.event_start).min().unwrap();
         let latest_start = events.iter().map(|e| e.event_start).max().unwrap();
 
-        // Format the time range in user's local timezone
         let earliest_local = earliest_start.with_timezone(&chrono::Local);
         let latest_local = latest_start.with_timezone(&chrono::Local);
 
@@ -406,7 +365,6 @@ async fn main() -> Result<()> {
         );
     }
 
-    // Warn about API limitation when requesting multiple days
     if days > 1 {
         println!(
             "\n{} Zwift API only returns ~12 hours of events (200 max)",
@@ -416,10 +374,8 @@ async fn main() -> Result<()> {
         println!("   For best results, search specific time windows throughout the day.");
     }
 
-    // Count events by type for informative output
     let event_counts = count_events_by_type(&events);
 
-    // Display event type summary
     if !event_counts.is_empty() {
         print!("Found: ");
         let formatted_counts: Vec<String> = event_counts
@@ -429,7 +385,6 @@ async fn main() -> Result<()> {
         println!("{}", formatted_counts.join(", "));
     }
 
-    // Debug: show race data
     if args.debug {
         let races: Vec<_> = events
             .iter()
@@ -460,7 +415,6 @@ async fn main() -> Result<()> {
         }
     }
 
-    // Show debug info only when --debug flag is used
     if args.debug {
         let race_count = events
             .iter()
@@ -481,7 +435,6 @@ async fn main() -> Result<()> {
                     event.name, event.route_id, event.distance_in_meters
                 );
 
-                // Show what duration we would estimate
                 if let Some(route_id) = event.route_id {
                     if let Some(route_data) = get_route_data(route_id) {
                         let est = estimate_event(event, zwift_score).map(|e| e.duration_minutes);
@@ -497,7 +450,6 @@ async fn main() -> Result<()> {
         }
     }
 
-    // Debug: show race count and raw event data
     if args.debug {
         let race_count = events
             .iter()
@@ -506,14 +458,12 @@ async fn main() -> Result<()> {
         println!("Found {} cycling races", race_count);
     }
 
-    // Record missing route IDs for a future client-metadata refresh.
     for event in &events {
         if event.sport.to_uppercase() == "CYCLING" && event.event_type == "RACE" {
             log_unknown_route(event, zwift_score);
         }
     }
 
-    // Create modified args with config-based defaults
     let mut effective_args = args.clone();
     effective_args.duration = duration;
     effective_args.tolerance = tolerance;
@@ -536,7 +486,6 @@ async fn main() -> Result<()> {
             return Ok(());
         }
 
-        // Provide specific suggestions based on what was searched for
         let suggestions = generate_no_results_suggestions(&args);
         for (i, suggestion) in suggestions.iter().enumerate() {
             if i == 0 {
@@ -564,17 +513,14 @@ async fn main() -> Result<()> {
         );
 
         if args.verbose {
-            // Use verbose output format
             for event in &filtered {
                 print_event(event, zwift_score);
             }
             println!("\n{}", "─".repeat(80).dimmed());
         } else {
-            // Use table format by default
             print_events_table(&filtered, zwift_score);
         }
 
-        // Display filter statistics
         display_filter_stats(&filter_stats, events.len());
 
         println!(
@@ -664,7 +610,7 @@ mod tests {
         assert_eq!(matches.len(), 1);
         assert_eq!(matches[0].name, "Fixed");
         assert_eq!(stats.duration_unknown, 2);
-        assert_eq!(stats.duration_filtered, 0); // None has a known out-of-window duration.
+        assert_eq!(stats.duration_filtered, 0);
         assert_eq!(stats.subgroup_filtered, 1);
         assert_eq!(stats.total_filtered(), 3);
     }
@@ -672,15 +618,15 @@ mod tests {
     #[test]
     fn test_filters_out_running_events() {
         let events = vec![
-            create_test_event("Cycling Race", 116, "Watopia Flat", "CYCLING"), // Fixed 116 min
+            create_test_event("Cycling Race", 116, "Watopia Flat", "CYCLING"),
             create_test_event("Running Event", 30, "May Field", "RUNNING"),
-            create_test_event("Bike Race 2", 112, "Tempus Fugit", "CYCLING"), // Fixed 112 min
+            create_test_event("Bike Race 2", 112, "Tempus Fugit", "CYCLING"),
         ];
 
         let args = Args {
             zwift_score: Some(195),
             duration: 120,
-            tolerance: 30, // Accept 90-150 min
+            tolerance: 30,
             event_type: "all".to_string(),
             days: 1,
             debug: false,
@@ -700,15 +646,15 @@ mod tests {
     #[test]
     fn test_duration_filtering() {
         let events = vec![
-            create_test_event("Short Race", 39, "Watopia Flat", "CYCLING"), // Fixed 39 min
-            create_test_event("Perfect Race", 97, "Watopia Flat", "CYCLING"), // Fixed 97 min
-            create_test_event("Long Race", 155, "Watopia Flat", "CYCLING"), // Fixed 155 min
+            create_test_event("Short Race", 39, "Watopia Flat", "CYCLING"),
+            create_test_event("Perfect Race", 97, "Watopia Flat", "CYCLING"),
+            create_test_event("Long Race", 155, "Watopia Flat", "CYCLING"),
         ];
 
         let args = Args {
             zwift_score: Some(195),
-            duration: 100, // ~1h 40m
-            tolerance: 20, // ±20 minutes
+            duration: 100,
+            tolerance: 20,
             event_type: "all".to_string(),
             days: 1,
             debug: false,
@@ -726,58 +672,46 @@ mod tests {
 
     #[test]
     fn test_filter_events_duration_arithmetic() {
-        // Test duration filtering arithmetic
-        // diff = (estimated_duration - args.duration).abs()
-        // Targets: replace - with /, replace abs() removal
 
         let events = vec![
-            create_test_event("Race 1", 29, "Short", "CYCLING"), // Fixed 29 min
-            create_test_event("Race 2", 31, "Target", "CYCLING"), // Fixed 31 min
-            create_test_event("Race 3", 33, "Long", "CYCLING"),  // Fixed 33 min
+            create_test_event("Race 1", 29, "Short", "CYCLING"),
+            create_test_event("Race 2", 31, "Target", "CYCLING"),
+            create_test_event("Race 3", 33, "Long", "CYCLING"),
         ];
 
         let args = Args {
             duration: 31,
-            tolerance: 1, // Only accept 30-32 min
+            tolerance: 1,
             ..Default::default()
         };
 
         let (filtered, _) = filter_events(events, &args, 195);
 
-        // Should only find the middle race
         assert_eq!(filtered.len(), 1);
         assert_eq!(filtered[0].name, "Race 2");
     }
 
     #[test]
     fn test_filter_events_comparison_operators() {
-        // Test comparison operators in filtering
-        // diff <= tolerance
-        // Targets: replace <= with <, <= with ==, <= with >
 
         let events = vec![
-            create_test_event("Exact Match", 30, "Test", "CYCLING"), // Exactly 30 min
+            create_test_event("Exact Match", 30, "Test", "CYCLING"),
         ];
 
         let args = Args {
             duration: 30,
-            tolerance: 0, // Zero tolerance - must be exactly 30
+            tolerance: 0,
             ..Default::default()
         };
 
         let (filtered, _) = filter_events(events, &args, 195);
 
-        // Should find the event (30 <= 30 is true)
-        // If <= becomes <, would not find it (30 < 30 is false)
         assert_eq!(filtered.len(), 1);
     }
 
     #[test]
     fn test_match_arm_coverage() {
-        // Test match arms to ensure all are needed
-        // Targets: delete match arm mutations
 
-        // Test category matching
         assert_eq!(get_category_from_score(50), "E");
         assert_eq!(get_category_from_score(150), "D");
         assert_eq!(get_category_from_score(250), "C");
@@ -788,7 +722,6 @@ mod tests {
 
     #[test]
     fn test_regression_common_zwift_races() {
-        // Based on typical Cat D (195 score) performance in common Zwift races
         struct RaceData {
             name: &'static str,
             distance_km: f64,
@@ -802,35 +735,35 @@ mod tests {
                 name: "3R Watopia Flat Route Race",
                 distance_km: 33.4,
                 route: "Watopia Flat Route",
-                typical_time_minutes: 58, // Calculated: 33.4km / (30.9km/h * 1.1) = 58 min
+                typical_time_minutes: 58,
                 tolerance: 5,
             },
             RaceData {
                 name: "ZSUN Sunday Race",
                 distance_km: 25.7,
                 route: "London Loop",
-                typical_time_minutes: 50, // 25.7km / 30.9km/h = 50 min
+                typical_time_minutes: 50,
                 tolerance: 5,
             },
             RaceData {
                 name: "DBR Monday Race",
                 distance_km: 41.1,
                 route: "Tempus Fugit",
-                typical_time_minutes: 72, // 41.1km / (30.9km/h * 1.1) = 72 min
+                typical_time_minutes: 72,
                 tolerance: 5,
             },
             RaceData {
                 name: "Herd Racing",
                 distance_km: 46.9,
                 route: "Innsbruck",
-                typical_time_minutes: 91, // 46.9km / 30.9km/h = 91 min
+                typical_time_minutes: 91,
                 tolerance: 7,
             },
             RaceData {
                 name: "ZRL Race",
                 distance_km: 29.5,
                 route: "Richmond",
-                typical_time_minutes: 57, // 29.5km / 30.9km/h = 57 min
+                typical_time_minutes: 57,
                 tolerance: 5,
             },
         ];
@@ -857,7 +790,6 @@ mod tests {
 
     #[test]
     fn test_event_type_filtering() {
-        // Create different event types
         let mut race = create_test_event("3R Race", 100, "Watopia", "CYCLING");
         race.event_type = "RACE".to_string();
 
@@ -872,11 +804,10 @@ mod tests {
 
         let events = vec![race, fondo, group, tt];
 
-        // Test race filter
         let mut args = Args {
             zwift_score: Some(195),
             duration: 120,
-            tolerance: 60, // Wide tolerance to catch all
+            tolerance: 60,
             event_type: "race".to_string(),
             days: 1,
             debug: false,
@@ -890,13 +821,11 @@ mod tests {
         assert_eq!(filtered.len(), 1);
         assert_eq!(filtered[0].name, "3R Race");
 
-        // Test fondo filter
         args.event_type = "fondo".to_string();
         let (filtered, _) = filter_events(events.clone(), &args, 195);
         assert_eq!(filtered.len(), 1);
         assert_eq!(filtered[0].name, "Gran Fondo");
 
-        // Test group filter (excludes fondos)
         args.event_type = "group".to_string();
         let (filtered, _) = filter_events(events.clone(), &args, 195);
         assert_eq!(filtered.len(), 1);
@@ -904,9 +833,8 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore] // Run with: cargo test -- --ignored
+    #[ignore]
     async fn test_real_zwift_api_connection() {
-        // Simple test to verify API is accessible
         let client = reqwest::Client::new();
         let url = "https://us-or-rly101.zwift.com/api/public/events";
 
@@ -925,7 +853,6 @@ mod tests {
                     resp.status()
                 );
 
-                // Try to parse as JSON array
                 let body = resp.text().await.expect("Failed to read response body");
                 assert!(
                     body.starts_with('['),
@@ -941,13 +868,12 @@ mod tests {
 
     #[test]
     fn test_racing_score_event_filtering() {
-        // Fixed time isolates subgroup eligibility from the personal model.
         let racing_score_event = ZwiftEvent {
             id: 1,
             name: "Three Village Loop Race".to_string(),
             event_start: Utc::now() + chrono::Duration::hours(2),
             event_type: "RACE".to_string(),
-            distance_in_meters: Some(0.0), // Racing Score events have 0
+            distance_in_meters: Some(0.0),
             duration_in_minutes: Some(20),
             duration_in_seconds: None,
             route_id: Some(3379779247),
@@ -972,8 +898,8 @@ mod tests {
 
         let args = Args {
             zwift_score: Some(195),
-            duration: 20,  // ~20 minutes
-            tolerance: 10, // ±10 minutes
+            duration: 20,
+            tolerance: 10,
             event_type: "race".to_string(),
             days: 1,
             debug: false,
@@ -986,22 +912,19 @@ mod tests {
         let events = vec![racing_score_event.clone()];
         let (filtered, _) = filter_events(events, &args, 195);
 
-        // Eligibility/filter orchestration is independent of personal history.
         assert_eq!(filtered.len(), 1);
         assert_eq!(filtered[0].name, "Three Village Loop Race");
     }
 
     #[test]
     fn test_racing_score_event_with_zero_distance() {
-        // Test that events with distanceInMeters: 0 are not filtered out early
         let events = vec![
-            // Traditional event with distance
             ZwiftEvent {
                 id: 1,
                 name: "Traditional Race".to_string(),
                 event_start: Utc::now() + chrono::Duration::hours(1),
                 event_type: "RACE".to_string(),
-                distance_in_meters: Some(20000.0), // 20km
+                distance_in_meters: Some(20000.0),
                 duration_in_minutes: Some(40),
                 duration_in_seconds: None,
                 route_id: None,
@@ -1012,13 +935,12 @@ mod tests {
                 sport: "CYCLING".to_string(),
                 tags: vec![],
             },
-            // Racing Score event with 0 distance
             ZwiftEvent {
                 id: 2,
                 name: "Racing Score Event".to_string(),
                 event_start: Utc::now() + chrono::Duration::hours(2),
                 event_type: "RACE".to_string(),
-                distance_in_meters: Some(0.0), // 0 distance!
+                distance_in_meters: Some(0.0),
                 duration_in_minutes: Some(40),
                 duration_in_seconds: None,
                 route_id: None,
@@ -1044,8 +966,8 @@ mod tests {
 
         let args = Args {
             zwift_score: Some(195),
-            duration: 40,  // ~40 minutes
-            tolerance: 10, // ±10 minutes
+            duration: 40,
+            tolerance: 10,
             event_type: "race".to_string(),
             days: 1,
             debug: false,
@@ -1057,7 +979,6 @@ mod tests {
 
         let (filtered, _) = filter_events(events, &args, 195);
 
-        // Both fixed-duration events remain eligible despite zero top-level distance.
         assert_eq!(filtered.len(), 2);
         assert!(filtered.iter().any(|e| e.name == "Traditional Race"));
         assert!(filtered.iter().any(|e| e.name == "Racing Score Event"));
@@ -1065,7 +986,6 @@ mod tests {
 
     #[test]
     fn test_generate_filter_description() {
-        // Test basic race filter
         let args = Args {
             zwift_score: Some(195),
             duration: 30,
@@ -1084,7 +1004,6 @@ mod tests {
         assert!(desc.contains("20-40 min"));
         assert!(desc.contains("next 24h"));
 
-        // Test with tags
         let args_with_tags = Args {
             tags: vec!["3R".to_string(), "flat".to_string()],
             ..args.clone()
@@ -1092,7 +1011,6 @@ mod tests {
         let desc_tags = generate_filter_description(&args_with_tags, 20, 40);
         assert!(desc_tags.contains("with tags: 3R, flat"));
 
-        // Test with multiple days
         let args_multi_day = Args {
             days: 7,
             ..args.clone()
@@ -1100,7 +1018,6 @@ mod tests {
         let desc_days = generate_filter_description(&args_multi_day, 20, 40);
         assert!(desc_days.contains("next 7 days"));
 
-        // Test time trial
         let args_tt = Args {
             event_type: "tt".to_string(),
             ..args.clone()
@@ -1126,7 +1043,6 @@ mod tests {
 
         let suggestions = generate_no_results_suggestions(&args);
 
-        // We now have more suggestions with race duration info
         assert!(suggestions.len() >= 4);
         assert!(suggestions[0].contains("Most races are short"));
         assert!(suggestions[1].contains("-d 30 -t 30"));
@@ -1151,7 +1067,6 @@ mod tests {
 
         let suggestions = generate_no_results_suggestions(&args);
 
-        // We now have more suggestions including a note
         assert!(suggestions.len() >= 3);
         assert!(suggestions[0].contains("Time trials are less common"));
         assert!(suggestions[1].contains("-e race"));
@@ -1175,16 +1090,14 @@ mod tests {
 
         let suggestions = generate_no_results_suggestions(&args);
 
-        // We now have more suggestions including "-n 3"
         assert!(suggestions.len() >= 3);
         assert!(suggestions[0].contains("No events match your duration"));
-        assert!(suggestions[1].contains("-t 20")); // tolerance * 2
+        assert!(suggestions[1].contains("-t 20"));
         assert!(suggestions[2].contains("-e all"));
     }
 
     #[test]
     fn test_generate_no_results_suggestions() {
-        // Test race suggestions
         let race_args = Args {
             event_type: "race".to_string(),
             duration: 60,
@@ -1202,7 +1115,6 @@ mod tests {
         assert!(suggestions[0].contains("Most races are short"));
         assert!(suggestions[1].contains("cargo run -- -d 30 -t 30"));
 
-        // Test time trial suggestions
         let tt_args = Args {
             event_type: "tt".to_string(),
             duration: 60,
@@ -1219,7 +1131,6 @@ mod tests {
         assert!(!suggestions.is_empty());
         assert!(suggestions[0].contains("Time trials are less common"));
 
-        // Test generic suggestions
         let generic_args = Args {
             event_type: "workout".to_string(),
             duration: 60,
@@ -1235,6 +1146,6 @@ mod tests {
         let suggestions = generate_no_results_suggestions(&generic_args);
         assert!(!suggestions.is_empty());
         assert!(suggestions[0].contains("No events match"));
-        assert!(suggestions[1].contains("30")); // Should suggest wider tolerance (15*2)
+        assert!(suggestions[1].contains("30"));
     }
 }

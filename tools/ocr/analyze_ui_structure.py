@@ -20,10 +20,8 @@ def analyze_ui_layout(image_path: str, debug: bool = False) -> Dict:
 
     height, width = img.shape[:2]
 
-    # Convert to HSV for better color segmentation
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
-    # Analyze different regions based on Zwift UI patterns
     regions = {
         'top_bar': analyze_top_bar(img, hsv),
         'left_panel': analyze_left_panel(img, hsv),
@@ -31,13 +29,10 @@ def analyze_ui_layout(image_path: str, debug: bool = False) -> Dict:
         'center_area': analyze_center_area(img, hsv),
     }
 
-    # Identify dark UI panels (common in Zwift)
     dark_regions = find_dark_ui_panels(img, hsv)
 
-    # Find text-like regions
     text_regions = find_text_regions(img)
 
-    # Combine analysis
     analysis = {
         'resolution': f'{width}x{height}',
         'ui_regions': regions,
@@ -55,31 +50,23 @@ def analyze_top_bar(img: np.ndarray, hsv: np.ndarray) -> Dict:
     """Analyze the top bar area (speed, distance, altitude, time)"""
     height, width = img.shape[:2]
 
-    # Top bar is typically in the top 10% of the screen
     top_region = img[0 : int(height * 0.12), :]
 
-    # Look for dark background with white text
     gray = cv2.cvtColor(top_region, cv2.COLOR_BGR2GRAY)
 
-    # Find contours of bright areas (text)
     _, thresh = cv2.threshold(gray, 180, 255, cv2.THRESH_BINARY)
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    # Group contours into likely text regions
     text_boxes = []
     for contour in contours:
         x, y, w, h = cv2.boundingRect(contour)
-        # Filter by size (text should be reasonable size)
         if 20 < w < 200 and 20 < h < 100:
             text_boxes.append({'x': x, 'y': y, 'width': w, 'height': h})
 
-    # Zwift typically has 4 main values in top bar
-    # Sort by X coordinate to get left-to-right order
     text_boxes.sort(key=lambda b: b['x'])
 
     fields = []
     if len(text_boxes) >= 4:
-        # Likely: speed, distance, altitude, time
         field_names = ['speed', 'distance', 'altitude', 'race_time']
         for i, (name, box) in enumerate(zip(field_names, text_boxes[:4])):
             fields.append(
@@ -100,13 +87,10 @@ def analyze_left_panel(img: np.ndarray, hsv: np.ndarray) -> Dict:
     """Analyze the left panel (power, cadence, heart rate)"""
     height, width = img.shape[:2]
 
-    # Left panel is typically in the left 20% of screen, below top bar
     left_region = img[int(height * 0.12) : int(height * 0.4), 0 : int(width * 0.25)]
 
-    # Look for dark background panels
     gray = cv2.cvtColor(left_region, cv2.COLOR_BGR2GRAY)
 
-    # Find bright text regions
     _, thresh = cv2.threshold(gray, 180, 255, cv2.THRESH_BINARY)
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -114,17 +98,12 @@ def analyze_left_panel(img: np.ndarray, hsv: np.ndarray) -> Dict:
     for contour in contours:
         x, y, w, h = cv2.boundingRect(contour)
         if 30 < w < 250 and 20 < h < 100:
-            # Adjust coordinates to full image
             text_boxes.append({'x': x, 'y': y + int(height * 0.12), 'width': w, 'height': h})
 
-    # Power is usually the largest number at top
-    # Cadence and HR are below
     fields = []
     if text_boxes:
-        # Sort by Y coordinate
         text_boxes.sort(key=lambda b: b['y'])
 
-        # First large number is likely power
         if text_boxes:
             fields.append(
                 {
@@ -137,9 +116,7 @@ def analyze_left_panel(img: np.ndarray, hsv: np.ndarray) -> Dict:
                 }
             )
 
-        # Look for smaller numbers below (cadence, HR)
         if len(text_boxes) > 2:
-            # Sort remaining by X coordinate
             remaining = sorted(text_boxes[1:], key=lambda b: b['x'])
             if len(remaining) >= 2:
                 fields.extend(
@@ -170,25 +147,18 @@ def analyze_right_panel(img: np.ndarray, hsv: np.ndarray) -> Dict:
     """Analyze the right panel (leaderboard area)"""
     height, width = img.shape[:2]
 
-    # Right panel is typically in the right 25% of screen
     right_region = img[:, int(width * 0.75) :]
 
-    # Leaderboard has a different background
     gray = cv2.cvtColor(right_region, cv2.COLOR_BGR2GRAY)
 
-    # Look for consistent text patterns
     _, thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)
 
-    # Find the main leaderboard area
-    # It's usually a large continuous region with text
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    # Find largest contour area (likely leaderboard)
     if contours:
         largest = max(contours, key=cv2.contourArea)
         x, y, w, h = cv2.boundingRect(largest)
 
-        # Adjust to full image coordinates
         leaderboard = {
             'name': 'leaderboard',
             'x': x + int(width * 0.75),
@@ -198,7 +168,6 @@ def analyze_right_panel(img: np.ndarray, hsv: np.ndarray) -> Dict:
             'region': 'right_panel',
         }
     else:
-        # Fallback to expected area
         leaderboard = {
             'name': 'leaderboard',
             'x': int(width * 0.75),
@@ -217,7 +186,6 @@ def analyze_center_area(img: np.ndarray, hsv: np.ndarray) -> Dict:
 
     fields = []
 
-    # Gradient is typically in top-right of center area
     gradient_region = {
         'name': 'gradient',
         'x': int(width * 0.85),
@@ -228,7 +196,6 @@ def analyze_center_area(img: np.ndarray, hsv: np.ndarray) -> Dict:
     }
     fields.append(gradient_region)
 
-    # Distance to finish is usually below top bar, right side
     dtf_region = {
         'name': 'distance_to_finish',
         'x': int(width * 0.58),
@@ -239,7 +206,6 @@ def analyze_center_area(img: np.ndarray, hsv: np.ndarray) -> Dict:
     }
     fields.append(dtf_region)
 
-    # Avatar area is center
     avatar_region = {
         'name': 'rider_pose_avatar',
         'x': int(width * 0.4),
@@ -255,13 +221,11 @@ def analyze_center_area(img: np.ndarray, hsv: np.ndarray) -> Dict:
 
 def find_dark_ui_panels(img: np.ndarray, hsv: np.ndarray) -> List[Dict]:
     """Find dark UI panels that likely contain telemetry"""
-    # Look for dark regions with consistent color
     lower_dark = np.array([0, 0, 0])
     upper_dark = np.array([180, 255, 50])
 
     dark_mask = cv2.inRange(hsv, lower_dark, upper_dark)
 
-    # Find contours
     contours, _ = cv2.findContours(dark_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     panels = []
@@ -269,7 +233,6 @@ def find_dark_ui_panels(img: np.ndarray, hsv: np.ndarray) -> List[Dict]:
         x, y, w, h = cv2.boundingRect(contour)
         area = w * h
 
-        # Filter by size - panels should be reasonably sized
         if area > 1000 and w > 50 and h > 30:
             panels.append({'x': x, 'y': y, 'width': w, 'height': h, 'area': area})
 
@@ -280,21 +243,17 @@ def find_text_regions(img: np.ndarray) -> List[Dict]:
     """Find regions likely to contain text using edge detection"""
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    # Use Canny edge detection
     edges = cv2.Canny(gray, 50, 150)
 
-    # Dilate to connect text components
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
     dilated = cv2.dilate(edges, kernel, iterations=2)
 
-    # Find contours
     contours, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     text_regions = []
     for contour in contours:
         x, y, w, h = cv2.boundingRect(contour)
 
-        # Filter by aspect ratio and size
         aspect = w / h if h > 0 else 0
         if 0.5 < aspect < 10 and 20 < w < 300 and 15 < h < 100:
             text_regions.append({'x': x, 'y': y, 'width': w, 'height': h, 'aspect_ratio': aspect})
@@ -306,11 +265,9 @@ def visualize_analysis(img: np.ndarray, analysis: Dict, image_path: str):
     """Visualize the UI analysis"""
     fig, ax = plt.subplots(1, figsize=(16, 9))
 
-    # Display image
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     ax.imshow(img_rgb)
 
-    # Draw UI regions
     colors = {
         'top_bar': 'yellow',
         'left_panel': 'red',
@@ -340,8 +297,7 @@ def visualize_analysis(img: np.ndarray, analysis: Dict, image_path: str):
                     bbox=dict(boxstyle='round,pad=0.3', facecolor='black', alpha=0.7),
                 )
 
-    # Draw dark panels
-    for panel in analysis['dark_panels'][:10]:  # Limit to avoid clutter
+    for panel in analysis['dark_panels'][:10]:
         rect = patches.Rectangle(
             (panel['x'], panel['y']),
             panel['width'],
@@ -356,7 +312,6 @@ def visualize_analysis(img: np.ndarray, analysis: Dict, image_path: str):
     ax.set_title('Zwift UI Structure Analysis')
     ax.axis('off')
 
-    # Save visualization
     output_path = Path(image_path).stem + '_ui_analysis.png'
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     print(f'Saved UI analysis visualization to: {output_path}')
@@ -367,7 +322,6 @@ def suggest_regions_from_analysis(analysis: Dict) -> Dict[str, Dict]:
     """Suggest OCR regions based on UI analysis"""
     suggested_regions = {}
 
-    # Collect all detected fields
     for region_data in analysis['ui_regions'].values():
         if 'fields' in region_data:
             for field in region_data['fields']:
@@ -380,7 +334,6 @@ def suggest_regions_from_analysis(analysis: Dict) -> Dict[str, Dict]:
                     'source': field['region'],
                 }
 
-    # Add padding to regions
     padding = 10
     for name, region in suggested_regions.items():
         region['x'] = max(0, region['x'] - padding)
@@ -399,11 +352,9 @@ def main():
 
     args = parser.parse_args()
 
-    # Analyze UI
     print('Analyzing UI structure...')
     analysis = analyze_ui_layout(args.image, debug=args.debug)
 
-    # Get suggested regions
     suggested_regions = suggest_regions_from_analysis(analysis)
 
     print('\nSuggested OCR regions:')
@@ -412,7 +363,6 @@ def main():
             f'  {name}: ({region["x"]}, {region["y"]}) {region["width"]}x{region["height"]} - from {region["source"]}'
         )
 
-    # Save if requested
     if args.output:
         output = {'analysis': analysis, 'suggested_regions': suggested_regions}
         with open(args.output, 'w') as f:

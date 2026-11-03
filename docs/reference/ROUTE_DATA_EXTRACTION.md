@@ -19,17 +19,10 @@ Latest/active cache status is not verified by this documentation.
 - Client exports remain private outside Git. No route dataset is bundled, and
   this workflow does not assume redistribution rights for client assets.
 
-## Retired sources
+## Boundaries
 
-Community route datasets, zwift-offline exports/imports, and website route
-scraping are retired. The discovery and description-analysis CLI options are
-removed; internal event-description distance/lap parsing remains supported. See the
-[zwift-offline retirement note](../howto/ZWIFT_OFFLINE_INTEGRATION.md).
-
-Existing route rows and history are not deleted by this retirement. Fresh
-databases contain no seeded routes until explicit `import_client_routes` import.
-No normal user database is changed merely by updating these docs.
-
-Earlier extraction investigations and coverage claims in
-[project history](../project-history/) and `archive/` are historical evidence,
-not the current source contract or recommended commands.
+No bundled route seeds, community imports, website scraping or guessed name-based
+mappings. Fresh databases remain empty until explicit client-route import;
+existing route rows/history are preserved. Internal event-description distance/lap
+parsing is separate from route metadata authority. Updating documentation does not
+refresh the installed client cache or write the normal database.

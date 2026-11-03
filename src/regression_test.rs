@@ -1,5 +1,3 @@
-// Regression tests comparing actual race times vs predictions
-
 #[cfg(test)]
 mod tests {
     use crate::constants::PERCENT_MULTIPLIER;
@@ -11,13 +9,11 @@ mod tests {
 
     #[test]
     fn test_race_predictions_accuracy() {
-        // Load actual race data from database
         let db = Database::new().expect("Failed to open database");
         let results = db
             .performance_history()
             .expect("Failed to get race results");
 
-        // Cache multi-lap info to avoid repeated database queries
         let mut multi_lap_cache = std::collections::HashMap::new();
 
         let mut total_error = 0.0;
@@ -34,7 +30,6 @@ mod tests {
         );
         println!("{}", "-".repeat(80));
 
-        // Limit to first 500 results for faster testing, excluding test races
         let test_results: Vec<_> = results.into_iter()
             .filter(|r| r.result.route_id != 9999 && !r.result.event_name.starts_with("Test Race"))
             .take(500)
@@ -44,18 +39,13 @@ mod tests {
         for observation in test_results.iter() {
             let result = &observation.result;
             let Some(zwift_score) = result.zwift_score else { continue; };
-            // Estimate duration using route_id and actual distance
             let predicted = if let Some(distance_km) = observation.event_distance_km.or_else(|| parse_distance_from_name(&result.event_name))
             {
-                // Recorded total event distance takes precedence over name/route guesses.
-                // Never add another lead-in to this distance.
                 estimate_duration_with_distance(result.route_id, distance_km, zwift_score)
             } else {
-                // Check for multi-lap events in cache or database
                 let mut base_prediction =
                     estimate_duration_from_route_id(result.route_id, zwift_score);
 
-                // Apply multi-lap multiplier if known
                 let lap_count = multi_lap_cache
                     .entry(result.event_name.clone())
                     .or_insert_with(|| {
@@ -81,11 +71,9 @@ mod tests {
                 let error = predicted_minutes_f64 - actual_minutes;
                 let percent_error = (error / actual_minutes * PERCENT_MULTIPLIER).abs();
 
-                // Track errors by route
                 let route_errors = errors_by_route.entry(result.route_id).or_insert(Vec::new());
                 route_errors.push(percent_error);
 
-                // Print details for large errors
                 if percent_error > 20.0 {
                     println!(
                         "{:<40} {:>8.0} {:>8.0} {:>8.0} {:>6.1}%",
@@ -111,7 +99,6 @@ mod tests {
             println!("Total races analyzed: {}", count);
             println!("Precise observed times: {}; recorded event distances: {}", precise_times, recorded_distances);
 
-            // Show error by route
             println!("\n=== Error Analysis by Route ===");
             println!("{:<30} {:>6} {:>10}", "Route", "Races", "Avg Error");
             println!("{}", "-".repeat(50));
@@ -133,7 +120,6 @@ mod tests {
                 println!("{:<30} {:>6} {:>9.1}%", route_name, count, avg_error);
             }
 
-            // Target: < 20% mean error
             assert!(
                 mean_error < 30.0,
                 "Mean error {:.1}% exceeds 30% threshold",
@@ -147,13 +133,11 @@ mod tests {
     #[test]
     #[ignore = "Run with --ignored for full regression test on all 7500+ races"]
     fn test_all_race_predictions_accuracy() {
-        // Load actual race data from database
         let db = Database::new().expect("Failed to open database");
         let results = db
             .get_all_race_results()
             .expect("Failed to get race results");
 
-        // Cache multi-lap info to avoid repeated database queries
         let mut multi_lap_cache = std::collections::HashMap::new();
 
         let mut total_error = 0.0;
@@ -170,22 +154,17 @@ mod tests {
         println!("Results excluded for unknown Racing Score: {}", results.iter().filter(|r| r.zwift_score.is_none()).count());
         for result in results.iter() {
             let Some(zwift_score) = result.zwift_score else { continue; };
-            // Skip placeholder routes for now
             if result.route_id == 9999 {
                 continue;
             }
 
-            // Estimate duration using route_id and actual distance
             let predicted = if let Some(distance_km) = parse_distance_from_name(&result.event_name)
             {
-                // Use parsed distance for multi-lap races
                 estimate_duration_with_distance(result.route_id, distance_km, zwift_score)
             } else {
-                // Check for multi-lap events in cache or database
                 let mut base_prediction =
                     estimate_duration_from_route_id(result.route_id, zwift_score);
 
-                // Apply multi-lap multiplier if known
                 let lap_count = multi_lap_cache
                     .entry(result.event_name.clone())
                     .or_insert_with(|| {
@@ -207,12 +186,10 @@ mod tests {
                 let error = predicted_minutes_f64 - actual_minutes;
                 let percent_error = (error / actual_minutes * PERCENT_MULTIPLIER).abs();
 
-                // Track errors by route
                 let route_errors = errors_by_route.entry(result.route_id).or_insert(Vec::new());
                 route_errors.push(percent_error);
 
-                // Print details for large errors
-                if percent_error > 20.0 && count < 50 {  // Limit output
+                if percent_error > 20.0 && count < 50 {
                     println!(
                         "{:<40} {:>8.0} {:>8.0} {:>8.0} {:>6.1}%",
                         &{ let n = &result.event_name; let mut e = 40.min(n.len()); while e > 0 && !n.is_char_boundary(e) { e -= 1; } &n[..e] },
@@ -234,7 +211,6 @@ mod tests {
             println!("Mean Absolute Percentage Error: {:.1}%", mean_error);
             println!("Total races analyzed: {}", count);
 
-            // Show error by route
             println!("\n=== Error Analysis by Route ===");
             println!("{:<30} {:>6} {:>10}", "Route", "Races", "Avg Error");
             println!("{}", "-".repeat(50));
@@ -256,7 +232,6 @@ mod tests {
                 println!("{:<30} {:>6} {:>9.1}%", route_name, count, avg_error);
             }
 
-            // Target: < 20% mean error
             assert!(
                 mean_error < 30.0,
                 "Mean error {:.1}% exceeds 30% threshold",
@@ -274,14 +249,12 @@ mod tests {
 
     #[test]
     fn test_route_mapping_consistency() {
-        // Ensure mapped routes have reasonable race times
         let db = Database::new().expect("Failed to open database");
 
         let results = db
             .get_all_race_results()
             .expect("Failed to get race results");
 
-        // Group by route and check for outliers
         let mut route_times: std::collections::HashMap<u32, Vec<u32>> =
             std::collections::HashMap::new();
 
@@ -295,7 +268,6 @@ mod tests {
                 .push(result.actual_minutes);
         }
 
-        // Check each route for suspicious variance
         for (route_id, times) in route_times {
             if times.len() < 2 {
                 continue;
@@ -305,22 +277,16 @@ mod tests {
             let max = *times.iter().max().unwrap() as f64;
             let avg = times.iter().sum::<u32>() as f64 / times.len() as f64;
 
-            // If max is more than 3x min, likely a mapping error
-            // (2x is common with multi-lap events on the same route)
             if max > min * 3.0 {
                 if let Some(route_data) = get_route_data(route_id) {
-                    // Calculate expected speed range
                     let distance_km = route_data.distance_km;
-                    let min_speed = distance_km * 60.0 / max; // km/h
-                    let max_speed = distance_km * 60.0 / min; // km/h
+                    let min_speed = distance_km * 60.0 / max;
+                    let max_speed = distance_km * 60.0 / min;
 
                     println!("WARNING: Route {} shows high variance", route_data.name);
                     println!("  Times: {}-{} min (avg: {:.0})", min, max, avg);
                     println!("  Speeds: {:.1}-{:.1} km/h", min_speed, max_speed);
 
-                    // Fail if speeds are unreasonably low (< 10 km/h for races)
-                    // Multi-lap events can have lower apparent speed relative to
-                    // median route distance
                     assert!(
                         min_speed > 10.0,
                         "Route {} has suspiciously slow times - likely wrong distance or multi-lap",

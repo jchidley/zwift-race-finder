@@ -1,13 +1,8 @@
--- Analyze actual speeds from Jack's race history
--- Focus on races where we can extract distance from notes
-
--- First, let's see what distances are recorded for each event type
-SELECT 
+SELECT
     event_name,
     COUNT(*) as races,
     MIN(actual_minutes) as min_time,
     MAX(actual_minutes) as max_time,
-    -- Extract distance from notes manually for common patterns
     CASE
         WHEN notes LIKE '%31km%' THEN 31
         WHEN notes LIKE '%37km%' THEN 37
@@ -23,14 +18,13 @@ SELECT
         ELSE NULL
     END as distance_km
 FROM race_results
-WHERE zwift_score < 200  -- Cat D
+WHERE zwift_score < 200
 GROUP BY event_name, distance_km
 HAVING distance_km IS NOT NULL
 ORDER BY races DESC
 LIMIT 20;
 
--- Calculate Jack's actual average speeds by category
-SELECT 
+SELECT
     'Cat D (Jack)' as category,
     COUNT(*) as total_races,
     ROUND(AVG(
@@ -53,8 +47,7 @@ WHERE zwift_score < 200
   AND (notes LIKE '%km%')
   AND actual_minutes > 0;
 
--- Show specific examples with calculated speeds
-SELECT 
+SELECT
     event_name,
     actual_minutes,
     notes,
@@ -78,7 +71,7 @@ SELECT
 FROM race_results
 WHERE zwift_score < 200
   AND actual_minutes > 0
-  AND (notes LIKE '%31km%' OR notes LIKE '%37km%' OR notes LIKE '%40km%' 
+  AND (notes LIKE '%31km%' OR notes LIKE '%37km%' OR notes LIKE '%40km%'
        OR notes LIKE '%41km%' OR notes LIKE '%43km%' OR notes LIKE '%45km%')
 ORDER BY speed_kmh DESC
 LIMIT 10;

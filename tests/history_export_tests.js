@@ -1,4 +1,3 @@
-// Synthetic browser surface: no browser, website, profile, or network access.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');

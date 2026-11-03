@@ -39,86 +39,8 @@ a confidence interval. The model uses course distance/climbing totals, not exact
 ordered gradients. Whole-kilometre historical distances and retrospective route
 metadata remain qualifications. This user-requested integration is not a claim
 that personal prediction has demonstrated superior time-window selection.
-See [implementation and verification](../project-history/LIVE_PERSONAL_ESTIMATOR_2026-11-02.md).
-
-## Retained Legacy Algorithm: Category Speed Model
-
-These helpers remain for standalone callers and the historical regression. The
-finder no longer calls them to fill unsupported personal estimates.
-
-```
-duration_minutes = round((distance_km / (category_speed × difficulty_multiplier)) × 60)
-```
-
-Calculated durations are rounded once to the nearest whole minute; positive half-minute ties round up. The shared event estimate is used for both filtering and display. The retained legacy category speeds and difficulty multipliers are unchanged. Fixed-duration handling is unchanged. Whole-minute presentation does not imply accuracy within one minute.
-
-### Category Speeds (km/h)
-
-Empirical averages from real races. Already include draft benefit.
-
-| Category | Score Range | Speed (km/h) | Source |
-|----------|-------------|--------------|--------|
-| E | 0–99 | 28.0 | Estimated ~10% slower than Cat D |
-| D | 100–199 | 30.9 | Calibrated from 151 real races |
-| C | 200–299 | 33.0 | Scaled from Cat D |
-| B | 300–399 | 37.0 | Scaled from Cat D |
-| A | 400–599 | 42.0 | Scaled from Cat D |
-| A++ | 600+ | 45.0 | Estimated ~7% faster than Cat A |
-
-Score 600+ maps to "A++" (45.0 km/h). The detailed category function splits this further: 590–649 = "A+", 650+ = "A++".
-
-### Route Difficulty Multiplier
-
-Multiplied with category speed. Values >1.0 mean faster (flat), <1.0 mean slower (hilly).
-
-**Elevation-based** (`get_route_difficulty_multiplier_from_gain_and_category`):
-
-Uses piecewise linear interpolation across 9 breakpoints for smooth transitions, with a category-aware penalty on steep climbs.
-
-| Elevation/km | Base Multiplier | Terrain Example |
-|-------------|-----------------|-----------------|
-| 0 m/km | 1.10 | Tempus Fugit (~1 m/km) |
-| 5 m/km | 1.05 | Most Watopia routes |
-| 10 m/km | 1.00 | Rolling (transition zone) |
-| 15 m/km | 0.93 | Rolling hills |
-| 20 m/km | 0.85 | Mountain 8 (~21 m/km) |
-| 30 m/km | 0.70 | Very hilly |
-| 40 m/km | 0.55 | Mountain climbs |
-| 60 m/km | 0.45 | Road to Sky (~60 m/km) |
-| 100 m/km | 0.30 | Theoretical maximum |
-
-Values between breakpoints are linearly interpolated.
-
-**Category climbing penalty** (applied above 15 m/km):
-
-On flat terrain, all categories ride near their empirical category speed (ratio ≈ 1.0). On steep climbs, lower categories are disproportionately slower because w/kg matters more than raw watts. This was measured from race data: Cat D achieves 48% of its flat speed on >20 m/km climbs, while Cat C achieves 54%.
-
-| Category | Climbing Factor | Effect |
-|----------|----------------|--------|
-| A / A++ | 1.00 | No penalty |
-| B | 0.97 | Minor penalty |
-| C | 0.93 | Moderate penalty |
-| D | 0.85 | Significant penalty |
-| E | 0.75 | Large penalty |
-
-The final multiplier on a climb is `base_multiplier × category_factor`. For example, Road to Sky (60 m/km) for Cat D: `0.45 × 0.85 = 0.38`, giving an effective speed of `30.9 × 0.38 = 11.7 km/h` — close to the observed 9.6 km/h from actual race data.
-
-**Name-based fallback** (`get_route_difficulty_multiplier`) — used only when no elevation data is available:
-
-| Route name contains | Multiplier |
-|---------------------|------------|
-| "alpe", "ventoux" | 0.7 |
-| "epic", "mountain" | 0.8 |
-| "flat", "tempus" | 1.1 |
-| (anything else) | 1.0 |
-
-### Legacy Helper Callers
-
-| Function | Multiplier Used | When Called |
-|----------|----------------|------------|
-| `estimate_duration_from_route_id` | Elevation + category | Route known, no distance override |
-| `estimate_duration_with_distance` | Elevation + category | Route known, distance provided (multi-lap) |
-| `estimate_duration_for_category` | Name-based only | No route lookup possible (fallback) |
+For the preserved baseline, candidate policy and measured comparisons, see the
+[baseline/recency record](../project-history/RECENCY_BASELINE_2026-11-03.md).
 
 ## Estimation Priority
 
@@ -179,57 +101,21 @@ Zwift uses different internal route IDs for the same physical route depending on
 
 ## Validation and calibration
 
-The accuracy regression reports **mean absolute percentage error (MAPE)** and
-**mean absolute error in minutes (MAE)**. These are different metrics.
+Evaluate personal changes chronologically against the versioned baseline, using
+identical input snapshots and only earlier observations for each target. Report
+MAE in minutes, duration-window inclusions/exclusions and prediction availability.
+Preserve measured seconds and event geometry; do not tune on inspected races and
+call the same outcomes independent validation. Fitted residuals are not forecast
+intervals. The [baseline/experiment record](../project-history/RECENCY_BASELINE_2026-11-03.md)
+owns results; [Tasks](../../TASKS.md) owns the next experiment.
 
-The 2026-11-02 evaluation used recorded total event distances and precise finish
-seconds. Six observations have known historical Racing Scores:
+The standalone category-speed helpers in `category.rs`, `duration_estimation.rs`
+and `estimation.rs` remain for compatibility callers and the legacy accuracy
+regression. They do not supply the active finder's pace or unknown-duration
+fallback. Their retained calibration history is available in Git at `v0.3.0`.
 
-| Formula output | MAE, minutes | MAPE | Within 5 minutes |
-|---|---:|---:|---:|
-| Previous truncation | 1.93 | 4.32% | 6/6 |
-| Nearest-minute rounding | 2.09 | 4.67% | 6/6 |
-| Tested personal last-five adjustment, rounded | 2.59 | 5.39% | 6/6 |
-
-Nearest-minute rounding is a presentation-resolution decision, not a demonstrated
-accuracy improvement. This small cohort does not establish accuracy within one
-minute or reconstruct the original live API event resolver.
-
-The focused regression now prefers recorded event distance over event-name guesses
-and measured seconds over legacy whole-minute observations. The previous regression
-ignored these fields: its 6.167 → 5.833 minute MAE and 13.3% → 12.4% MAPE rounding
-comparison therefore used different geometry/targets, not evidence that production
-predictions improved by correcting the test. Legacy rows without the new fields
-retain fallback handling, and the regression reports precise-time/distance counts.
-
-All 194 measured observations were retained. The 188 without historical Racing
-Score cannot support a genuine score-dependent production comparison, but were
-used in the score-independent personal-pace experiment. That candidate was rejected:
-its small dated-holdout gain was not robust and it worsened the known-score result.
-See [the practical evaluation](../project-history/PRACTICAL_ESTIMATOR_2026-11-02.md).
-
-Run `cargo test --lib test_race_predictions_accuracy -- --nocapture` against an
-isolated database copy. Run the rest of the suite with fresh HOME/XDG state;
-some route-consistency diagnostics assume synthetic rather than personal history.
-Older 125-race and percentage-labelled “MAE” claims are historical calibration
-claims, not the current verified test result.
-
-A personal pace adjustment must use only earlier observations, preserve unknown
-historical scores, and be evaluated using comparable event distances/lead-ins.
-Report out-of-sample MAE in minutes and within-window counts. Do not select an
-adjustment using the same later results presented as its validation. The retained
-legacy category speeds already include drafting; adding a generic
-draft bonus to those helpers would double-count that benefit. Personal measured
-race pace also reflects drafting, but does not isolate its contribution. Physics
-simulation and exact equipment are not prerequisites for useful race selection.
-
-## Special Cases
-
-| Case | Handling |
-|------|----------|
-| Fixed duration events | Duration used directly from event data (no estimation) |
-| Time trials | Declared duration only; ordinary-race fitting is unsupported |
-| Multi-lap | Route distance × laps + lead-in |
-| Racing Score events | `distanceInMeters: 0` in API; parse from description |
-| Unknown routes | Personal support required; no category/name-speed duration |
-| Category E | Used for subgroup selection, not personal pace |
+Any formula change also requires the same approved populated-data legacy regression
+before/after, separately from personal evaluation. That test reports MAE and MAPE,
+asserts MAPE below 30%, and can pass on zero comparisons; zero usable data means
+unqualified accuracy. See the [testing procedure](../howto/TESTING_GUIDE.md#run-the-accuracy-regression).
+Time trials require declared time; ordinary-race fitting does not support them.

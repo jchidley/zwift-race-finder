@@ -1,5 +1,4 @@
 #Requires -Version 7.0
-# Standalone tests: no Pester installation, network, database, or real client data.
 [CmdletBinding()]
 param(
     [string] $CollectorPath = (Join-Path $PSScriptRoot '../scripts/export_client_routes.ps1')
@@ -69,7 +68,6 @@ try {
  <route file="../data/Worlds/world1/routes/routes2.xml"><route nameHash="0" name="Zero ID" distanceInMeters="0.001" ascentInMeters="0"/></route>
 </routes>
 '@
-    # Parsing must be invariant under a comma-decimal process culture.
     $culture = [Globalization.CultureInfo]::CurrentCulture
     try {
         [Globalization.CultureInfo]::CurrentCulture = [Globalization.CultureInfo]::GetCultureInfo('fr-FR')

@@ -1,10 +1,5 @@
-//! Enhanced error handling with user-friendly messages
-//!
-//! This module provides better error messages and guidance for common failure scenarios.
-
 use colored::Colorize;
 
-/// User-friendly error messages for common scenarios
 pub struct UserError {
     pub title: String,
     pub details: String,
@@ -12,7 +7,6 @@ pub struct UserError {
 }
 
 impl UserError {
-    /// Create a new user error with suggestions
     pub fn new(title: impl Into<String>, details: impl Into<String>) -> Self {
         Self {
             title: title.into(),
@@ -21,13 +15,11 @@ impl UserError {
         }
     }
 
-    /// Add a suggestion to help the user
     pub fn with_suggestion(mut self, suggestion: impl Into<String>) -> Self {
         self.suggestions.push(suggestion.into());
         self
     }
 
-    /// Display the error with formatting
     pub fn display(&self) {
         eprintln!("\n{} {}", "❌ Error:".red().bold(), self.title.red());
         if !self.details.is_empty() {

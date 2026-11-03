@@ -1,7 +1,3 @@
-//! Database module for managing Zwift route data and race results
-//!
-//! Stores route information and actual race completion times
-
 use anyhow::{ensure, Result};
 use colored::Colorize;
 use rusqlite::{params, Connection, OptionalExtension};
@@ -11,44 +7,29 @@ use std::path::{Path, PathBuf};
 mod history_storage;
 pub use history_storage::{HistoryImportSummary, HistoryObservation};
 
-/// Route data including distance, elevation, and lead-in information
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct RouteData {
-    /// Unique route identifier
     #[allow(dead_code)]
     pub route_id: u32,
-    /// Route distance in kilometers
     pub distance_km: f64,
-    /// Total elevation gain in meters
     pub elevation_m: Option<f64>,
-    /// Route name
     pub name: String,
-    /// Zwift world (Watopia, London, etc.)
     pub world: String,
-    /// Surface type (road, gravel, mixed)
     pub surface: String,
-    /// Lead-in distance in kilometers
     pub lead_in_distance_km: Option<f64>,
-    /// Lead-in elevation in meters
     #[allow(dead_code)]
     pub lead_in_elevation_m: Option<f64>,
-    /// Lead-in distance for free ride mode
     #[allow(dead_code)]
     pub lead_in_distance_free_ride_km: Option<f64>,
-    /// Lead-in elevation for free ride mode
     #[allow(dead_code)]
     pub lead_in_elevation_free_ride_m: Option<f64>,
-    /// Lead-in distance for meetups
     #[allow(dead_code)]
     pub lead_in_distance_meetups_km: Option<f64>,
-    /// Lead-in elevation for meetups
     #[allow(dead_code)]
     pub lead_in_elevation_meetups_m: Option<f64>,
-    /// URL slug for WhatsOnZwift
     pub slug: Option<String>,
 }
 
-/// Local client provenance. Lower rank is more authoritative.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ClientSourceKind {
@@ -73,7 +54,6 @@ pub struct ClientRouteSource {
     pub entry: String,
 }
 
-/// Normalized metadata plus original source identity and availability flags.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ClientRouteRecord {
     #[serde(flatten)]
@@ -133,33 +113,23 @@ impl ClientRouteRecord {
     }
 }
 
-/// Race result with actual completion time
 #[derive(Debug, Clone)]
 pub struct RaceResult {
-    /// Database ID
     #[allow(dead_code)]
     pub id: Option<i64>,
-    /// Route ID
     pub route_id: u32,
-    /// Event name
     pub event_name: String,
-    /// Actual race duration in minutes
     pub actual_minutes: u32,
-    /// Zwift Racing Score at time of race
     pub zwift_score: Option<u32>,
-    /// Race date (YYYY-MM-DD format)
     pub race_date: String,
-    /// Optional notes
     pub notes: Option<String>,
 }
 
-/// Database connection and operations
 pub struct Database {
     conn: Connection,
 }
 
 impl Database {
-    /// Create a new database connection
     pub fn new() -> Result<Self> {
         Self::open(&get_database_path()?)
     }
@@ -189,7 +159,6 @@ impl Database {
         Self::from_connection(conn)
     }
 
-    /// Clone existing state in memory; preview never initializes or migrates the target.
     pub fn preview(path: &Path) -> Result<Self> {
         let mut conn = Connection::open_in_memory()?;
         if path.exists() {
@@ -227,7 +196,6 @@ impl Database {
     }
 
     fn create_tables(&self) -> Result<()> {
-        // Routes table
         self.conn.execute(
             "CREATE TABLE IF NOT EXISTS routes (
                 route_id INTEGER PRIMARY KEY,
@@ -251,7 +219,6 @@ impl Database {
 
         history_storage::create_table(&self.conn, "race_results")?;
 
-        // Unknown routes table for data collection
         self.conn.execute(
             "CREATE TABLE IF NOT EXISTS unknown_routes (
                 route_id INTEGER PRIMARY KEY,
@@ -263,10 +230,6 @@ impl Database {
             [],
         )?;
 
-        // Route aliases: maps alternative route IDs (used by Zwift API for
-        // event-only variants) to canonical route IDs in our routes table.
-        // Zwift often uses different internal route IDs for the same physical
-        // route depending on whether it's a free-ride or event-only context.
         self.conn.execute(
             "CREATE TABLE IF NOT EXISTS route_aliases (
                 alias_route_id INTEGER PRIMARY KEY,
@@ -280,9 +243,6 @@ impl Database {
         Ok(())
     }
 
-    /// Add knowledge flags without rebuilding tables or altering rider history.
-    /// NULL flags preserve legacy positive values; legacy zero means unknown.
-    /// Initialization owns the surrounding transaction.
     fn migrate_elevation_knowledge(&self) -> Result<()> {
         let columns: Vec<String> = self
             .conn
@@ -309,26 +269,17 @@ impl Database {
         Ok(())
     }
 
-    /// Whether any route metadata has been explicitly imported or retained.
     pub fn has_routes(&self) -> Result<bool> {
         Ok(self
             .conn
             .query_row("SELECT EXISTS(SELECT 1 FROM routes)", [], |row| row.get(0))?)
     }
 
-    /// Get route data by ID, falling back to alias lookup
-    ///
-    /// If the route_id isn't found directly, checks the route_aliases table
-    /// for a mapping to a canonical route_id. This handles Zwift's use of
-    /// different internal IDs for the same physical route (event-only vs
-    /// free-ride variants).
     pub fn get_route(&self, route_id: u32) -> Result<Option<RouteData>> {
-        // Direct lookup first
         if let Some(route) = self.get_route_direct(route_id)? {
             return Ok(Some(route));
         }
 
-        // Try alias lookup
         let canonical_id: Option<u32> = self
             .conn
             .query_row(
@@ -345,7 +296,6 @@ impl Database {
         Ok(None)
     }
 
-    /// Get route data by direct ID (no alias fallback)
     pub fn get_route_direct(&self, route_id: u32) -> Result<Option<RouteData>> {
         let mut stmt = self.conn.prepare(
             "SELECT route_id, distance_km,
@@ -382,7 +332,6 @@ impl Database {
         Ok(route)
     }
 
-    /// Add a new route to the database
     #[allow(dead_code)]
     pub fn has_client_route(&self, route_id: u32) -> Result<bool> {
         Ok(self.conn.query_row(
@@ -392,8 +341,6 @@ impl Database {
         )?)
     }
 
-    /// Import all records atomically. Client cache beats extracted XML; either
-    /// replaces legacy/community metadata. Identical imports do not rewrite rows.
     pub fn import_client_routes(
         &self,
         records: &[ClientRouteRecord],
@@ -443,8 +390,6 @@ impl Database {
         Ok(summary)
     }
 
-    /// Insert explicit legacy/test metadata; never overwrite client provenance.
-    /// Production route ingestion uses `import_client_routes`, not this helper.
     pub fn add_route(&self, route: &RouteData) -> Result<()> {
         ensure!(
             !self.has_client_route(route.route_id)?,
@@ -495,7 +440,6 @@ impl Database {
         Ok(())
     }
 
-    /// Record an unknown route for future investigation
     pub fn record_unknown_route(
         &self,
         route_id: u32,
@@ -513,7 +457,6 @@ impl Database {
         Ok(())
     }
 
-    /// Get all routes from the database
     #[allow(dead_code)]
     pub fn get_all_routes(&self) -> Result<Vec<RouteData>> {
         let mut stmt = self.conn.prepare(
@@ -551,7 +494,6 @@ impl Database {
         Ok(routes)
     }
 
-    /// Get all race results
     pub fn get_all_race_results(&self) -> Result<Vec<RaceResult>> {
         let mut stmt = self.conn.prepare(
             "SELECT id, route_id, event_name, actual_minutes, zwift_score, race_date, notes 
@@ -578,7 +520,6 @@ impl Database {
         Ok(results)
     }
 
-    /// Get unknown routes that need mapping
     pub fn get_unknown_routes(&self) -> Result<Vec<(u32, String, i32)>> {
         let mut stmt = self.conn.prepare(
             "SELECT route_id, event_name, times_seen 
@@ -593,10 +534,8 @@ impl Database {
         Ok(routes)
     }
 
-    /// Get lap count for multi-lap events
     #[allow(dead_code)]
     pub fn get_multi_lap_info(&self, event_name: &str) -> Result<Option<u32>> {
-        // Try exact match first
         let result = self
             .conn
             .query_row(
@@ -610,7 +549,6 @@ impl Database {
             return Ok(result);
         }
 
-        // Try pattern match - check if event name contains the pattern
         let result = self
             .conn
             .query_row(
@@ -625,7 +563,6 @@ impl Database {
         Ok(result)
     }
 
-    /// Get all routes with basic info (for validation)
     #[allow(dead_code)]
     pub fn get_all_routes_basic(&self) -> Result<Vec<(u32, String, f64, u32)>> {
         let mut stmt = self.conn.prepare(
@@ -641,7 +578,6 @@ impl Database {
         Ok(routes)
     }
 
-    /// Get race results for validation
     #[allow(dead_code)]
     pub fn get_race_results_for_validation(&self) -> Result<Vec<(u32, String, u32, u32)>> {
         let mut stmt = self.conn.prepare(
@@ -745,11 +681,9 @@ mod tests {
 
     #[test]
     fn test_database_route_validation() {
-        // Test that all routes in database have valid data
         if let Ok(db) = Database::new() {
             if let Ok(routes) = db.get_all_routes() {
                 for route in routes {
-                    // Distance should be reasonable
                     assert!(
                         route.distance_km > 0.0 && route.distance_km < 200.0,
                         "Route {} has unrealistic distance: {} km",
@@ -757,7 +691,6 @@ mod tests {
                         route.distance_km
                     );
 
-                    // Elevation gain per km should be reasonable
                     let elevation_per_km =
                         f64::from(route.elevation_m.unwrap_or(0.0)) / route.distance_km;
                     assert!(
@@ -767,7 +700,6 @@ mod tests {
                         elevation_per_km
                     );
 
-                    // Surface should be valid
                     assert!(
                         matches!(route.surface.as_str(), "road" | "gravel" | "mixed"),
                         "Route {} has invalid surface: {}",

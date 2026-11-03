@@ -1,4 +1,3 @@
-//! Import an explicitly approved private ZwiftPower export. No authentication/network.
 use anyhow::{Context, Result};
 use clap::Parser;
 use sha2::{Digest, Sha256};
@@ -8,13 +7,13 @@ use zwift_race_finder::{database::Database, history::parse_zwiftpower_export};
 #[derive(Parser)]
 #[command(about = "Import measured ZwiftPower history; unknown historical scores remain NULL")]
 struct Args {
-    /// Private versioned export from the profile results DataTable
+    #[arg(help = "Private versioned export from the profile results DataTable")]
     #[arg(long)]
     input: PathBuf,
-    /// Explicit target, otherwise the normal application database
+    #[arg(help = "Explicit target, otherwise the normal application database")]
     #[arg(long)]
     database: Option<PathBuf>,
-    /// Validate migration and import on an in-memory copy; target is not changed
+    #[arg(help = "Validate migration and import on an in-memory copy; target is not changed")]
     #[arg(long)]
     dry_run: bool,
 }
@@ -27,7 +26,6 @@ fn main() -> Result<()> {
         .database
         .map(Ok)
         .unwrap_or_else(Database::default_path)?;
-    // Always preflight the complete migration/batch without changing the target.
     let preview = Database::preview(&path)?;
     let summary = preview.import_history(&records)?;
     if args.dry_run {

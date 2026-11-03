@@ -12,17 +12,14 @@ from PIL import Image, ImageDraw
 def draw_regions(image_path, config_path, output_path=None):
     """Draw bounding boxes for OCR regions on the image."""
 
-    # Load image
     img = Image.open(image_path)
     draw = ImageDraw.Draw(img)
 
-    # Load config
     with open(config_path) as f:
         config = json.load(f)
 
     regions = config.get('regions', {})
 
-    # Colors for different region types
     colors = {
         'speed': 'red',
         'distance': 'green',
@@ -37,19 +34,15 @@ def draw_regions(image_path, config_path, output_path=None):
         'rider_pose_avatar': 'white',
     }
 
-    # Draw each region
     for name, region in regions.items():
         if isinstance(region, dict) and all(k in region for k in ['x', 'y', 'width', 'height']):
             x, y, w, h = region['x'], region['y'], region['width'], region['height']
             color = colors.get(name, 'red')
 
-            # Draw rectangle
             draw.rectangle([x, y, x + w, y + h], outline=color, width=2)
 
-            # Draw label
             draw.text((x, y - 15), name, fill=color)
 
-    # Save or show
     if output_path:
         img.save(output_path)
         print(f'Saved visualization to {output_path}')

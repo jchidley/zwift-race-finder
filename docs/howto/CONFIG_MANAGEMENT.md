@@ -29,7 +29,7 @@ default_days = 1
 
 ```
 
-Unused physical-stat, display and download-path settings have been removed. Weight, height and FTP are not inputs to the production duration estimator. See [Physical Stats and Duration Estimation](../reference/PHYSICAL_STATS.md).
+Weight, height and FTP are not prediction inputs. [Algorithms](../reference/ALGORITHMS.md) owns the model contract.
 
 ## Apply temporary overrides
 

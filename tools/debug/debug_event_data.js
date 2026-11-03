@@ -1,6 +1,3 @@
-// Examine the actual event data structure
-// Run this in the browser console on https://www.zwift.com/uk/events/view/4967256
-
 console.log('=== Examining Event Data Structure ===');
 const nextData = JSON.parse(document.getElementById('__NEXT_DATA__').textContent);
 const eventData = nextData.props.initialState.events.event.event;
@@ -27,17 +24,14 @@ eventData.eventSubgroups.forEach((subgroup, i) => {
 });
 
 console.log('\n=== Looking for Route Details ===');
-// Check if there's a routes lookup table
 const state = nextData.props.initialState;
 if (state.routes) {
     console.log('Found routes data:', state.routes);
 }
 
-// Check for route in other locations
 const routeId = eventData.routeId;
 console.log(`\nSearching for route ${routeId} details...`);
 
-// Look through all state keys
 Object.keys(state).forEach(key => {
     if (state[key] && typeof state[key] === 'object') {
         const str = JSON.stringify(state[key]);
@@ -48,14 +42,12 @@ Object.keys(state).forEach(key => {
 });
 
 console.log('\n=== Extracting Distance from Description ===');
-// Since distance is in description, let's parse it
 const description = eventData.description;
 const stage4Match = description.match(/Stage 4:.*?Distance:\s*([\d.]+)\s*km/s);
 if (stage4Match) {
     console.log('Parsed distance from description:', stage4Match[1], 'km');
 }
 
-// Extract all stage info
 const stagePattern = /Stage (\d+):.*?Route:\s*([^\n]+).*?Laps:\s*(\d+).*?Distance:\s*([\d.]+)\s*km.*?Elevation:\s*(\d+)\s*m/gs;
 let match;
 console.log('\nAll stages from description:');
@@ -65,12 +57,9 @@ while ((match = stagePattern.exec(description)) !== null) {
 }
 
 console.log('\n=== Where does 23.5 come from? ===');
-// The webpage shows 23.5 km but the API has 0
-// Let's check if it's calculated from laps
 console.log('Event laps:', eventData.laps);
 console.log('If route was 11.75 km per lap:', eventData.laps * 11.75, 'km total');
 
-// Or maybe it's hardcoded in the UI
 console.log('\nChecking UI elements for hardcoded values...');
 const distanceElements = document.querySelectorAll('.group-value');
 distanceElements.forEach(el => {

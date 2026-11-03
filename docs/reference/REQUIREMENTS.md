@@ -1,6 +1,6 @@
 # Current Requirements
 
-This page records current product and engineering requirements. Implementation details are described in [Architecture](ARCHITECTURE.md), [Algorithms](ALGORITHMS.md), and [Database](DATABASE.md). Open enhancements and known limitations belong in [`TASKS.md`](../../TASKS.md); the earlier 2025 requirements record is preserved in [project history](../project-history/REQUIREMENTS_2025.md).
+This page records current product and engineering requirements. Implementation details are described in [Architecture](ARCHITECTURE.md), [Algorithms](ALGORITHMS.md), and [Database](DATABASE.md). Open enhancements and known limitations belong in [`TASKS.md`](../../TASKS.md).
 
 ## Product outcome
 
@@ -37,7 +37,11 @@ The estimator must:
 
 Any formula change requires before/after MAE in minutes on the same approved populated data. The focused regression checks the retained legacy category formula, not personal-estimator accuracy. Personal prediction claims additionally require chronological evaluation of the shipped implementation, comparable event geometry, and out-of-sample MAE and time-window inclusion results; do not tune on a holdout and present it as independent validation.
 
-The existing product target was recorded as below 20% “mean absolute error.” That percentage wording does not specify MAE in minutes; its metric interpretation remains unresolved. Do not silently reinterpret it or substitute a new target. The current focused test reports MAE and MAPE, asserts MAPE below 30%, and passes with zero usable comparisons. These implementation facts are not the product target or sufficient qualification. Report sample counts and missing-data exclusions; zero samples mean unqualified accuracy. See [the testing guide](../howto/TESTING_GUIDE.md#run-the-accuracy-regression) and [dated measurements](ALGORITHMS.md#validation-and-calibration).
+There is no newly adopted numerical accuracy threshold from this cleanup. Report
+cohort sizes, MAE in minutes and selection outcomes. Zero usable comparisons mean
+unqualified accuracy; any future target must state its metric and cohort explicitly.
+Historical ambiguous percentage wording remains an open decision in `TASKS.md`,
+not a replacement contract. See the [testing procedure](../howto/TESTING_GUIDE.md#run-the-accuracy-regression).
 
 ## Data and persistence
 
@@ -56,7 +60,7 @@ The application must:
 - keep credentials outside source code and committed configuration;
 - accept ZwiftPower credentials only from environment variables.
 
-Application SQL and schema evolution belong in `src/database.rs` and its `src/database_history.rs` child; callers use `Database` methods. [Database Reference](DATABASE.md) mirrors storage, but its older route-ID cast note is not permission to bypass checked input conversion. Back up existing data before imports or schema upgrades; see the [client-route](../howto/CLIENT_ROUTE_DATA.md) and [measured-history](../howto/ZWIFTPOWER_EXPORT_STEPS.md) procedures. Importing supported observations can change personal predictions without establishing better accuracy; [Algorithms](ALGORITHMS.md) owns current prediction policy.
+Application SQL and schema evolution belong in `src/database.rs` and its `src/database_history.rs` child; callers use `Database` methods. [Database Reference](DATABASE.md) mirrors storage; preserve checked unsigned route-ID conversions. Back up existing data before imports or schema upgrades; see the [client-route](../howto/CLIENT_ROUTE_DATA.md) and [measured-history](../howto/ZWIFTPOWER_EXPORT_STEPS.md) procedures. Importing supported observations can change personal predictions without establishing better accuracy; [Algorithms](ALGORITHMS.md) owns current prediction policy.
 
 ## CLI and configuration
 

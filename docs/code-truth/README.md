@@ -2,24 +2,9 @@
 
 This commit-scoped map helps a human direct implementation work and detect misplaced changes. Human usage documentation starts at [`docs/README.md`](../README.md); operational agent rules are in [`AGENTS.md`](../../AGENTS.md).
 
-```yaml
-commit: 3e13a787c58b1c4458ced001ccf27d4d654c00d9
-short_commit: 3e13a78
-branch: main
-commit_date: 2026-10-30T15:22:36Z
-working_tree: modified_with_untracked
-```
-
-The checkpoint includes client-only route retirement: no bundled
-route dataset, community importers, website scraping, or automatic route seeds.
-Client exports remain private outside Git; existing database rows/history remain.
-Cache freshness is not verified here. Subsequent local cleanup shares API/config/database through the library and retires obsolete helpers/workflows; see the [cleanup audit](../project-history/OBSOLETE_CODE_CLEANUP_2026-10-30.md).
-
-The commit identifies the checkpoint, not a clean snapshot of the files described
-below. These pages also include subsequent unpublished cleanup, personal-estimator
-and documentation changes. Working-tree claims were checked statically against
-source during standards adoption; no build/test pass is implied. Re-check code
-and the current diff before relying on the map after further changes.
+Behavioural baseline: `v0.3.0` (`05edb8a`). The cleanup removes
+comments and obsolete documentation, not model behaviour. This map directs changes;
+it is not a claim of a clean release or a substitute for inspecting the current diff.
 
 ## System shape
 
@@ -57,7 +42,7 @@ src/config.rs                     # TOML/env configuration and secret loading
 src/database.rs                   # Database API, schema, route/alias SQL
 src/database_history.rs           # Private child: measured-history SQL/migration/import
 src/category.rs                   # Racing Score category and empirical speed mapping
-src/duration_estimation.rs        # Pure category-fallback difficulty/duration calculations
+src/duration_estimation.rs        # Retained standalone category difficulty/duration calculations
 src/personal_estimation.rs        # Earlier measured history → score-independent personal duration
 src/estimation.rs                 # Database route lookup → calculation bridge
 src/event_filtering.rs            # Event filters and estimation fallback order
@@ -85,7 +70,7 @@ archive/                          # Historical evidence; do not modify
 | Event fetch/error behaviour | `src/api.rs` | `src/errors.rs`, production-adapter loopback tests in `tests/api_tests.rs`; live endpoint remains separate |
 | Event inclusion/exclusion | `src/event_filtering.rs` | `src/event_analysis.rs`, `src/parsing.rs`, property tests |
 | Personal duration/history fit | `src/personal_estimation.rs` | `src/event_filtering.rs`, history storage, display, personal integration tests |
-| Category fallback formula or thresholds | `src/duration_estimation.rs`, `src/category.rs` | `src/estimation.rs`, filtering/display call sites, regression and snapshots |
+| Retained category formula or thresholds | `src/duration_estimation.rs`, `src/category.rs` | `src/estimation.rs`, filtering/display call sites, regression and snapshots |
 | Lead-in or lap handling | `src/event_filtering.rs`, `src/estimation.rs` | route schema/data and regression tests |
 | Route identity or aliases | `src/database.rs` | import scripts, SQL mappings, `u32` parsing tests |
 | Database schema | `src/database.rs`, `src/database_history.rs` | affected queries/row mapping, preservation/rollback tests, database reference; initialization already migrates supported schemas |

@@ -204,6 +204,6 @@ Recorded on 2025-01-09; rerun the relevant tests and benchmarks before making a 
 
 ## Further Reading
 
-- [Project testing philosophy](../../docs/explanation/TESTING_PHILOSOPHY.md)
+- [Project testing procedure](../../docs/howto/TESTING_GUIDE.md)
 - [Current testing how-to](../../docs/howto/TESTING_GUIDE.md)
 - [OCR implementation overview](README.md)

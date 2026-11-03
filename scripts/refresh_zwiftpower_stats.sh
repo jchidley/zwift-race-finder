@@ -1,5 +1,4 @@
 #!/bin/bash
-# Refresh ZwiftPower stats via Playwright browser session state (no stored session ID)
 
 set -euo pipefail
 

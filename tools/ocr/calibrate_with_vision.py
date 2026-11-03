@@ -33,19 +33,18 @@ except ImportError:
     print('Please run: pip install pillow numpy')
     sys.exit(1)
 
-# Expected UI elements in Zwift
 ZWIFT_UI_ELEMENTS = [
-    'speed',  # km/h display
-    'distance',  # km traveled
-    'altitude',  # current altitude in meters
-    'race_time',  # elapsed time MM:SS
-    'power',  # watts
-    'cadence',  # rpm
-    'heart_rate',  # bpm
-    'gradient',  # climb percentage
-    'distance_to_finish',  # km remaining (race mode)
-    'leaderboard',  # rider list
-    'rider_pose_avatar',  # center avatar for pose detection
+    'speed',
+    'distance',
+    'altitude',
+    'race_time',
+    'power',
+    'cadence',
+    'heart_rate',
+    'gradient',
+    'distance_to_finish',
+    'leaderboard',
+    'rider_pose_avatar',
 ]
 
 
@@ -165,7 +164,6 @@ def calibrate_with_huggingface(image_path: str) -> Dict:
     print('Calling HuggingFace API for UI detection...')
     headers = {'Authorization': f'Bearer {api_key}'}
 
-    # Using Llava model which is good for UI detection
     API_URL = 'https://api-inference.huggingface.co/models/llava-hf/llava-1.5-7b-hf'
 
     try:
@@ -182,9 +180,7 @@ def calibrate_with_huggingface(image_path: str) -> Dict:
         if response.status_code != 200:
             raise Exception(f'API error: {response.text}')
 
-        # Parse the response - HF returns text that we need to extract JSON from
         text_response = response.json()[0]['generated_text']
-        # Extract JSON from the response
         import re
 
         json_match = re.search(r'\{.*\}', text_response, re.DOTALL)
@@ -266,7 +262,6 @@ def calibrate_with_ollama(image_path: str) -> Dict:
         print('Please run: pip install requests')
         sys.exit(1)
 
-    # Check if Ollama is running
     try:
         response = requests.get('http://localhost:11434/api/tags')
         if response.status_code != 200:
@@ -291,7 +286,7 @@ def calibrate_with_ollama(image_path: str) -> Dict:
                 'stream': False,
                 'options': {'temperature': 0.1, 'num_predict': 2048},
             },
-            timeout=120,  # Vision models can be slow
+            timeout=120,
         )
 
         if response.status_code != 200:
@@ -314,12 +309,10 @@ def validate_regions(regions: Dict, image_width: int, image_height: int) -> Dict
         if element not in ZWIFT_UI_ELEMENTS:
             continue
 
-        # Ensure all required fields exist
         if not all(k in bounds for k in ['x', 'y', 'width', 'height']):
             print(f'Warning: Skipping {element} - missing coordinates')
             continue
 
-        # Convert to integers
         try:
             x = int(bounds['x'])
             y = int(bounds['y'])
@@ -329,7 +322,6 @@ def validate_regions(regions: Dict, image_width: int, image_height: int) -> Dict
             print(f'Warning: Skipping {element} - invalid coordinates')
             continue
 
-        # Validate bounds
         if x < 0 or y < 0 or w <= 0 or h <= 0:
             print(f'Warning: Skipping {element} - negative/zero dimensions')
             continue
@@ -348,25 +340,22 @@ def create_config_file(regions: Dict, image_path: str, output_path: str) -> None
     """Create the OCR configuration file."""
     width, height = get_image_dimensions(image_path)
 
-    # Validate regions
     validated_regions = validate_regions(regions.get('regions', {}), width, height)
 
     if not validated_regions:
         print('Error: No valid regions detected')
         sys.exit(1)
 
-    # Create configuration
     config = {
         'version': '1.0.0',
         'resolution': f'{width}x{height}',
-        'zwift_version': 'unknown',  # User should update this
+        'zwift_version': 'unknown',
         'created': datetime.now().isoformat(),
         'regions': validated_regions,
         'notes': regions.get('notes', ''),
         'calibration_image': Path(image_path).name,
     }
 
-    # Write to file
     with open(output_path, 'w') as f:
         json.dump(config, f, indent=2)
 
@@ -400,7 +389,6 @@ def main():
 
     args = parser.parse_args()
 
-    # Validate input
     if not Path(args.image).exists():
         print(f'Error: Image file not found: {args.image}')
         sys.exit(1)
@@ -408,7 +396,6 @@ def main():
     if not args.image.lower().endswith('.png'):
         print('Warning: Expected PNG file, results may vary')
 
-    # Run calibration
     print(f'Calibrating regions from: {args.image}')
     print(f'Using provider: {args.provider}')
 
@@ -421,7 +408,6 @@ def main():
     else:
         result = calibrate_with_ollama(args.image)
 
-    # Create configuration file
     create_config_file(result, args.image, args.output)
 
 

@@ -139,7 +139,7 @@ zrf_check cargo test --features ocr -- --test-threads=1
 
 Review ordinary snapshot failures before accepting new output. Use Insta's review flow rather than blindly replacing snapshots.
 
-Golden generators and validators are ignored by default. Their source comments name the intended commands, including:
+Golden generators and validators are ignored by default. Available commands include:
 
 ```bash
 cargo test generate_golden_baseline_improved -- --ignored

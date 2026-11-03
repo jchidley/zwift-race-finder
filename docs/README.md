@@ -1,90 +1,45 @@
 # Documentation
 
-Use this page to choose the document that matches your task. Current implementation facts come from code and the commit-scoped [code-truth map](code-truth/); current work belongs in [`STATUS.md`](../STATUS.md) and [`TASKS.md`](../TASKS.md).
+Zwift Race Finder selects event geometry from Racing Score, estimates personal
+race duration and filters events to fit the rider's available time.
 
-## Start here
+## Use the finder
 
-New to the tool? Follow the **[Tutorial: Find your first race](tutorial/getting-started.md)**.
+- [Quick Start](../README.md) and [first-run tutorial](tutorial/getting-started.md)
+- [Configuration](reference/CONFIGURATION.md) and [optional secret setup](howto/SECRETS_SETUP.md)
+- [Install and update](howto/DEPLOYMENT.md)
+- [Import client routes](howto/CLIENT_ROUTE_DATA.md)
+- [Import measured history](howto/ZWIFTPOWER_EXPORT_STEPS.md)
+- [Data boundaries](howto/DATA_IMPORT.md)
+- [Returning to racing](howto/RETURN_TO_RACING.md)
 
-## How-to guides
+## Work on predictions
 
-Task-oriented instructions for a specific result:
+- [Current status](../STATUS.md) and [open tasks](../TASKS.md)
+- [Active algorithms](reference/ALGORITHMS.md)
+- [Versioned baseline and recency experiment](project-history/RECENCY_BASELINE_2026-11-03.md)
+- [Observation/prediction separation](explanation/HISTORY_DATA_MODEL.md)
 
-- [Return to Zwift racing](howto/RETURN_TO_RACING.md)
-- [Deploy and update](howto/DEPLOYMENT.md)
-- [Configure settings](howto/CONFIG_MANAGEMENT.md)
-- [Set up secrets](howto/SECRETS_SETUP.md)
-- [Migrate to secure token storage](howto/SECURE_TOKEN_MIGRATION.md)
-- [Import client-only route data](howto/CLIENT_ROUTE_DATA.md)
-- [Import data from Strava and ZwiftPower](howto/DATA_IMPORT.md)
-- [Export from ZwiftPower](howto/ZWIFTPOWER_EXPORT_STEPS.md)
-- [Retired zwift-offline integration](howto/ZWIFT_OFFLINE_INTEGRATION.md)
-- [Test the project](howto/TESTING_GUIDE.md)
+## Change and validate the implementation
 
-## Reference
+- [Agent operations](../AGENTS.md)
+- [Requirements](reference/REQUIREMENTS.md) and [architecture](reference/ARCHITECTURE.md)
+- [Code map and selected examples](code-truth/README.md)
+- [Testing procedure](howto/TESTING_GUIDE.md) and [test boundaries](reference/TEST_SUITE_SUMMARY.md)
+- [Database](reference/DATABASE.md), [route sources](reference/ROUTE_DATA_EXTRACTION.md)
+  and [event terminology](reference/ZWIFT_DOMAIN.md)
+- [Optional OCR tooling](../tools/ocr/README.md); screenshot fixtures remain in
+  `docs/screenshots/` because OCR checks use them.
 
-Current facts and lookup material:
+## Ownership
 
-- [Requirements](reference/REQUIREMENTS.md) — current product and engineering contract
-- [Algorithms](reference/ALGORITHMS.md) — duration model and fallback priority
-- [Architecture](reference/ARCHITECTURE.md) — stable component overview
-- [Database](reference/DATABASE.md) — schema and local storage
-- [Configuration](reference/CONFIGURATION.md) — fields, defaults, paths, and precedence
-- [Zwift domain](reference/ZWIFT_DOMAIN.md) — event types, categories, and route IDs
-- [Test suite](reference/TEST_SUITE_SUMMARY.md) — test targets, boundaries, and gaps
-- [Route data extraction](reference/ROUTE_DATA_EXTRACTION.md) — route data sources
-- Coaching and simulation notes now live in the sibling **zwift-race-coach** project: [local ecosystem references](../../zwift-race-coach/docs/reference/ZWIFT_ECOSYSTEM.md) and [simulation-tool research](../../zwift-race-coach/docs/reference/SIMULATION_TOOLS.md). These are local-workspace links; client route extraction/import stays here.
-- [Refactoring rules](reference/REFACTORING_RULES.md) — behaviour-preserving mechanics
-- [Physical stats](reference/PHYSICAL_STATS.md) — Zwift physics inputs versus estimator inputs
-- [Zwift quick reference](reference/ZWIFT_QUICK_REFERENCE.md) — in-race decision tables
-- [Pi release audit](reference/PI_RELEASE_AUDIT.md) — Pi 0.10.0–0.85.1 dispositions and evidence
+`STATUS.md` owns current state; `TASKS.md` owns unfinished work. Reference pages own
+stable contracts and algorithms; `docs/code-truth/` directs implementation changes.
+The current baseline/experiment record retains the evidence needed for comparison.
 
-## Code-truth snapshot
-
-Use these pages to scope implementation work and catch misplaced changes:
-
-- [Repository map and reading order](code-truth/README.md)
-- [Implementation architecture](code-truth/ARCHITECTURE.md)
-- [Implementation patterns](code-truth/PATTERNS.md)
-- [Implementation decisions and open questions](code-truth/DECISIONS.md)
-
-## Explanation
-
-Background and rationale that can be read away from the keyboard:
-
-- [Zwift racing tactics](explanation/ZWIFT_RACING_TACTICS.md)
-- [Zwift physics](explanation/ZWIFT_PHYSICS.md)
-- [Zwift physics equations](explanation/ZWIFT_PHYSICS_EQUATIONS.md)
-- [AI-assisted development](explanation/AI_DEVELOPMENT.md)
-- [Testing philosophy](explanation/TESTING_PHILOSOPHY.md)
-- [Refactoring explained](explanation/REFACTORING_EXPLAINED.md)
-
-## Project history
-
-These records explain prior measurements and decisions but are not current operational instructions:
-
-- [Test audit — 2026-10-29](project-history/TEST_AUDIT_2026-10-29.md) — executed checks, build blockers, and no-op cleanup
-- [Accuracy timeline](project-history/ACCURACY_TIMELINE.md)
-- [Historical discoveries](project-history/HISTORICAL_DISCOVERIES.md)
-- [User feedback](project-history/FEEDBACK.md)
-- [2025 requirements record](project-history/REQUIREMENTS_2025.md)
-- [2025 security audit](project-history/SECURITY_AUDIT_2025.md)
-- [2025 UOM integration-test review](project-history/UOM_INTEGRATION_TEST_COVERAGE_2025.md)
-
-`PROJECT_WISDOM.md` is the dated learning log. `archive/` contains older evidence and must not be edited.
-
-## Documentation governance
-
-- Update `STATUS.md` for current focus and verified blockers.
-- Update `TASKS.md` for unresolved work.
-- Update reference pages when stable behaviour or interfaces change.
-- Refresh `docs/code-truth/` after implementation changes that alter system shape or decisions.
-- Preserve dated reviews as history instead of presenting them as current reference.
-- Keep `AGENTS.md` operational and concise; do not duplicate the engineering backlog there.
-
-## Performance-history redesign
-
-- [History data model](explanation/HISTORY_DATA_MODEL.md): eligibility, observations and predictions are separate; historical scores are optional.
-- [Measured ZwiftPower history](howto/ZWIFTPOWER_EXPORT_STEPS.md): private export, backup, read-only preview, migration and idempotent import.
-
-- [Obsolete-code cleanup audit](project-history/OBSOLETE_CODE_CLEANUP_2026-10-30.md): retired workflows, compatibility boundaries and validation.
+Superseded audits, learning logs and research reports are available in Git at
+`v0.3.0`, not maintained as competing current guidance. For example,
+`git show v0.3.0:PROJECT_WISDOM.md` retrieves the old learning log. This cleanup does
+not certify old security findings resolved or adopt historical proposals as current
+requirements. `archive/` remains immutable historical evidence. Coaching, pacing,
+physics simulation and sensor/recorder development are outside this finder's scope.

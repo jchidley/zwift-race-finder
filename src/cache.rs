@@ -1,5 +1,3 @@
-//! Cache-related functionality for storing user stats
-
 use crate::models::{CachedStats, UserStats};
 use anyhow::Result;
 use chrono::Utc;
@@ -24,7 +22,6 @@ pub fn load_cached_stats() -> Result<Option<UserStats>> {
     let content = fs::read_to_string(cache_file)?;
     let cached: CachedStats = serde_json::from_str(&content)?;
 
-    // Use cache if it's less than 24 hours old
     let age = Utc::now().signed_duration_since(cached.cached_at);
     if age.num_hours() < 24 {
         Ok(Some(cached.stats))
@@ -59,35 +56,29 @@ mod tests {
 
     #[test]
     fn test_load_and_save_cached_stats() {
-        // Create a temporary directory for testing
         let temp_dir = TempDir::new().unwrap();
         let cache_file = temp_dir
             .path()
             .join("zwift-race-finder")
             .join("user_stats.json");
 
-        // Override the cache directory for testing
         std::env::set_var("XDG_CACHE_HOME", temp_dir.path());
 
-        // Test loading when cache doesn't exist
         let result = load_cached_stats().unwrap();
         assert!(
             result.is_none(),
             "Should return None when cache doesn't exist"
         );
 
-        // Create test stats
         let test_stats = UserStats {
             zwift_score: 250,
             category: "C".to_string(),
             username: "TestUser".to_string(),
         };
 
-        // Save stats
         save_cached_stats(&test_stats).unwrap();
         assert!(cache_file.exists(), "Cache file should be created");
 
-        // Load stats back
         let loaded = load_cached_stats().unwrap();
         assert!(loaded.is_some(), "Should load cached stats");
         let loaded_stats = loaded.unwrap();
@@ -95,21 +86,18 @@ mod tests {
         assert_eq!(loaded_stats.category, "C");
         assert_eq!(loaded_stats.username, "TestUser");
 
-        // Test cache expiration by modifying the file
         let content = fs::read_to_string(&cache_file).unwrap();
         let mut cached: CachedStats = serde_json::from_str(&content).unwrap();
-        cached.cached_at = Utc::now() - chrono::Duration::hours(25); // Make it 25 hours old
+        cached.cached_at = Utc::now() - chrono::Duration::hours(25);
         let expired_content = serde_json::to_string(&cached).unwrap();
         fs::write(&cache_file, expired_content).unwrap();
 
-        // Should return None for expired cache
         let expired_result = load_cached_stats().unwrap();
         assert!(
             expired_result.is_none(),
             "Should return None for expired cache"
         );
 
-        // Clean up
         std::env::remove_var("XDG_CACHE_HOME");
     }
 }

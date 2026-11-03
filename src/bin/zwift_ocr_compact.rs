@@ -1,22 +1,18 @@
-// ABOUTME: Compact Zwift OCR extraction tool
-// Minimal implementation for extracting telemetry from screenshots
-
 use anyhow::Result;
 use clap::Parser;
 use std::path::PathBuf;
 
-/// Extract telemetry data from Zwift screenshots
 #[derive(Parser)]
-#[command(version, about)]
+#[command(version, about = "Extract telemetry data from Zwift screenshots")]
 struct Args {
-    /// Path to the screenshot image
+    #[arg(help = "Path to the screenshot image")]
     image_path: PathBuf,
 
-    /// Output format (json or text)
+    #[arg(help = "Output format (json or text)")]
     #[arg(short, long, default_value = "json")]
     format: String,
 
-    /// Use parallel extraction (faster)
+    #[arg(help = "Use parallel extraction (faster)")]
     #[arg(short, long)]
     parallel: bool,
 }
@@ -24,15 +20,13 @@ struct Args {
 #[cfg(feature = "ocr")]
 fn main() -> Result<()> {
     let args = Args::parse();
-    
-    // Extract telemetry
+
     let telemetry = if args.parallel {
         zwift_race_finder::ocr_parallel::extract_telemetry_parallel(&args.image_path)?
     } else {
         zwift_race_finder::ocr_compact::extract_telemetry(&args.image_path)?
     };
-    
-    // Output results
+
     match args.format.as_str() {
         "json" => {
             println!("{}", serde_json::to_string_pretty(&telemetry)?);
@@ -85,7 +79,7 @@ fn main() -> Result<()> {
             std::process::exit(1);
         }
     }
-    
+
     Ok(())
 }
 

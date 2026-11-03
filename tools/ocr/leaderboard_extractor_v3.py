@@ -18,7 +18,7 @@ class LeaderboardEntry:
 
     position: int
     name: str
-    time_delta: Optional[str]  # None for current rider
+    time_delta: Optional[str]
     watts_per_kg: float
     distance_km: float
     is_current_rider: bool = False
@@ -26,7 +26,6 @@ class LeaderboardEntry:
 
 def is_likely_name(text: str) -> bool:
     """Determine if text is likely a rider name"""
-    # Filter out obvious non-names
     if 'KM' in text.upper():
         return False
     if 'w/kg' in text.lower():
@@ -34,20 +33,14 @@ def is_likely_name(text: str) -> bool:
     if text.replace('.', '').replace(',', '').isdigit():
         return False
 
-    # Positive indicators for names
-    # Has dots between letters (J.Chidley)
     if re.match(r'^[A-Z]\.[A-Za-z]', text):
         return True
-    # Multiple dots (C.J.Y.S)
     if text.count('.') >= 2 and any(c.isalpha() for c in text):
         return True
-    # Starts with uppercase and has lowercase (Laindre)
     if re.match(r'^[A-Z][a-z]', text):
         return True
-    # Contains parenthesis (J.T.Noxen))
     if '(' in text or ')' in text:
         return True
-    # Single letter with dot
     if re.match(r'^[A-Z]\.$', text):
         return True
 
@@ -60,13 +53,10 @@ def extract_leaderboard_improved(image_path: str, debug: bool = False) -> List[L
     img = cv2.imread(image_path)
     ocr = PaddleOCR(use_angle_cls=True, lang='en', show_log=False)
 
-    # Leaderboard area - you might need to adjust these coordinates
     x, y, w, h = 1500, 200, 420, 600
     roi = img[y : y + h, x : x + w]
 
-    # Preprocess for better OCR
     gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-    # Enhance contrast
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
     enhanced = clahe.apply(gray)
 
@@ -74,7 +64,6 @@ def extract_leaderboard_improved(image_path: str, debug: bool = False) -> List[L
     if not result or not result[0]:
         return []
 
-    # Collect all detections with positions
     detections = []
     for detection in result[0]:
         bbox, (text, conf) = detection
@@ -95,7 +84,6 @@ def extract_leaderboard_improved(image_path: str, debug: bool = False) -> List[L
             }
         )
 
-    # Sort by Y position
     detections.sort(key=lambda d: d['y_center'])
 
     if debug:
@@ -105,11 +93,9 @@ def extract_leaderboard_improved(image_path: str, debug: bool = False) -> List[L
                 f"Y={d['y_center']:.1f}, X={d['x']:.1f}, Text='{d['text']}', IsName={is_likely_name(d['text'])}"
             )
 
-    # Find rider names
     names = [d for d in detections if is_likely_name(d['text'])]
 
-    # Skip the event title if it exists
-    if names and names[0]['y_center'] < 180:  # Adjust threshold as needed
+    if names and names[0]['y_center'] < 180:
         event_title = names.pop(0)
         if debug:
             print(f'Skipping event title: {event_title["text"]}')
@@ -117,7 +103,6 @@ def extract_leaderboard_improved(image_path: str, debug: bool = False) -> List[L
     entries = []
 
     for i, name_det in enumerate(names):
-        # Initialize entry
         entry = LeaderboardEntry(
             position=i + 1,
             name=name_det['text'].strip(),
@@ -126,12 +111,10 @@ def extract_leaderboard_improved(image_path: str, debug: bool = False) -> List[L
             distance_km=0.0,
         )
 
-        # Define the data row region (typically 15-35 pixels below name)
         name_y = name_det['y_center']
         data_row_min_y = name_y + 10
         data_row_max_y = name_y + 40
 
-        # Find all detections in the data row
         data_row = [d for d in detections if data_row_min_y <= d['y_center'] <= data_row_max_y]
 
         if debug and data_row:
@@ -139,38 +122,29 @@ def extract_leaderboard_improved(image_path: str, debug: bool = False) -> List[L
             for d in data_row:
                 print(f'  {d["text"]}')
 
-        # Process each detection in the data row
         for det in data_row:
             text = det['text'].strip()
 
-            # Time delta (contains : and +/-)
             if ':' in text and any(c in text for c in ['+', '-']):
                 entry.time_delta = text
-            # Distance (contains KM)
             elif 'KM' in text.upper():
                 num_match = re.search(r'(\d+\.?\d*)', text)
                 if num_match:
                     entry.distance_km = float(num_match.group(1))
-            # W/kg (contains w/kg or is a decimal in the middle region)
             elif 'w/kg' in text.lower() or 'wkg' in text.lower():
                 num_match = re.search(r'(\d+\.?\d*)', text)
                 if num_match:
                     entry.watts_per_kg = float(num_match.group(1))
-            # Check position to determine if it's w/kg (middle column)
             elif 80 < det['x'] < 180 and '.' in text:
-                # Likely w/kg value based on position
                 num_match = re.search(r'(\d+\.?\d*)', text)
                 if num_match:
                     value = float(num_match.group(1))
-                    if 0.5 <= value <= 7.0:  # Reasonable w/kg range
+                    if 0.5 <= value <= 7.0:
                         entry.watts_per_kg = value
 
-        # Determine if this is the current rider
-        # Current rider has no time delta but has other data
         if entry.time_delta is None and (entry.watts_per_kg > 0 or entry.distance_km > 0):
             entry.is_current_rider = True
 
-        # Only add entries with at least some data
         if entry.watts_per_kg > 0 or entry.distance_km > 0 or entry.time_delta:
             entries.append(entry)
 
@@ -297,5 +271,4 @@ if __name__ == '__main__':
             f'{entry.distance_km:>4.1f} km{marker}'
         )
 
-    # Show the code to update
     update_leaderboard_extraction_in_main_script()

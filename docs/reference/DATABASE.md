@@ -79,35 +79,6 @@ CREATE TABLE IF NOT EXISTS unknown_routes (
 );
 ```
 
-### route_completion (legacy databases only)
-
-The completion feature is removed. This table is no longer created or used;
-existing data is preserved. Historical layout:
-```sql
-CREATE TABLE IF NOT EXISTS route_completion (
-    route_id INTEGER PRIMARY KEY,
-    completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    actual_time_minutes INTEGER,
-    notes TEXT,
-    FOREIGN KEY (route_id) REFERENCES routes(route_id)
-);
-```
-
-### rider_stats (legacy databases only)
-
-No longer created or used. Existing data is preserved; historical layout:
-```sql
-CREATE TABLE IF NOT EXISTS rider_stats (
-    id INTEGER PRIMARY KEY,
-    height_m REAL DEFAULT 1.82,
-    weight_kg REAL,
-    ftp_watts INTEGER,
-    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-The physical-stat getters and manual updater are removed; this legacy data is not used by the estimator.
-
 ### route_aliases
 ```sql
 CREATE TABLE IF NOT EXISTS route_aliases (
@@ -122,31 +93,15 @@ Maps alternative Zwift API route IDs (event-only variants) to canonical route ID
 
 The old name-matched alias SQL has been retired; it included approximate and reversed-route substitutions. Existing alias rows are preserved, but their validity requires separate review. Client imports use direct numeric IDs, not guessed aliases.
 
-### route_discovery_attempts (legacy databases only)
-
-No longer created or used by the application. Existing tables are left intact;
-the historical layout below is retained for interpreting older databases.
-```sql
-CREATE TABLE IF NOT EXISTS route_discovery_attempts (
-    route_id INTEGER PRIMARY KEY,
-    event_name TEXT NOT NULL,
-    last_attempt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    found BOOLEAN DEFAULT 0,
-    distance_km REAL,
-    elevation_m INTEGER,
-    world TEXT,
-    surface TEXT,
-    route_name TEXT
-);
-```
+Existing retired completion/rider/discovery tables are preserved but not created
+or used by the current finder. Their historical schemas remain in Git at `v0.3.0`.
 
 ## Route ID Notes
 
-- Route IDs are `u32` in Rust (0 to 4,294,967,295)
-- SQLite stores them as `INTEGER` (signed 64-bit)
-- Zwift API may serialize large IDs as negative numbers (e.g., -2129086892 = 2165880404 as u32)
-- Import code deserializes as `i64`, then casts to `u32`
-- Source-qualified history imports require numeric route IDs to exist in `routes` first (FK constraint); manual result entry is removed.
+Rust uses `u32`; SQLite uses signed integer storage and supports the complete
+unsigned-32 range. Validate and normalize signed client representations at input
+boundaries; do not truncate through `i32`. `Database::get_route()` tries direct
+numeric lookup before aliases. Names are not identity.
 
 ## Common Queries
 
@@ -174,10 +129,6 @@ SELECT COUNT(*) FROM routes;
 cp ~/.local/share/zwift-race-finder/races.db \
    ~/.local/share/zwift-race-finder/races_$(date +%Y%m%d).db
 ```
-
-## Reset
-
-Deleting the database irreversibly removes local routes, results, completion state, and discovery history. Back it up first, stop any running process that may use it, and delete it only when a clean local database is intended. The next database access recreates the schema with no route rows; route metadata requires an explicit `import_client_routes` import. Retirement does not require deleting or resetting an existing database.
 
 ## Source-qualified performance history
 

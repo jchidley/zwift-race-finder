@@ -1,15 +1,4 @@
 #Requires -Version 7.0
-<#
-.SYNOPSIS
-Export installed Zwift client route metadata to a private, local JSON file.
-.DESCRIPTION
-Reads the selected cache ZIP without extracting or executing anything. Previously
-extracted routes*.xml files may supply IDs absent from the archive; archive
-records win as a whole. Inputs and the race database are never modified.
-Choose an OutputPath outside the repository. Existing output files are refused.
-.EXAMPLE
-pwsh.exe -NoProfile -File scripts/export_client_routes.ps1 -ClientArchive C:\path\cache.zip -ExtractedDirectory C:\path\Worlds -OutputPath C:\Users\you\AppData\Local\Temp\client-routes.json
-#>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][ValidateNotNullOrEmpty()][string] $ClientArchive,
@@ -20,7 +9,6 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# These are client ASSET world IDs, not the public event API's map IDs.
 $worldNames = @{
     '1' = 'Watopia'; '2' = 'Richmond'; '3' = 'London'; '4' = 'New York'
     '5' = 'Innsbruck'; '6' = 'Bologna'; '7' = 'Yorkshire'; '8' = 'Crit City'
@@ -48,8 +36,6 @@ function Get-AssetWorld([string[]] $Locations) {
 
 function Read-ClientXml([string] $Text, [string] $Location, [switch] $Fragment) {
     if ($Fragment) {
-        # Client source files have several top-level elements (VERSION, route,
-        # checkpoints, ...). Remove only the leading declaration, then wrap.
         $Text = [regex]::Replace($Text, '\A\uFEFF?\s*<\?xml\s[^?]*\?>', '')
         $Text = "<client-fragment>$Text</client-fragment>"
     }
@@ -153,7 +139,6 @@ if (-not [IO.Directory]::Exists([IO.Path]::GetDirectoryName($output))) {
 
 $primary = [Collections.Generic.Dictionary[uint32, object]]::new()
 $secondary = [Collections.Generic.Dictionary[uint32, object]]::new()
-# Keep a read-only, non-writable-sharing handle open for both hashing and parsing.
 $archiveStream = [IO.File]::Open($archivePath, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
 try {
     $archiveHash = Get-StreamSha256 $archiveStream
@@ -209,7 +194,6 @@ $merged = [Collections.Generic.Dictionary[uint32, object]]::new($secondary)
 foreach ($record in $primary.Values) { $merged[$record.route_id] = $record }
 $result = [ordered]@{ schema_version = 1; routes = @($merged.Values | Sort-Object route_id) }
 $json = ConvertTo-Json -InputObject $result -Depth 6
-# CreateNew also prevents accidentally overwriting an input or a concurrent export.
 $outputStream = [IO.File]::Open($output, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
 try {
     $bytes = [Text.UTF8Encoding]::new($false).GetBytes($json + [Environment]::NewLine)

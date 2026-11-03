@@ -17,7 +17,6 @@ from typing import Any, Dict, Optional
 import cv2
 import numpy as np
 
-# Import the compact OCR as our core library
 from zwift_ocr_compact import ZwiftOCR
 
 
@@ -25,28 +24,22 @@ class ZwiftOCRExtractorFinal:
     """Extended OCR extractor with debug and validation features"""
 
     def __init__(self, debug=False):
-        # Use the compact OCR for core functionality
         self.ocr = ZwiftOCR()
         self.debug = debug
 
-        # Additional region for powerup detection
-        self.powerup_region = (444, 211, 225, 48)  # x, y, width, height
+        self.powerup_region = (444, 211, 225, 48)
 
     def extract_telemetry(self, image_path: str) -> Dict[str, Any]:
         """Extract all telemetry data with debug support"""
 
-        # Use the compact OCR for core extraction
         results = self.ocr.extract(image_path)
 
-        # Load image for additional processing
         image = cv2.imread(image_path)
         if image is None:
             raise ValueError(f'Could not load image: {image_path}')
 
-        # Add powerup detection (not in compact version)
         results['powerup_name'] = self._extract_powerup(image)
 
-        # Add debug visualization if enabled
         if self.debug:
             self._create_debug_visualization(image, results)
 
@@ -57,7 +50,6 @@ class ZwiftOCRExtractorFinal:
         x, y, w, h = self.powerup_region
         roi = image[y : y + h, x : x + w]
 
-        # Preprocess for colored text
         gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         enhanced = clahe.apply(gray)
@@ -68,13 +60,11 @@ class ZwiftOCRExtractorFinal:
 
         if result and result[0]:
             text = result[0][0][1][0]
-            # Extract only letters
             letters_only = re.sub(r'[^A-Za-z]', '', text)
 
             if self.debug:
                 print(f"Powerup OCR text: '{text}' -> '{letters_only}'")
 
-            # Known powerups
             powerups = {
                 'feather': 'Featherweight',
                 'aero': 'Aero Boost',
@@ -96,7 +86,6 @@ class ZwiftOCRExtractorFinal:
         """Create debug visualization showing all regions and extracted values"""
         debug_img = image.copy()
 
-        # Draw rectangles for all regions
         for name, (x, y, w, h) in self.ocr.regions.items():
             cv2.rectangle(debug_img, (x, y), (x + w, y + h), (0, 255, 0), 2)
             cv2.putText(
@@ -109,7 +98,6 @@ class ZwiftOCRExtractorFinal:
                 1,
             )
 
-            # Show extracted value
             value = results.get(name)
             if value is not None:
                 cv2.putText(
@@ -122,7 +110,6 @@ class ZwiftOCRExtractorFinal:
                     1,
                 )
 
-        # Draw powerup region
         x, y, w, h = self.powerup_region
         cv2.rectangle(debug_img, (x, y), (x + w, y + h), (255, 0, 255), 2)
         cv2.putText(
@@ -135,7 +122,6 @@ class ZwiftOCRExtractorFinal:
             1,
         )
 
-        # Save debug image
         debug_path = 'debug_ocr_output.jpg'
         cv2.imwrite(debug_path, debug_img)
         print(f'Debug visualization saved to: {debug_path}')
@@ -144,7 +130,6 @@ class ZwiftOCRExtractorFinal:
         """Validate extracted data against expected ranges"""
         validation = {'valid': True, 'warnings': [], 'field_status': {}}
 
-        # Check each field
         checks = {
             'speed': (0, 100, 'km/h'),
             'power': (0, 2000, 'W'),
@@ -167,7 +152,6 @@ class ZwiftOCRExtractorFinal:
             else:
                 validation['field_status'][field] = 'missing'
 
-        # Check data consistency
         if results.get('power') and results.get('speed'):
             if results['power'] > 300 and results['speed'] < 20:
                 validation['warnings'].append(
@@ -225,7 +209,6 @@ def main():
         print('Usage: python zwift_ocr_improved_final.py <image_path> [--validate]')
         return
 
-    # Check for validation mode
     validate_mode = '--validate' in sys.argv
 
     extractor = ZwiftOCRExtractorFinal(debug=True)
@@ -234,12 +217,10 @@ def main():
     print('\nExtracted Telemetry:')
     print('-' * 40)
 
-    # Display results
     for key, value in results.items():
         if value is not None:
             print(f'{key}: {value}')
 
-    # Validation mode
     if validate_mode:
         print('\n\nValidation Results:')
         print('-' * 40)
@@ -255,9 +236,7 @@ def main():
             for warning in validation['warnings']:
                 print(f'  - {warning}')
 
-    # Test against known values if available
     if 'normal_1_01_16_02_21' in image_path:
-        # Known values from the test screenshot
         expected = {
             'speed': 34,
             'distance': 6.4,
@@ -284,7 +263,6 @@ def main():
                 f'  {status_symbol} {field}: {details["actual"]} (expected: {details["expected"]})'
             )
 
-    # Save results
     output_file = f'ocr_results_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
     with open(output_file, 'w') as f:
         json.dump(

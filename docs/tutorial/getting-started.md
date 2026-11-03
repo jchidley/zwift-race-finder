@@ -1,90 +1,53 @@
-# Tutorial: Find Your First Zwift Race
+# Find your first race
 
-Find a Zwift race that fits your schedule by predicting how long it will take you to finish.
+The finder uses your Racing Score to select an event subgroup/course, then uses
+earlier personal race results to estimate duration. Fixed-time events use their
+declared duration. Unknown estimates are omitted rather than filled with category
+speeds. See [Quick Start](../../README.md#quick-start) for the shortest command path.
 
-## Before you start
+## Prepare
 
-You need:
-- Linux or WSL2 (Windows Subsystem for Linux)
-- Rust toolchain (`rustup` installed)
-- Build dependencies: `sudo apt-get install -y libssl-dev pkg-config`
-- Your Zwift Racing Score (find it in Zwift or the Zwift Companion app)
-
-If you do not have a current score after a break, follow [How to Return to Zwift Racing](../howto/RETURN_TO_RACING.md) before choosing a scored race.
-
-## Step 1: Install
-
-Clone and build the tool:
+Use Bash on Linux/WSL. If you need a checkout/build, install stable Rust with
+`rustup`; Debian/Ubuntu also need `libssl-dev` and `pkg-config`. Installation of
+missing system packages is a separate privileged action.
 
 ```bash
 git clone https://github.com/jchidley/zwift-race-finder.git
 cd zwift-race-finder
-cargo build --release
-cp target/release/zwift-race-finder ~/.local/bin/
+cargo build --release --bin zwift-race-finder
 ```
 
-You should see:
+A search calls the live API and can initialize/migrate local state. A fresh database
+has no route metadata or measured history. Back up existing state and follow the
+[client-route](../howto/CLIENT_ROUTE_DATA.md) and
+[measured-history](../howto/ZWIFTPOWER_EXPORT_STEPS.md) procedures for personal
+calculated estimates. Until then, fixed-duration events can still match.
 
-```
-Finished `release` profile [optimized] target(s) in ...
-```
+## Search by available time
 
-## Step 2: Find races around 30 minutes
-
-Run the tool with your Racing Score. We'll use 195 as an example (Category D):
+Replace the example score with your current score:
 
 ```bash
-zwift-race-finder --zwift-score 195 --duration 30 --tolerance 15
+./target/release/zwift-race-finder --zwift-score 195 --duration 45 --tolerance 5
 ```
 
-You should see a table of upcoming Zwift races estimated to last 15–45 minutes for a rider with your score. Each row shows the event name, start time, distance, and predicted duration.
+Success is a table of events estimated to take 40–50 minutes, or a clear no-match
+result with unknown-duration omissions disclosed. `--debug` explains exclusions;
+`--verbose` shows method/support. Score selects geometry, not your personal pace.
+Increasing `--days` cannot extend the live API's limited event coverage.
 
-If you see "No events found", try widening the search:
+## Save defaults or install on PATH
 
-```bash
-zwift-race-finder --zwift-score 195 --duration 60 --tolerance 30
-```
+[Configuration](../howto/CONFIG_MANAGEMENT.md) covers score and search preferences;
+weight, height and FTP are not model settings. [Installation](../howto/DEPLOYMENT.md)
+covers copying the built executable to your user PATH. Public searches require no
+credentials; [optional lookup credentials](../howto/SECRETS_SETUP.md) are separate.
 
-## Step 3: Try different event types
+## Compare predictions
 
-By default, only races are shown. See all event types:
-
-```bash
-zwift-race-finder --zwift-score 195 --duration 60 --tolerance 30 --event-type all
-```
-
-Notice the event type summary at the top — it tells you how many races, group rides, fondos, and workouts were found.
-
-## Step 4: Look further ahead
-
-Search the next 3 days instead of just today:
-
-```bash
-zwift-race-finder --zwift-score 195 --duration 30 --tolerance 15 --days 3
-```
-
-Note: Zwift's API returns a maximum of 200 events (~12 hours). Multi-day searches may not cover the full range.
-
-## Step 5: Save your defaults
-
-Create a config file so you don't have to type your score every time:
-
-```bash
-mkdir -p ~/.config/zwift-race-finder
-cp config.example.toml ~/.config/zwift-race-finder/config.toml
-```
-
-Edit `~/.config/zwift-race-finder/config.toml` and set your Racing Score, weight, and preferred duration.
-
-Now you can run with just:
-
-```bash
-zwift-race-finder
-```
-
-## What next
-
-- [How to import race data from Strava](../howto/DATA_IMPORT.md) — improve prediction accuracy with your actual race times
-- [How to deploy and update](../howto/DEPLOYMENT.md) — install the tool permanently
-- [Algorithm reference](../reference/ALGORITHMS.md) — understand how duration predictions work
-- [About Zwift racing tactics](../explanation/ZWIFT_RACING_TACTICS.md) — pack dynamics, positioning, attack timing
+Use race-only finishes, not saved activity durations that include other riding.
+The [algorithm reference](../reference/ALGORITHMS.md) explains the active model;
+the [baseline/recency comparison](../project-history/RECENCY_BASELINE_2026-11-03.md)
+records measured examples and their limitations. Importing additional history may
+change predictions without proving improved accuracy. [Status](../../STATUS.md)
+and [Tasks](../../TASKS.md) identify current work.

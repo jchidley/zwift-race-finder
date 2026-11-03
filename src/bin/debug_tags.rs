@@ -1,19 +1,3 @@
-//! Development tool: Analyze event tags from saved Zwift API data
-//!
-//! This is a development/debugging utility, not part of the main application.
-//! It reads a debug JSON file (debug_event_tags.json) containing saved API responses
-//! and analyzes tag patterns to help identify useful filtering strategies.
-//!
-//! The main program already includes tag filtering functionality (--tags, --exclude-tags).
-//! This tool helps developers understand what tags are available and their frequency.
-//!
-//! Usage:
-//! 1. Save API response to debug_event_tags.json
-//! 2. cargo run --bin debug_tags
-//!
-//! This tool is intentionally excluded from test coverage as it's for
-//! development analysis rather than production functionality.
-
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -34,11 +18,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::process::exit(1);
     }
 
-    // Read the debug JSON file
     let json_str = std::fs::read_to_string(path)?;
     let events: Vec<Value> = serde_json::from_str(&json_str)?;
 
-    // Analyze tags
     let mut tag_frequency: HashMap<String, usize> = HashMap::new();
     let mut tag_patterns: HashMap<String, Vec<String>> = HashMap::new();
 
@@ -46,10 +28,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if let Some(tags) = event["tags"].as_array() {
             for tag in tags {
                 if let Some(tag_str) = tag.as_str() {
-                    // Count frequency
                     *tag_frequency.entry(tag_str.to_string()).or_insert(0) += 1;
 
-                    // Extract patterns
                     if tag_str.contains('=') {
                         let parts: Vec<&str> = tag_str.splitn(2, '=').collect();
                         if parts.len() == 2 {
@@ -64,7 +44,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Print analysis
     println!("=== Most Common Tags ===");
     let mut sorted_tags: Vec<_> = tag_frequency.iter().collect();
     sorted_tags.sort_by(|a, b| b.1.cmp(a.1));
@@ -88,7 +67,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Look for filtering opportunities
     println!("\n=== Useful Filtering Tags ===");
     println!("Race series tags:");
     for (tag, _) in &tag_frequency {
