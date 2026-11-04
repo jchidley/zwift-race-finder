@@ -16,17 +16,26 @@ unfamiliar courses can use cross-course personal fitting. Score is not personal 
 
 R1 uses a 90-day half-life and requires three comparable same-route results within
 180 days before preferring that branch. It is private and experimental, not active.
-For the four recent examples, mean displayed error improves **2:31 → 1:51** over
-three non-EVR cases; EVR remains conditional on unverified course geometry.
-The historical replay is mixed and fails its predeclared improvement screen.
-See the [baseline/experiment record](docs/project-history/RECENCY_BASELINE_2026-11-03.md)
-for cohorts, selection counts, qualification and durable private evidence.
+Fresh source reconciliation resolves the two later results and EVR's reported
+route/distance. Separate private-copy replays give **2:42 → 2:19** mean displayed
+error over the four recent races, but **2:13 → 2:12** over seven supported races
+from 25 September through 4 November 2026. Selection is mixed; recent support is
+sparse and one race-labelled activity lacks a supported result. The original
+historical replay remains mixed and fails its predeclared improvement screen.
 
-Two supplied finishes already match precise source-qualified stored results. Two
-later results remain absent; their reported finishes do not supply missing official
-provenance. Do not duplicate existing results, import full activity durations or
-invent event identity. Analysis can continue without an import; supported refresh
-needs a fresh verified export and the [backup/preview procedure](docs/howto/ZWIFTPOWER_EXPORT_STEPS.md).
+**There is not enough recent evidence for a strong signal either way.** Keep B0
+active because it is useful, not because its weighting is proven optimal. Keep R1
+and current-form research open; neither the small gain nor the mixed selection
+results settle the question. The owner's impression of similar performances over
+two years is plausible but has not been systematically tested or established as a
+fitness measurement. See [Recency evidence and the open question](docs/explanation/RECENCY_EVIDENCE.md)
+for the working interpretation, limitations and what could change the decision.
+
+The [original baseline/experiment record](docs/project-history/RECENCY_BASELINE_2026-11-03.md)
+and frozen evidence remain unchanged. Fresh results were applied only to private
+analysis copies; normal history is unchanged and Stage 3/4 were not duplicated.
+Any production import still requires the [backup/preview procedure](docs/howto/ZWIFTPOWER_EXPORT_STEPS.md).
+Do not substitute activity durations or invent missing result identity.
 
 ## Validation and limitations
 

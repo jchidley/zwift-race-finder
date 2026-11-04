@@ -3,18 +3,25 @@
 The current objective is a useful personal race selector plus bounded comparisons
 against **`v0.3.0`**. [Status](STATUS.md) owns current results; the
 [baseline/experiment record](docs/project-history/RECENCY_BASELINE_2026-11-03.md)
-owns the completed B0/R1 comparison. R1 stays experimental.
+owns the original frozen B0/R1 comparison. The
+[recency evidence note](docs/explanation/RECENCY_EVIDENCE.md) records the expanded
+comparison and open interpretation: recent evidence is insufficient for a strong
+signal either way. R1 stays experimental; retaining B0 does not close research.
 
 ## Immediate plan — recent-performance relevance
 
-- [ ] Confirm the missing later races' official result/event identity and EVR
-  course. Reconcile a fresh supported export against backed-up history. Preserve
-  precise existing seconds; do not duplicate the two already stored results.
-- [ ] Continue baseline/R1 comparison with new source-qualified outcomes where
-  possible. The four inspected examples are useful diagnostics, not independent
-  holdouts. Preserve earlier-date training and report geometry qualifications.
+- [ ] Resolve the remaining source-coverage gap: a race-labelled activity in the
+  expanded period is absent from the supported results export. The two previously
+  missing later results and EVR geometry are now reconciled in private copies;
+  normal history is unchanged. Preserve exact seconds and avoid duplicate results.
+- [ ] Record unchanged B0/R1 predictions before new races, using identical geometry
+  and earlier history. Accumulate source-qualified outcomes without tuning to the
+  seven inspected results. Keep frozen and refreshed-data runs separate; report
+  geometry qualifications and missing-source coverage independently of model
+  unavailability. Do not treat inconclusive evidence as rejection or validation of
+  recency weighting, current-form adjustment or B0's existing policy.
 - [ ] Before another recency/current-form candidate, specify its mechanism and
-  evaluation protocol. Address a concrete limitation rather than tune these four
+  evaluation protocol. Address a concrete limitation rather than tune inspected
   races to perfection. Preserve cross-course estimates, source/rider boundaries,
   honest sparse support and unknown durations. A separate current-form adjustment
   remains open; useful baseline acceptance does not cancel research.
