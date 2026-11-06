@@ -25,7 +25,7 @@ These are complementary views, not four independent measurements: FIT and Sauce 
 
 ### Before the race
 
-1. Alongside the [dated private pacing plan](PACING_AND_RACE_EXPERIMENTS.md#s8--preserve-the-plan-before-evaluating-the-outcome), identify which existing recorder supplies each source, its version/configuration and private destination. Confirm readiness separately from historical success; the [recovered Sauce evidence](../project-history/COACH_STATUS_PRE_CONSOLIDATION.md#recovered-sauce-evidence--2026-11-04) is not a current launch instruction.
+1. Alongside the [dated private pacing plan](PACING_AND_RACE_EXPERIMENTS.md#s8--preserve-the-plan-before-evaluating-the-outcome), identify which existing recorder supplies each source, its version/configuration and private destination. Confirm readiness separately from historical success; the [recovered Sauce evidence](../reference/EVIDENCE_LIBRARY.md#coach-status-pre-consolidation) is not a current launch instruction.
 2. Plan a brief preflight with the existing bike/Sauce recording path: verify files actually accumulate usable samples and a timestamped health/status record. Start before the event lead-in and explicitly stop after the finish and short post-finish buffer. The selected Sauce workflow is open-ended start/stop, with no recording-duration cutoff or automatic race-finish detection; a bounded API startup timeout is separate. Leave the recording terminal open and account for growing disk use. Match actual race start/finish afterwards from FIT and reported result timing; record early termination or restart rather than overwriting the first session. Launches, device changes and account use retain their approval requirements.
 3. In a private bundle manifest, associate the rider and event/subgroup/category, numeric route ID, laps/distance, lead-in and expected start/finish rules. Keep supplied IDs and source versions unchanged. Identify each approved input by private path/hash, source and recorder session; note missing sources explicitly. Record device/source selection and any configured transformation relevant to comparing bike and client watts.
 4. Record time bases: original timestamps and timezone, source/device/game time, local receive time and clock synchronisation information where available. A receive timestamp includes transport/buffering delay; an unsynchronised device clock is not UTC. Avoid creating an artificial effort solely to align clocks during a race.
@@ -67,7 +67,7 @@ Hold relevant rider/equipment settings, route identity, lead-in, start condition
 
 ## Historical design and device evidence
 
-The [2026-10-30 combined bridge/multi-rider design](BRIDGE_AND_MULTI_RIDER_DESIGN_2026-10-30.md) is preserved byte-for-byte as historical evidence. Its host choices, language candidates, monitor uncertainty and bridge-first sequence are superseded by the new project's decisions, not active coach tasks.
+The [2026-10-30 combined bridge/multi-rider design](../reference/EVIDENCE_LIBRARY.md#bridge-and-multi-rider-design-2026-10-30) is preserved byte-for-byte as historical evidence. Its host choices, language candidates, monitor uncertainty and bridge-first sequence are superseded by the new project's decisions, not active coach tasks.
 
 Snapshot SHA-256: `2cac5da57b83815998253071223a2752e67dd6b1b02d3e71c2b4085b5bf2c679`. This is the source hash recorded by Fitness Bridge's handoff provenance; the former pathname now holds this ownership/integration note.
 

@@ -12,8 +12,8 @@ Use Bash on Linux/WSL. If you need a checkout/build, install stable Rust with
 missing system packages is a separate privileged action.
 
 ```bash
-git clone https://github.com/jchidley/zwift-race-finder.git
-cd zwift-race-finder
+git clone https://github.com/jchidley/zwift-racing.git
+cd zwift-racing
 cargo build --release --bin zwift-race-finder
 ```
 

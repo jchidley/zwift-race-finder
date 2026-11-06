@@ -1,6 +1,6 @@
 # Historical device diagnostics
 
-These files support the dated reports in [docs/reference](../../docs/README.md). They are not the coaching runtime, maintained Fitness Bridge components or permission to operate a device.
+These files support the dated reports retained in the [evidence library](../../docs/reference/EVIDENCE_LIBRARY.md). They are not the coaching runtime, maintained Fitness Bridge components or permission to operate a device.
 
 | File | Role and effects |
 |---|---|

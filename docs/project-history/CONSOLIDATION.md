@@ -32,16 +32,19 @@ application-state paths keep their Finder names. Coaching remains agent-assisted
 | Shared-library review procedure | `docs/howto/SHARED_LIBRARY_REVIEW.md` |
 | Unfinished review/planning work | Root `TASKS.md` |
 | Current workflow and project instructions | Root README, AGENTS and docs map |
-| Previous Coach status and detailed receipts | `COACH_STATUS_PRE_CONSOLIDATION.md` |
-| Dated hardware, bridge and research reports | `docs/reference/`, labelled historical |
-| Original bridge design | `docs/explanation/BRIDGE_AND_MULTI_RIDER_DESIGN_2026-10-30.md`, byte-preserved |
+| Previous Coach status and detailed receipts | FitnessData; [evidence index](../reference/EVIDENCE_LIBRARY.md) |
+| Detailed bench, operational and machine inventories | FitnessData; generic research remains in `docs/reference/` |
+| Original bridge design | Byte-preserved in the FitnessData archive and original Git history |
 | Historical diagnostic source and upstream notice | `tools/historical-coach/` |
 | Imported project licence notices | `coach-licenses/`; MIT copyright also retained at root |
 
 Original Coach README, startup instructions, task queue and docs index remain
 available in its Git history, not competing active project entrypoints.
-Historical report links are adjusted to retained destinations; their dated
-ownership statements do not supersede the root instructions.
+Detailed report links now lead to the evidence-library index. The owner clarified
+that this is a storage-ownership decision, not a confidentiality concern: original
+commits are retained publicly without sanitization or history rewriting.
+The private library retains the original six-commit Coach bundle, original tracked
+checkpoint and combined reports with exact provenance and verified-copy receipts.
 
 ## Paths and remaining lifecycle work
 
@@ -56,8 +59,9 @@ unchanged. Repository consolidation is not publication of private reviews or
 approval to change live acquisition. Future publications must retain exact
 artifact/destination approval and separate verification receipts.
 
-Remote publication, rename, old Coach retirement and the canonical checkout move
-must be verified explicitly; local integration alone does not establish them.
+GitHub rename, publication and Coach archival are approved; their observed result
+belongs in STATUS.md. Coach retirement means superseded/read-only archival, not
+deletion. The canonical local checkout move requires a new Pi session handoff.
 Cross-project maintained references should be updated from their owning sessions,
 not by rewriting historical evidence or startup files across unrelated projects.
 

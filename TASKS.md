@@ -63,8 +63,8 @@ not certify all historical findings fixed or turn untriaged ideas into requireme
 
 ### Standards adoption
 
-- [x] Adopt S1–S4 as documentation only (D1, 2026-11-03): independent recorded review, explicit numerical semantics, narrowly selected examples, and qualified/private evidence. See the [contract](docs/explanation/FIRST_RIDE_REVIEW.md#adopted-standards--2026-11-03) and [adoption scope](docs/project-history/COACH_STATUS_PRE_CONSOLIDATION.md#standards-adoption--2026-11-03).
-- [x] Document D2: clarified S4 and adopted S5–S8, including research applicability limits and the private before/after workflow. See [D2 scope](docs/project-history/COACH_STATUS_PRE_CONSOLIDATION.md#d2-adoption--2026-11-03). Documentation adoption is not implementation or physiological acceptance.
+- [x] Adopt S1–S4 as documentation only (D1, 2026-11-03): independent recorded review, explicit numerical semantics, narrowly selected examples, and qualified/private evidence. See the [contract](docs/explanation/FIRST_RIDE_REVIEW.md#adopted-standards--2026-11-03) and [adoption scope](docs/reference/EVIDENCE_LIBRARY.md#coach-status-pre-consolidation).
+- [x] Document D2: clarified S4 and adopted S5–S8, including research applicability limits and the private before/after workflow. See [D2 scope](docs/reference/EVIDENCE_LIBRARY.md#coach-status-pre-consolidation). Documentation adoption is not implementation or physiological acceptance.
 - [ ] When an approved implementation needs them, enforce explicit observation/parameter/evidence boundaries and focused positive/negative checks (E2). No physiological model framework, runtime or application gate selected.
 - [ ] With the first justified coaching implementation, enforce S2/S3 through a validated input boundary and synthetic positive/negative regressions with independently calculated expectations (E1). No runtime or exact implementation files selected yet; existing metric-validation work below remains open.
 
@@ -78,7 +78,7 @@ Select the event with the existing finder. Follow the [race-planning/review cont
 - [ ] Prepare and preserve a dated private plan: likely selections and durations, conditional actions, recovery opportunities, fallback, evidence bases and unknowns. Use the supplied GoldenCheetah summary as qualified prior work, not a newly verified or calibrated capacity profile.
 - [ ] If stronger claims need it, obtain an explicitly supplied durable private evidence location and verify only the relevant prior-work evidence. Do not rescan the profile automatically; keep predictive claims limited if evidence is unavailable.
 - [ ] Prepare the [four-source recording plan](docs/explanation/BRIDGE_AND_MULTI_RIDER_DESIGN.md#race-recording-integration): identify existing bike/Sauce recorder outputs and private destinations, approved preflight, open-ended explicit start/stop and post-race timing alignment; arrange explicit Zwift FIT and ZwiftPower inputs. Confirm present Sauce readiness/entitlement, not merely historical success. Do not build new acquisition here.
-- [x] Approve and install the open-ended Sauce launcher/recorder, preserve verified backups, and pass installed non-login preflight and 132 offline Windows recorder tests; see [installation evidence and limits](docs/project-history/COACH_STATUS_PRE_CONSOLIDATION.md#open-ended-sauce-candidate--2026-11-05).
+- [x] Approve and install the open-ended Sauce launcher/recorder, preserve verified backups, and pass installed non-login preflight and 132 offline Windows recorder tests; see [installation evidence and limits](docs/reference/EVIDENCE_LIBRARY.md#coach-status-pre-consolidation).
 - [ ] Separately qualify actual terminal start/stop and live race coverage; installed synthetic checks do not establish those results.
 - [ ] On approved supplied inputs, verify rider/event identity, inventory fields and per-source coverage, then align bike telemetry, Zwift FIT and Sauce clocks with held-out checks. Retain raw timestamps, offset/drift uncertainty and gaps; do not reuse the old fixed offset blindly.
 - [ ] After the race, compare the preserved plan with supported effort/tactical evidence and the supplied dated ZwiftPower result/status. Reconcile boundaries and disagreements; separate measurements, adherence and uncertain explanations. Missing sources narrow claims but do not block FIT-only review; optional video or immediate notes may help.
@@ -88,7 +88,7 @@ Tool development, a maximal test and model calibration are not prerequisites for
 
 ### Shared-library consumption
 
-- [x] Document and test the explicit-path, agent-assisted FIT/ZwiftPower procedure against the approved November 5 library session, with a new local review and private provenance; see [pilot scope and limits](docs/project-history/COACH_STATUS_PRE_CONSOLIDATION.md#shared-library-pilot--2026-11-05).
+- [x] Document and test the explicit-path, agent-assisted FIT/ZwiftPower procedure against the approved November 5 library session, with a new local review and private provenance; see [pilot scope and limits](docs/reference/EVIDENCE_LIBRARY.md#coach-status-pre-consolidation).
 - [ ] If publication is wanted, confirm the exact new Coach library destination and finalized artifact list first. Do not overwrite the frozen review or update the shared manifest implicitly.
 
 This pilot does not implement a maintained review command, select the application runtime or close the synthetic-validation gates below.
@@ -97,7 +97,7 @@ This pilot does not implement a maintained review command, select the applicatio
 
 Contract: [FIRST_RIDE_REVIEW.md](docs/explanation/FIRST_RIDE_REVIEW.md).
 
-Initial approved-path intake, read-only field/time inspection and exploratory recommendations have occurred; see [current state and evidence limits](docs/project-history/COACH_STATUS_PRE_CONSOLIDATION.md#first-milestone-and-next-action). These are not a completed implementation or accepted first-review milestone.
+Initial approved-path intake, read-only field/time inspection and exploratory recommendations have occurred; see [current state and evidence limits](docs/reference/EVIDENCE_LIBRARY.md#coach-status-pre-consolidation). These are not a completed implementation or accepted first-review milestone.
 
 - [ ] Select the smallest suitable parser/runtime and scope the local review command from intake findings; no placeholder application or simulator. Python/uv with `fitdecode` remains a candidate, not an adopted decision.
 - [ ] Implement a reproducible read-only review command with data-quality limits, declared-policy effort summaries, inspectable time blocks/windows and provisional phase labels. This is proposed implementation work, not authorized by documentation reconciliation.

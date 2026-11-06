@@ -53,7 +53,8 @@ Superseded audits, learning logs and research reports are available in Git at
 `git show v0.3.0:PROJECT_WISDOM.md` retrieves the old learning log. This cleanup does
 not certify old security findings resolved or adopt historical proposals as current
 requirements. `archive/` remains immutable historical evidence. Sensor acquisition, protocol output and physical control remain external.
-Coach device reports in `reference/`, the dated original bridge design and
-[diagnostic scripts](../tools/historical-coach/README.md) are historical evidence,
+Detailed Coach device reports and the original bridge design live in FitnessData,
+located through the [evidence library index](reference/EVIDENCE_LIBRARY.md).
+[Diagnostic scripts](../tools/historical-coach/README.md) remain historical source,
 not active implementation backlog. See the [consolidation record](project-history/CONSOLIDATION.md)
-and [pre-consolidation Coach status](project-history/COACH_STATUS_PRE_CONSOLIDATION.md).
+and [pre-consolidation Coach status](reference/EVIDENCE_LIBRARY.md#coach-status-pre-consolidation).

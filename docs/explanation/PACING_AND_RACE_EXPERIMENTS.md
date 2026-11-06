@@ -73,7 +73,7 @@ The owner supplied a summary from another inspection session. The architecture a
 
 The supplied session identified `PowerMeterTx.py` and `standalone_power.py` in `C:\Users\jackc\git\zwift-offline-oldnapalm` as a partial ANT+ terrain-responsive prototype. It reportedly uses three power levels, not a fatigue-aware racing strategy. Reinspect those files and verify hardware/client compatibility before adopting them.
 
-The separately inspected netbrain/zwift documentation says ANT+ is unsupported. Its multi-instance support therefore does not establish compatibility with that prototype. See [the ecosystem evidence](../reference/ZWIFT_ECOSYSTEM.md).
+The separately inspected netbrain/zwift documentation says ANT+ is unsupported. Its multi-instance support therefore does not establish compatibility with that prototype. See [the ecosystem evidence](../reference/EVIDENCE_LIBRARY.md#zwift-ecosystem).
 
 ## Two distinct questions
 
@@ -117,7 +117,7 @@ Validate this project's actual inputs and outputs, not another project's backlog
 - Prefer structured inputs. Any optional OCR or inherited importer needs its own scoped qualification before use; it is not a prerequisite or an assigned repair task.
 - Begin activity intake read-only with explicit private paths.
 
-The earlier [session handoff](../reference/SESSION_HANDOFF_2026-10-30.md) is historical reference only, not an implementation dependency or active checklist.
+The earlier [session handoff](../reference/EVIDENCE_LIBRARY.md#session-handoff-2026-10-30) is historical reference only, not an implementation dependency or active checklist.
 
 ## Scope safeguards
 

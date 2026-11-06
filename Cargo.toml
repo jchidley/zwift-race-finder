@@ -4,8 +4,8 @@ version = "0.3.0"
 edition = "2021"
 authors = ["Jack Chidley"]
 description = "Find Zwift races that match your target duration and racing score"
-homepage = "https://github.com/jchidley/zwift-race-finder"
-repository = "https://github.com/jchidley/zwift-race-finder"
+homepage = "https://github.com/jchidley/zwift-racing"
+repository = "https://github.com/jchidley/zwift-racing"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 

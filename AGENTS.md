@@ -2,7 +2,7 @@
 
 ## Working root and scope
 
-Run commands and Pi sessions from the canonical checkout root, `/home/jack/git/zwift-race-finder` on this machine. This root file applies repository-wide; optional OCR tooling is under `tools/ocr/` with its own setup documentation. Human usage starts at [README.md](README.md). This is the combined finder/planning/review project; the existing Rust package, executable and state paths retain their Finder names.
+Run commands and Pi sessions from the canonical checkout root, `/home/jack/git/zwift-racing` on this machine. This root file applies repository-wide; optional OCR tooling is under `tools/ocr/` with its own setup documentation. Human usage starts at [README.md](README.md). This is the combined finder/planning/review project; the existing Rust package, executable and state paths retain their Finder names.
 
 ## Commands and validation
 

@@ -29,8 +29,8 @@ the primary analysis candidate; cloud training services below are catalogue
 references, not selected dependencies. TrainerRoad is excluded. The official
 Sauce packaged product explicitly requires Patreon; its newer GPL source is a
 separate source-build question. See [actual Sauce download/headless/offline
-review](SAUCE_DOWNLOAD_REVIEW_2026-10-30.md) and the [expanded local bridge
-comparison](BRIDGE_COMPARISON_2026-10-30.md) before adoption.
+review](EVIDENCE_LIBRARY.md#sauce-download-review-2026-10-30) and the [expanded local bridge
+comparison](EVIDENCE_LIBRARY.md#bridge-comparison-2026-10-30) before adoption.
 
 ## Research shortlist (not adopted dependencies)
 
@@ -219,7 +219,7 @@ was not verified. Use the verified repository above for navigation.
 
 ### Hardware-specific leads (original search evidence)
 
-**Later source follow-up:** [expanded bridge comparison](BRIDGE_COMPARISON_2026-10-30.md)
+**Later source follow-up:** [expanded bridge comparison](EVIDENCE_LIBRARY.md#bridge-comparison-2026-10-30)
 now includes local FortiusANT and Zwack source, QZ multi-sport profiles and pinned
 upstream SmartSpin2k FTMS/Dircon/ERG source. In particular, Zwack's FTMS command
 forwarding is disabled in the inspected implementation. The table below preserves
@@ -265,5 +265,5 @@ interfaces, not interchangeable components.
 6. Consider physical resistance integration only in the owning bike-controller
    project, with its current interfaces and explicit task scope.
 
-See also [repository/digital-garden notes](REPOSITORY_RESEARCH_2026-10-30.md)
-and [existing ecosystem inventory](ZWIFT_ECOSYSTEM.md).
+See also [repository/digital-garden notes](EVIDENCE_LIBRARY.md#repository-research-2026-10-30)
+and [existing ecosystem inventory](EVIDENCE_LIBRARY.md#zwift-ecosystem).

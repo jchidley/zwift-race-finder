@@ -9,7 +9,7 @@ predictions are experimental, not guaranteed finish times.
 ## Quick Start
 
 Use **Bash on Linux or WSL2**, from the root of an existing checkout
-(`~/git/zwift-race-finder` on the maintainer's machine). Building requires Rust and
+(`~/git/zwift-racing` on the maintainer's machine). Building requires Rust and
 Cargo via `rustup` (stable toolchain; no minimum Rust version is declared) and,
 on Debian/Ubuntu, `libssl-dev` and `pkg-config`. See the
 [setup tutorial](docs/tutorial/getting-started.md) for obtaining a checkout.
@@ -92,13 +92,13 @@ and a before/after MAE on the same populated data, not an empty database.
 The exporter is **browser-console JavaScript, not a Bash or Node.js program**.
 On the maintainer's WSL checkout, its full path is:
 
-`/home/jack/git/zwift-race-finder/tools/import/zwiftpower/export_profile_history.js`
+`/home/jack/git/zwift-racing/tools/import/zwiftpower/export_profile_history.js`
 
 Display it from any Bash working directory (adjust the checkout path on another
 machine):
 
 ```bash
-cat /home/jack/git/zwift-race-finder/tools/import/zwiftpower/export_profile_history.js
+cat /home/jack/git/zwift-racing/tools/import/zwiftpower/export_profile_history.js
 ```
 
 1. Open **your own logged-in ZwiftPower profile/results page** and wait for the

@@ -7,12 +7,14 @@ The local integration preserves Finder through `a55d488` and Coach through
 The combined workflow is find → plan → preserve predictions → review.
 The working command, Rust package, estimator and application-state paths are
 unchanged. Planning/review remain agent-assisted, not a delivered application.
-Coach's [prior status and evidence limits](docs/project-history/COACH_STATUS_PRE_CONSOLIDATION.md)
+Coach's [prior status and evidence limits](docs/reference/EVIDENCE_LIBRARY.md#coach-status-pre-consolidation)
 remain historical; unfinished work is reconciled into the root task queue.
 The shared-library consumer pilots are complete for their tested workflows;
 new Finder/Coach publication proposals remain separate and unexecuted here.
-No OneDrive or frozen evidence paths are moved. Cloud sync/offline retention
-has not been rechecked. See the [migration record](docs/project-history/CONSOLIDATION.md).
+Detailed Coach/run evidence is now retained in the FitnessData archive described
+by the [evidence library index](docs/reference/EVIDENCE_LIBRARY.md). Existing
+recording/export paths and frozen evidence remain unchanged. Cloud sync/offline
+retention has not been rechecked. See the [migration record](docs/project-history/CONSOLIDATION.md).
 
 ### Integration validation
 
@@ -41,20 +43,40 @@ The reviewer verified all 22 unfinished Coach tasks were retained and confirmed
 source, licence and original-design byte preservation. This was a context-isolated
 same-family review, not cross-family independent verification.
 
-### Publication hold
+### Evidence ownership — 2026-11-06
 
-The owner approved public consolidation including Coach history. A subsequent
-reachable-history audit covered all six Coach commits through `b6bdccc`, 50
-unique text blobs (427,778 bytes). No embedded credentials, private keys, raw
-activity files or bulk proprietary exports were found within that bounded audit.
-A parent spot-check confirmed real session/activity filenames and timestamps in
-the shared-library procedure and private-network/device inventory in historical
-reports. These occur in retained ancestry: a tip-only edit cannot remove them.
-Public push/rename and Coach retirement are paused pending explicit disclosure
-approval or a separately authorized sanitization plan. No history rewrite is
-performed. Audit limits include unavailable specialist secret scanners and no
-legal clearance of small client-derived factual excerpts. Finder's existing
-history was not part of this Coach-specific audit.
+The owner clarified that the issue is storage ownership, not confidentiality:
+original Git history stays unchanged. Reusable contracts, code, tests and concise
+status belong here; detailed run/bench evidence and machine/session inventories
+belong in FitnessData. The [evidence index](docs/reference/EVIDENCE_LIBRARY.md)
+records the exact archive and receipt. It retains the original Coach bundle,
+39-file checkpoint and pre-relocation combined reports. PowerShell 7 verified
+59 artifact copies; independent mounted-byte verification matched all hashes
+and the receipt. No originals, existing session indexes or older receipts changed.
+
+Generic shared-library procedures now take explicit placeholder paths rather
+than embedding a particular rider session. Detailed reports are removed from
+the maintained tree after verified archival, not erased from Git history.
+The earlier privacy-driven publication hold is superseded by this ownership
+clarification; no history sanitization or rewriting is requested or performed.
+The bounded Coach-history audit found no embedded credentials or raw activity
+payloads; it is not comprehensive secret-detection or legal clearance.
+
+### Repository lifecycle
+
+GitHub rename is verified: the public repository is now
+[`jchidley/zwift-racing`](https://github.com/jchidley/zwift-racing), and local
+`origin` uses that URL. Package/executable/state names remain unchanged.
+Current README, tutorial, Cargo homepage/repository metadata and bootstrap hints
+use the new identity. The local checkout move to `~/git/zwift-racing` is the final
+session handoff; frozen absolute paths remain untouched historical evidence.
+Combined-content publication and old Coach archival are verified separately below.
+
+Documentation relocation checks on the tree based on `2bc701c`: 154 changed
+Markdown links/anchors, all 58 maintained Bash example blocks, bootstrap Bash
+syntax, five evaluator tests and `git diff --check` passed. Rust source/tests,
+Cargo.lock, CI and archive are unchanged; only Cargo URL metadata changed.
+These checks do not replace the previously qualified suite/build results above.
 
 ## Current focus
 
