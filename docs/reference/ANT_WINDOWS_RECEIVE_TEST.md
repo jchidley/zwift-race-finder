@@ -88,8 +88,12 @@ corruption rejection, power/cadence parsing and zero versus unavailable values.
 They use synthetic bytes, not personal recordings. Ruff checks and self-checks
 were run; live tests establish the exercised Windows path separately.
 
-Example native PowerShell 7 invocation (after selecting the installed managed
-runtime and confirming no Zwift game or other stick consumer is running):
+Historical native PowerShell 7 invocation from the original Coach checkout
+(after selecting the installed managed runtime and confirming no Zwift game or
+other stick consumer is running). The path below records the earlier bench
+setup, not a current launch command. The retained source now lives at
+`tools/historical-coach/ant_power_receive.py` in the combined checkout; any new
+device test requires explicit approval and verified current machine paths:
 
 ```powershell
 $python = Join-Path $env:APPDATA 'uv\python\cpython-3.13.7-windows-x86_64-none\python.exe'

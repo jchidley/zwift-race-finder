@@ -91,7 +91,7 @@ Replaying a **power trace** feeds recorded inputs into a new simulation, which c
 
 Client route definitions provide numeric identity, distance, lead-ins, and course structure. Extracted checkpoints may support route progress and elevation profiles after coordinate units and axis/segment semantics are verified. They do not supply the complete aerodynamic, drafting, cornering, or rolling-resistance model.
 
-Race-finder owns its own route collection/import and takes care of itself. No finder changes, repairs or validation gate this project. When a concrete coaching task needs route/event data, accept an explicit supplied snapshot with provenance and timing semantics; do not share writable databases or commit proprietary assets.
+The finder is this combined project’s race-selection component and owns route collection/import through the existing database modules. Recorded review does not require finder changes or repairs; any actual finder changes use their applicable validation gates. When a concrete review task needs route/event data, preserve an explicit snapshot with provenance and timing semantics. Review calculations must not write application SQL or commit proprietary assets.
 
 ## Meaningful trial protocol
 

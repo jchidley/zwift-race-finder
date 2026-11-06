@@ -68,13 +68,13 @@ of a faulty stick.
 
 ## Reproducible diagnostic
 
-Source: [scripts/ant_usb_info.c](../../tools/historical-coach/ant_usb_info.c).
+Source: [tools/historical-coach/ant_usb_info.c](../../tools/historical-coach/ant_usb_info.c).
 This is a diagnostic utility, not the application runtime or a bridge scaffold.
 
 Build on a machine with a C compiler and libusb headers:
 
 ```bash
-cc -std=c11 -Wall -Wextra -Werror -O2 scripts/ant_usb_info.c -lusb-1.0 -o /tmp/ant-usb-info
+cc -std=c11 -Wall -Wextra -Werror -O2 tools/historical-coach/ant_usb_info.c -lusb-1.0 -o /tmp/ant-usb-info
 ```
 
 The executable takes exactly `1008` or `1009`. It requires explicit approved

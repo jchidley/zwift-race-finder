@@ -34,6 +34,28 @@ recorded debt. No tests, snapshots or gates were changed or suppressed.
 Private command outputs and path mapping: investigation `20261106-consolidation`
 under `~/.local/share/zwift-race-finder/investigations/`.
 
+Integration review of `20379d4` found a stale separate-project statement in the
+active pacing contract and one moved diagnostic build path. Both are corrected;
+the historical Windows invocation is now explicitly labelled historical-only.
+The reviewer verified all 22 unfinished Coach tasks were retained and confirmed
+source, licence and original-design byte preservation. This was a context-isolated
+same-family review, not cross-family independent verification.
+
+### Publication hold
+
+The owner approved public consolidation including Coach history. A subsequent
+reachable-history audit covered all six Coach commits through `b6bdccc`, 50
+unique text blobs (427,778 bytes). No embedded credentials, private keys, raw
+activity files or bulk proprietary exports were found within that bounded audit.
+A parent spot-check confirmed real session/activity filenames and timestamps in
+the shared-library procedure and private-network/device inventory in historical
+reports. These occur in retained ancestry: a tip-only edit cannot remove them.
+Public push/rename and Coach retirement are paused pending explicit disclosure
+approval or a separately authorized sanitization plan. No history rewrite is
+performed. Audit limits include unavailable specialist secret scanners and no
+legal clearance of small client-derived factual excerpts. Finder's existing
+history was not part of this Coach-specific audit.
+
 ## Current focus
 
 Use the personal finder for race selection while comparing recency/current-form
