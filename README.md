@@ -71,6 +71,33 @@ For development checks and test-state isolation, see [AGENTS.md](AGENTS.md), the
 changes require `cargo test --lib test_race_predictions_accuracy -- --nocapture`
 and a before/after MAE on the same populated data, not an empty database.
 
+### Export your latest ZwiftPower results
+
+The exporter is **browser-console JavaScript, not a Bash or Node.js program**.
+On the maintainer's WSL checkout, its full path is:
+
+`/home/jack/git/zwift-race-finder/tools/import/zwiftpower/export_profile_history.js`
+
+Display it from any Bash working directory (adjust the checkout path on another
+machine):
+
+```bash
+cat /home/jack/git/zwift-race-finder/tools/import/zwiftpower/export_profile_history.js
+```
+
+1. Open **your own logged-in ZwiftPower profile/results page** and wait for the
+   results table to load. Check that your latest race is listed.
+2. Press **F12**, then select **Console**.
+3. Copy the entire script shown by `cat`, paste it into the browser console,
+   and press Enter. Do not paste the `cat` command itself.
+4. The browser downloads `zwiftpower-history-<timestamp>.json`. Keep this private
+   file outside Git; provide its full path when asking for analysis or import.
+
+The script checks result ownership and that the complete table is loaded.
+If it reports an error, do not bypass those checks. Exporting does not update the
+finder's database. Follow the [backup, preview and import procedure](docs/howto/ZWIFTPOWER_EXPORT_STEPS.md)
+when ready to apply it; do not share cookies or credentials.
+
 ## Configuration, data, and limitations
 
 - Optional defaults: [config.example.toml](config.example.toml). On Linux, save
