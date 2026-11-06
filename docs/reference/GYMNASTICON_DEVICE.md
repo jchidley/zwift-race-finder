@@ -1,5 +1,8 @@
 # Gymnasticon card and live device
 
+Historical Coach evidence retained during consolidation. Current state and ownership
+are in the root [status](../../STATUS.md) and [documentation map](../README.md). Dated claims below are not current acceptance.
+
 ## Current board after hardware move
 
 The card is now running on **Raspberry Pi Zero 2 Rev 1.0** (owner: Zero 2 W),

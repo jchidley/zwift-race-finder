@@ -1,6 +1,9 @@
 # Sauce headless/offline and actual download review — 2026-10-30
 
-This is the 2026-10-30 archive/source inspection only. [Later live capture and FIT-alignment evidence](../../STATUS.md#recovered-sauce-evidence--2026-11-04) was recovered on 2026-11-04; the no-launch statements below describe this inspection, not all subsequent testing.
+Historical Coach evidence retained during consolidation. Current state and ownership
+are in the root [status](../../STATUS.md) and [documentation map](../README.md). Dated claims below are not current acceptance.
+
+This is the 2026-10-30 archive/source inspection only. [Later live capture and FIT-alignment evidence](../project-history/COACH_STATUS_PRE_CONSOLIDATION.md#recovered-sauce-evidence--2026-11-04) was recovered on 2026-11-04; the no-launch statements below describe this inspection, not all subsequent testing.
 
 ## Result
 

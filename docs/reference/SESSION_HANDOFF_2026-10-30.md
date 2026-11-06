@@ -1,5 +1,8 @@
 # Race-finder session handoff — 2026-10-30
 
+Historical Coach evidence retained during consolidation. Current state and ownership
+are in the root [status](../../STATUS.md) and [documentation map](../README.md). Dated claims below are not current acceptance.
+
 ## Historical reference — not an active coach work plan
 
 The owner subsequently directed that **finder take care of itself**. Retain this
@@ -112,7 +115,7 @@ The source repository's privacy issues are another reason not to bulk-copy datas
 
 The private GitHub repository exists with `main`, Actions disabled, and the README plus two licence files. The local coach directory has no `.git`; instructions and other documents remain local/unpublished. This is the intentionally unfinished linking/publication step, not evidence that GitHub creation failed.
 
-Remote settings/content were verified in M/tool `100b26b1` (2026-10-30T08:28:42Z). This review rechecked only the local `.git` absence and did not reauthenticate, initialize Git, add a remote, commit, or push. The user's explicit note is M/user `5251dd8a`. Continue from the canonical coach project session and preserve remote bootstrap history when that separate step is authorized. See [setup evidence](GITHUB_SETUP_PREVIEW.md) and [current status](../../STATUS.md).
+Remote settings/content were verified in M/tool `100b26b1` (2026-10-30T08:28:42Z). This review rechecked only the local `.git` absence and did not reauthenticate, initialize Git, add a remote, commit, or push. The user's explicit note is M/user `5251dd8a`. Continue from the canonical coach project session and preserve remote bootstrap history when that separate step is authorized. See [setup evidence](GITHUB_SETUP_PREVIEW.md) and [current status](../project-history/COACH_STATUS_PRE_CONSOLIDATION.md).
 
 ## Source index
 

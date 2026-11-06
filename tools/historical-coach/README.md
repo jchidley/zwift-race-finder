@@ -1,6 +1,6 @@
 # Historical device diagnostics
 
-These files support the dated reports in [docs/reference](../docs/README.md). They are not the coaching runtime, maintained Fitness Bridge components or permission to operate a device.
+These files support the dated reports in [docs/reference](../../docs/README.md). They are not the coaching runtime, maintained Fitness Bridge components or permission to operate a device.
 
 | File | Role and effects |
 |---|---|
@@ -23,10 +23,10 @@ The historical Gymnasticon UDP endpoint listens on `0.0.0.0:3000` without authen
 Radio-free checks, using existing runtimes only:
 
 ```bash
-uv run --offline --no-project --managed-python python scripts/ant_power_receive.py --self-test
-uv run --offline --no-project --managed-python python scripts/test_ant_receiver_config.py
-node --check scripts/patch_gymnasticon_bot.cjs
-node scripts/test_gymnasticon_bot_input.cjs
+uv run --offline --no-project --managed-python python tools/historical-coach/ant_power_receive.py --self-test
+uv run --offline --no-project --managed-python python tools/historical-coach/test_ant_receiver_config.py
+node --check tools/historical-coach/patch_gymnasticon_bot.cjs
+node tools/historical-coach/test_gymnasticon_bot_input.cjs
 ```
 
 These are diagnostic regressions, not tests of a coaching application or the new Rust bridge.

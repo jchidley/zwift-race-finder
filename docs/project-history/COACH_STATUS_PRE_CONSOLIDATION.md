@@ -1,5 +1,8 @@
 # Status
 
+Historical Coach evidence retained during consolidation. Current state and ownership
+are in the root [status](../../STATUS.md) and [documentation map](../README.md). Dated claims below are not current acceptance.
+
 ## Current state — 2026-11-05
 
 This project owns recorded-ride reviews, practical pacing plans and higher-level controlled strategy experiments. One explicitly supplied private FIT activity has been inspected read-only and an exploratory ride review produced in the project conversation. No maintained coaching application, intake/report command or synthetic coaching regression suite exists yet. A fresh durable private FIT/ZwiftPower review now exists for the [shared-library pilot](#shared-library-pilot--2026-11-05); it does not complete the full first-review milestone.
@@ -8,7 +11,7 @@ This project owns recorded-ride reviews, practical pacing plans and higher-level
 
 ## Shared-library pilot — 2026-11-05
 
-The [explicit-path procedure](docs/how-to/SHARED_LIBRARY_REVIEW.md) now connects
+The [explicit-path procedure](../howto/SHARED_LIBRARY_REVIEW.md) now connects
 Coach's agent-assisted review workflow to the private FitnessData library.
 The central root README owns its convention; Coach owns only its completed
 review/plan/experiment evidence. No maintained executable was found to redirect,
@@ -60,17 +63,17 @@ frozen script as maintained tooling.
 - Local main tracks origin/main; the approved package was committed and pushed at `78a7bb224443dcd9220860793c687bf58fc43447`, preserving the bootstrap history. The verification receipt below records that publication checkpoint.
 - The owner-approved complete package is published: README, .gitignore, AGENTS, STATUS, TASKS and all current docs/scripts. GitHub API verification matched all 38 file path/mode/blob entries at the publication checkpoint. Existing licence files and README template sections are unchanged.
 
-Preparation and publication evidence is kept outside the repository at ~/.local/share/zwift-race-coach-setup/. The earlier approved bootstrap is documented in [GITHUB_SETUP_PREVIEW.md](docs/reference/GITHUB_SETUP_PREVIEW.md).
+Preparation and publication evidence is kept outside the repository at ~/.local/share/zwift-race-coach-setup/. The earlier approved bootstrap is documented in [GITHUB_SETUP_PREVIEW.md](../reference/GITHUB_SETUP_PREVIEW.md).
 
 ## First milestone and next action
 
-[First ride-review contract](docs/explanation/FIRST_RIDE_REVIEW.md): inspect one approved private activity, report supported effort patterns and data quality, then add an event-specific pacing plan when event/rider context is available.
+[First ride-review contract](../explanation/FIRST_RIDE_REVIEW.md): inspect one approved private activity, report supported effort patterns and data quality, then add an event-specific pacing plan when event/rider context is available.
 
 The activity-path prerequisite was supplied and used for read-only inspection; no personal directories were searched and no activity was copied into the checkout. Recorded review does not depend on Fitness Bridge implementation or live telemetry.
 
-**Selected next workflow:** the owner will use the independent race-finder project to select a suitable event, then prepare and review that race here. The immediate missing input is an event link or supplied route/format snapshot with a rider objective. Preserve a dated private plan, then compare it with the approved completed recording under the [before-and-after standards](docs/explanation/PACING_AND_RACE_EXPERIMENTS.md#race-planning-and-review-standards--d2). Supplied rider evidence can support a conditional plan without a simulator, a new maximal test or a reusable command.
+**Selected next workflow:** the owner will use the independent race-finder project to select a suitable event, then prepare and review that race here. The immediate missing input is an event link or supplied route/format snapshot with a rider objective. Preserve a dated private plan, then compare it with the approved completed recording under the [before-and-after standards](../explanation/PACING_AND_RACE_EXPERIMENTS.md#race-planning-and-review-standards--d2). Supplied rider evidence can support a conditional plan without a simulator, a new maximal test or a reusable command.
 
-The owner now requires planning for [bike telemetry, Zwift FIT, Sauce and ZwiftPower together](docs/explanation/BRIDGE_AND_MULTI_RIDER_DESIGN.md#race-recording-integration): source roles, existing-recorder readiness, private input provenance, event boundaries, clock alignment, coverage and result reconciliation. This is a documentation plan, not a delivered integration or confirmation that all four sources are currently recording. Missing sources must limit claims rather than block useful FIT-only review.
+The owner now requires planning for [bike telemetry, Zwift FIT, Sauce and ZwiftPower together](../explanation/BRIDGE_AND_MULTI_RIDER_DESIGN.md#race-recording-integration): source roles, existing-recorder readiness, private input provenance, event boundaries, clock alignment, coverage and result reconciliation. This is a documentation plan, not a delivered integration or confirmation that all four sources are currently recording. Missing sources must limit claims rather than block useful FIT-only review.
 
 The earlier recommendation to select a runtime/build a review command first is superseded by this concrete race workflow, not completion of that implementation. Python/uv with `fitdecode` remains a candidate, not an adopted runtime. Reproducible code, synthetic regressions and durable private review evidence remain unfinished acceptance work; implement only a bounded calculation when a real planning question justifies it.
 
@@ -86,11 +89,11 @@ Focused documentation reconciliation on 2026-11-03 preserved the existing README
 
 The owner supplied an earlier GoldenCheetah assessment describing a recent multi-ride power-duration baseline and independent agreement with underlying samples. This is a prior-work summary, not a profile inspection performed or newly verified in this session. No profile paths, rider power/HR values, activity details or fitted parameters are copied into Git. Durable private evidence has not been located or revalidated; use an explicitly supplied evidence location if stronger reliance is needed, not an implicit rescan of the profile. Demonstrated efforts, configured parameters and repeatability remain distinct under S6/S7.
 
-Focused sports-science research informed D2; [source access levels and transfer limits](docs/explanation/PACING_AND_RACE_EXPERIMENTS.md#research-basis-and-transfer-limits) are retained in the pacing guide. This qualifies the reasoning approach, not individual physiology, race targets or a chosen model. A first conditional plan can use the supplied baseline with that qualification; stronger predictive claims require stronger evidence.
+Focused sports-science research informed D2; [source access levels and transfer limits](../explanation/PACING_AND_RACE_EXPERIMENTS.md#research-basis-and-transfer-limits) are retained in the pacing guide. This qualifies the reasoning approach, not individual physiology, race targets or a chosen model. A first conditional plan can use the supplied baseline with that qualification; stronger predictive claims require stronger evidence.
 
 ## Recovered Sauce evidence — 2026-11-04
 
-A read-only search of the race-finder session recovered later live testing, superseding any inference that the [2026-10-30 archive review](docs/reference/SAUCE_DOWNLOAD_REVIEW_2026-10-30.md) described all subsequent work. The dated archive review remains historical, not a current readiness assessment.
+A read-only search of the race-finder session recovered later live testing, superseding any inference that the [2026-10-30 archive review](../reference/SAUCE_DOWNLOAD_REVIEW_2026-10-30.md) described all subsequent work. The dated archive review remains historical, not a current readiness assessment.
 
 Historical evidence locator: `~/.pi/agent/sessions/--home-jack-git-zwift-race-finder--/2026-10-30T18-26-27-697Z_01a18e10-2eee-7650-8e82-35dda9b7ad8d.jsonl`. Tool results dated 2026-10-31: `c2a47152` (short live capture), `eafa5f51` (first substantial capture), `f3d81e13` (later capture/stop) and `50e1a006` (held-out FIT-alignment check). These contain successful recorder exits, usable self-rider draft readings including positive and zero values, overlapping effort/movement fields, and close FIT agreement on held-out data. The first substantial capture was time-limited; later context changes and inter-capture coverage gaps prevent treating the collection as a continuous, finish-detected race recording. No watts-saved calibration or complete nearby-rider tactical capture is established.
 
@@ -114,11 +117,11 @@ Receipt and source hashes: `~/.local/share/zwift-race-coach/sauce-fixed-account-
 
 ## Historical evidence
 
-The Gymnasticon and ANT/BLE reports remain here as historical device/output evidence. The [original combined bridge design](docs/explanation/BRIDGE_AND_MULTI_RIDER_DESIGN_2026-10-30.md) is preserved byte-for-byte; the [current integration note](docs/explanation/BRIDGE_AND_MULTI_RIDER_DESIGN.md) assigns only strategy/telemetry coordination here. Native Windows is the selected first live-client baseline; earlier container priorities are superseded.
+The Gymnasticon and ANT/BLE reports remain here as historical device/output evidence. The [original combined bridge design](../explanation/BRIDGE_AND_MULTI_RIDER_DESIGN_2026-10-30.md) is preserved byte-for-byte; the [current integration note](../explanation/BRIDGE_AND_MULTI_RIDER_DESIGN.md) assigns only strategy/telemetry coordination here. Native Windows is the selected first live-client baseline; earlier container priorities are superseded.
 
-[Status history](docs/reference/STATUS_HISTORY_2026-10-31.md) retains the earlier setup, device and pairing chronology. Historical source results do not validate the unimplemented Rust bridge or coaching models.
+[Status history](../reference/STATUS_HISTORY_2026-10-31.md) retains the earlier setup, device and pairing chronology. Historical source results do not validate the unimplemented Rust bridge or coaching models.
 
-Next actions are in [TASKS.md](TASKS.md). No hardware operations, installs, account changes or live experiments were performed during this handoff.
+Next actions are in [TASKS.md](../../TASKS.md). No hardware operations, installs, account changes or live experiments were performed during this handoff.
 
 ## Publication verification — 2026-11-03
 
@@ -147,7 +150,7 @@ No hardware, USB/radio, adapter-candidate integration or C build was exercised. 
 
 ## Publication-safety checks
 
-The historical ANT receiver source requires an explicitly supplied network key and validates it before USB access. The earlier handoff reported passes for its parser/configuration checks, the Gymnasticon helper tests and the patch-generator syntax check. Those passes lack a checked-source checkpoint/dirty-state qualification and individual dated results in this record; treat them as historical reports, not verified current acceptance. The diagnostic source/tests and documented command path were inspected during the 2026-11-03 standards review, but no diagnostic tests were rerun. See [diagnostic notes](scripts/README.md). This establishes no new hardware result or coaching-runtime selection.
+The historical ANT receiver source requires an explicitly supplied network key and validates it before USB access. The earlier handoff reported passes for its parser/configuration checks, the Gymnasticon helper tests and the patch-generator syntax check. Those passes lack a checked-source checkpoint/dirty-state qualification and individual dated results in this record; treat them as historical reports, not verified current acceptance. The diagnostic source/tests and documented command path were inspected during the 2026-11-03 standards review, but no diagnostic tests were rerun. See [diagnostic notes](../../tools/historical-coach/README.md). This establishes no new hardware result or coaching-runtime selection.
 
 ## D2 adoption — 2026-11-03
 
@@ -159,6 +162,6 @@ Validation on 2026-11-03 at the checkpoint/dirty state above: a read-only Node d
 
 ## Standards adoption — 2026-11-03
 
-The owner approved D1 (documentation only): S1–S4 are recorded in the [first ride-review contract](docs/explanation/FIRST_RIDE_REVIEW.md). README now makes event planning optional and describes the first read-only intake result; AGENTS routes coaching changes to the contract, selected testing-technique example and change-specific validation. TASKS distinguishes documented adoption from pending enforcement.
+The owner approved D1 (documentation only): S1–S4 are recorded in the [first ride-review contract](../explanation/FIRST_RIDE_REVIEW.md). README now makes event planning optional and describes the first read-only intake result; AGENTS routes coaching changes to the contract, selected testing-technique example and change-specific validation. TASKS distinguishes documented adoption from pending enforcement.
 
 Scope/checkpoint: local HEAD `e9982b0eb5de6927b337376afe9572cb05ec2e0d`, with pre-existing modified README and untracked instructions, state/queue, docs, scripts and ignore file. This tranche changes only README, AGENTS, the first-review contract, STATUS and TASKS; it does not publish that working tree. Validation on 2026-11-03: scoped content review found the standalone-review wording, S1–S4 and pending enforcement consistent; essential newly linked instruction/example destinations were inspected. A read-only Node check passed for all 30 local links/anchors and trailing whitespace across the five changed documents; `git diff --check` passed for tracked changes (it does not cover untracked files). These are documentation checks only. They do not establish coaching correctness, diagnostic passes, remote state or general agent compliance. No application code, runtime, tests or hardware operations were added or executed. E1 enforcement is deferred until approved activity intake and implementation selection; no M1 application migration is currently needed. At that documentation-only adoption checkpoint, the activity-path and publication blockers remained open; the subsequent intake above supersedes only the activity-path blocker.

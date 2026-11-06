@@ -1,5 +1,8 @@
 # Windows Zwift BLE pairing test — 2026-10-30
 
+Historical Coach evidence retained during consolidation. Current state and ownership
+are in the root [status](../../STATUS.md) and [documentation map](../README.md). Dated claims below are not current acceptance.
+
 ## Verified result
 
 After the owner switched both Power Source and Cadence to BLE, direct inspection

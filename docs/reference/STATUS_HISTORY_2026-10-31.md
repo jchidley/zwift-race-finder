@@ -1,6 +1,9 @@
 # Historical status through 2026-10-31
 
-This preserves the earlier chronology. For current state and ownership, see [STATUS.md](../../STATUS.md). Historical “current” and “next session” statements below describe their original checkpoints.
+Historical Coach evidence retained during consolidation. Current state and ownership
+are in the root [status](../../STATUS.md) and [documentation map](../README.md). Dated claims below are not current acceptance.
+
+This preserves the earlier chronology. For current state and ownership, see [STATUS.md](../project-history/COACH_STATUS_PRE_CONSOLIDATION.md). Historical “current” and “next session” statements below describe their original checkpoints.
 
 ## Local setup — 2026-10-30
 

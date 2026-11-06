@@ -1,6 +1,7 @@
 # Documentation
 
-Zwift Race Finder selects event geometry from Racing Score, estimates personal
+Zwift Racing combines race selection, preparation and recorded-ride review.
+The existing Finder CLI selects event geometry from Racing Score, estimates personal
 race duration and filters events to fit the rider's available time.
 
 ## Use the finder
@@ -12,6 +13,15 @@ race duration and filters events to fit the rider's available time.
 - [Import measured history](howto/ZWIFTPOWER_EXPORT_STEPS.md)
 - [Data boundaries](howto/DATA_IMPORT.md)
 - [Returning to racing](howto/RETURN_TO_RACING.md)
+
+## Prepare and review
+
+- [First recorded-ride review](explanation/FIRST_RIDE_REVIEW.md)
+- [Pacing, objectives and preserved before/after plans](explanation/PACING_AND_RACE_EXPERIMENTS.md)
+- [Race recording integration and external ownership](explanation/BRIDGE_AND_MULTI_RIDER_DESIGN.md)
+- [Shared-library review procedure](howto/SHARED_LIBRARY_REVIEW.md)
+
+Review is agent-assisted; there is no maintained coaching executable yet.
 
 ## Work on predictions
 
@@ -42,5 +52,8 @@ Superseded audits, learning logs and research reports are available in Git at
 `v0.3.0`, not maintained as competing current guidance. For example,
 `git show v0.3.0:PROJECT_WISDOM.md` retrieves the old learning log. This cleanup does
 not certify old security findings resolved or adopt historical proposals as current
-requirements. `archive/` remains immutable historical evidence. Coaching, pacing,
-physics simulation and sensor/recorder development are outside this finder's scope.
+requirements. `archive/` remains immutable historical evidence. Sensor acquisition, protocol output and physical control remain external.
+Coach device reports in `reference/`, the dated original bridge design and
+[diagnostic scripts](../tools/historical-coach/README.md) are historical evidence,
+not active implementation backlog. See the [consolidation record](project-history/CONSOLIDATION.md)
+and [pre-consolidation Coach status](project-history/COACH_STATUS_PRE_CONSOLIDATION.md).

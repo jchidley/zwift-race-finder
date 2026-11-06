@@ -1,5 +1,8 @@
 # Windows Zwift ANT pairing test — 2026-10-30
 
+Historical Coach evidence retained during consolidation. Current state and ownership
+are in the root [status](../../STATUS.md) and [documentation map](../README.md). Dated claims below are not current acceptance.
+
 ## Verified result
 
 The installed Gymnasticon 1.4.0 on gym successfully drove native Windows Zwift's

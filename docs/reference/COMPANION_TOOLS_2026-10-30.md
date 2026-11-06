@@ -1,5 +1,8 @@
 # Companion applications and services — 2026-10-30
 
+Historical Coach evidence retained during consolidation. Current state and ownership
+are in the root [status](../../STATUS.md) and [documentation map](../README.md). Dated claims below are not current acceptance.
+
 ## Research scope
 
 Owner explicitly requested the web-search skill. Used

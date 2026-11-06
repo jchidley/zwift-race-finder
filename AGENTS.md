@@ -1,8 +1,8 @@
-# Zwift Race Finder project instructions
+# Zwift Racing project instructions
 
 ## Working root and scope
 
-Run commands and Pi sessions from the canonical checkout root, `/home/jack/git/zwift-race-finder` on this machine. This root file applies repository-wide; optional OCR tooling is under `tools/ocr/` with its own setup documentation. Human usage starts at [README.md](README.md).
+Run commands and Pi sessions from the canonical checkout root, `/home/jack/git/zwift-race-finder` on this machine. This root file applies repository-wide; optional OCR tooling is under `tools/ocr/` with its own setup documentation. Human usage starts at [README.md](README.md). This is the combined finder/planning/review project; the existing Rust package, executable and state paths retain their Finder names.
 
 ## Commands and validation
 
@@ -49,6 +49,14 @@ Before substantive changes, read the applicable constraints in [Architecture](do
 - Configuration precedence is environment variables, then the first existing file among `./config.toml`, the user config directory, and the user data directory, then defaults; files are not merged. Secrets come only from environment variables. Optional ZwiftPower lookup can run even when `--zwift-score` is supplied.
 - The Zwift event client uses one public regional endpoint and has no failover. Time trials require a declared duration; ordinary-race personal fitting does not support them.
 - CLI subprocess tests run the built binary with isolated HOME/XDG state, but still call the live Zwift API. Other database/library tests need isolated HOME/XDG state too; the complete suite is not hermetic.
+
+## Planning and review
+
+Before substantive coaching work, read the [first-review contract](docs/explanation/FIRST_RIDE_REVIEW.md), including adopted evidence/capacity standards and the implementation checklist. For pacing or before/after review, also read the [planning standards](docs/explanation/PACING_AND_RACE_EXPERIMENTS.md#race-planning-and-review-standards--d2). No maintained coaching command, runtime or test suite exists; do not turn historical diagnostics or private one-off scripts into an application implicitly.
+
+Keep observations, configured/modelled capacity, research and tactical hypotheses distinct. Preserve approved input provenance, missing versus zero, timing/coverage and fractional precision. Select the first justified coaching calculation and matching tests when needed. The [historical helper](tools/historical-coach/gymnasticon_bot_input.cjs) and [tests](tools/historical-coach/test_gymnasticon_bot_input.cjs) demonstrate only complete-sample validation, injected clocks and boundary checks, not radio ranges or expiry-to-zero semantics for activity analysis.
+
+Fitness Bridge owns sensor acquisition, transformation and BLE/ANT+ output; Life Fitness owns hardware and physical control. Recorded review must work without either. Do not run virtual sensor output against public competitive events. Historical diagnostic changes use the radio-free checks in [their guide](tools/historical-coach/README.md); device access, live launches and account use remain separately controlled. Shared-library reviews follow the [explicit-path procedure](docs/howto/SHARED_LIBRARY_REVIEW.md); do not search personal directories or publish private outputs implicitly.
 
 ## Documentation ownership
 

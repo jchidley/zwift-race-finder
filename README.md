@@ -1,7 +1,9 @@
-# Zwift Race Finder
+# Zwift Racing
 
-Find upcoming Zwift races that fit your schedule, using estimated durations and your
-Racing Score to select the appropriate event subgroup. **Personal alpha software:**
+Find a race, prepare a plan, preserve predictions and review the result. The working
+`zwift-race-finder` CLI selects upcoming events using personal duration estimates
+and Racing Score subgroup geometry; planning and review are agent-assisted, not
+a maintained coaching application. **Personal alpha software:**
 predictions are experimental, not guaranteed finish times.
 
 ## Quick Start
@@ -53,6 +55,20 @@ cp target/release/zwift-race-finder ~/.local/bin/
 
 With `~/.local/bin` on `PATH`, use
 `zwift-race-finder -s 195 -d 30 -t 15` from any directory.
+
+## Plan and review a race
+
+From this same project session, supply an explicit path to an approved completed
+activity outside Git and a question about the ride. Start with the
+[first-review contract](docs/explanation/FIRST_RIDE_REVIEW.md): the first result
+is a read-only field and timing-quality inventory, followed by a qualified review.
+No live bridge, simulator, account login or coaching installation is required.
+
+For an upcoming race, preserve a dated private plan and predictions before racing;
+then compare the result and recording with those original expectations under the
+[pacing and before/after standards](docs/explanation/PACING_AND_RACE_EXPERIMENTS.md).
+Use the [shared-library review procedure](docs/howto/SHARED_LIBRARY_REVIEW.md)
+for approved FitnessData inputs. Keep processing local and publication separate.
 
 ## Common commands
 
@@ -153,11 +169,15 @@ experiments are compared against it; useful baseline acceptance does not stop
 research or automatically promote a candidate. See [Status](STATUS.md) and
 [Tasks](TASKS.md) for current work and evidence limits.
 
-This is a personal race selector, not a coaching, physics-simulation or sensor
-application. Older investigations and learning logs are retrievable from Git at
+Race selection is implemented; planning and review currently use documented,
+agent-assisted procedures. This is not a physics simulator or sensor application.
+Fitness Bridge owns acquisition, transformations and BLE/ANT+ output; Life Fitness
+owns hardware and physical control. Older investigations and learning logs are retrievable from Git at
 `v0.3.0`; they are not current operating instructions. `archive/` is immutable
 historical evidence. Pin a version when reproducing behaviour.
 
 ## License
 
-[MIT](LICENSE-MIT) OR [Apache-2.0](LICENSE-APACHE)
+[MIT](LICENSE-MIT) OR [Apache-2.0](LICENSE-APACHE). Imported Coach notices are
+retained in [coach-licenses](docs/project-history/coach-licenses/); historical
+Gymnasticon anchors retain their [upstream notice](tools/historical-coach/LICENSE-GYMNASTICON).

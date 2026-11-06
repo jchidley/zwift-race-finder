@@ -57,3 +57,23 @@ client-routes*.json
 /tools/import/strava/strava_zwift_activities.json
 /lcov.info
 /.helix/recent-files.txt
+
+# Private coaching inputs and local analysis state
+/.private/
+/data/private/
+/recordings/
+/results/
+/secrets/
+*.db-shm
+*.sqlite
+*.sqlite3
+.venv/
+node_modules/
+.ruff_cache/
+.pytest_cache/
+*.fit
+*.FIT
+*.gpx
+*.GPX
+*.tcx
+*.TCX

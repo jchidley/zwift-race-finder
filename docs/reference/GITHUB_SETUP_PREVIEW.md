@@ -1,5 +1,8 @@
 # GitHub setup preview — approved and applied
 
+Historical Coach evidence retained during consolidation. Current state and ownership
+are in the root [status](../../STATUS.md) and [documentation map](../README.md). Dated claims below are not current acceptance.
+
 Initially prepared read-only with the owner's explicitly requested github-api skill on 2026-10-30. The owner subsequently approved this plan. The skill regenerated an identical plan and applied it to `jchidley/zwift-race-coach`; the resulting repository and three files were independently verified and the same files applied locally.
 
 ## Proposed external writes

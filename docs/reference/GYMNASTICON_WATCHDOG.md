@@ -1,5 +1,8 @@
 # Gymnasticon startup zero and receive-side watchdog
 
+Historical Coach evidence retained during consolidation. Current state and ownership
+are in the root [status](../../STATUS.md) and [documentation map](../README.md). Dated claims below are not current acceptance.
+
 Implemented on gym on 2026-10-30 after the
 [initial ANT bench](ANT_WINDOWS_RECEIVE_TEST.md).
 
@@ -42,10 +45,10 @@ it to an untrusted network or treat it as a production control API.
 
 New original source files in this repository:
 
-- [Input state/validation/expiry](../../scripts/gymnasticon_bot_input.cjs)
-- [Candidate generator for inspected installed bot](../../scripts/patch_gymnasticon_bot.cjs)
-- [Deterministic state tests](../../scripts/test_gymnasticon_bot_input.cjs)
-- [Radio-free adapter integration tests](../../scripts/test_gymnasticon_bot_adapter.cjs)
+- [Input state/validation/expiry](../../tools/historical-coach/gymnasticon_bot_input.cjs)
+- [Candidate generator for inspected installed bot](../../tools/historical-coach/patch_gymnasticon_bot.cjs)
+- [Deterministic state tests](../../tools/historical-coach/test_gymnasticon_bot_input.cjs)
+- [Radio-free adapter integration tests](../../tools/historical-coach/test_gymnasticon_bot_adapter.cjs)
 
 The generator produces a candidate rather than overwriting its source, and
 rejects an already-patched or structurally unexpected bot. The actual deployment

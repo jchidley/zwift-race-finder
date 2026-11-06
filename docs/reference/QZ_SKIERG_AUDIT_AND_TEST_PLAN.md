@@ -1,5 +1,8 @@
 # QZ SkiErg audit and WYK82Q test plan
 
+Historical Coach evidence retained during consolidation. Current state and ownership
+are in the root [status](../../STATUS.md) and [documentation map](../README.md). Dated claims below are not current acceptance.
+
 ## Result
 
 QZ is a useful PM5 SkiErg decoder/reference, but **not yet a qualified bridge

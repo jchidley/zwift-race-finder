@@ -1,5 +1,8 @@
 # Native Windows ANT receive bench — 2026-10-30
 
+Historical Coach evidence retained during consolidation. Current state and ownership
+are in the root [status](../../STATUS.md) and [documentation map](../README.md). Dated claims below are not current acceptance.
+
 ## Result
 
 **Gymnasticon on gym → ANT radio → native Windows receiver works** for the tested
@@ -66,7 +69,7 @@ fix. A future service restart can still begin with unspecified bot cadence.
 
 ## Diagnostic and checks
 
-Source: [scripts/ant_power_receive.py](../../scripts/ant_power_receive.py).
+Source: [scripts/ant_power_receive.py](../../tools/historical-coach/ant_power_receive.py).
 
 The script opens one receive-only channel for the selected device number,
 validates framing/checksums, decodes standard power pages, and closes/unassigns

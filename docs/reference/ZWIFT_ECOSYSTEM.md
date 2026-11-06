@@ -1,5 +1,8 @@
 # Local Zwift ecosystem references
 
+Historical Coach evidence retained during consolidation. Current state and ownership
+are in the root [status](../../STATUS.md) and [documentation map](../README.md). Dated claims below are not current acceptance.
+
 Recorded 2026-10-30 at the owner's request. These Windows checkouts were inspected
 read-only (READMEs, top-level license declarations, and selected implementation/docs).
 No dependencies, drivers, containers, bots, or applications were installed or run.

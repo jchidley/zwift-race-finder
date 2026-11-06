@@ -1,5 +1,39 @@
 # Project Status
 
+## Consolidation — 2026-11-06
+
+The local integration preserves Finder through `a55d488` and Coach through
+`b6bdccc` as parents of merge `aead11f`; neither history was squashed.
+The combined workflow is find → plan → preserve predictions → review.
+The working command, Rust package, estimator and application-state paths are
+unchanged. Planning/review remain agent-assisted, not a delivered application.
+Coach's [prior status and evidence limits](docs/project-history/COACH_STATUS_PRE_CONSOLIDATION.md)
+remain historical; unfinished work is reconciled into the root task queue.
+The shared-library consumer pilots are complete for their tested workflows;
+new Finder/Coach publication proposals remain separate and unexecuted here.
+No OneDrive or frozen evidence paths are moved. Cloud sync/offline retention
+has not been rechecked. See the [migration record](docs/project-history/CONSOLIDATION.md).
+
+### Integration validation
+
+Checked on 2026-11-06 against Finder `a55d488` and Coach `b6bdccc`, with
+merge `aead11f` plus documentation/organization edits. Rust source, tests and
+Cargo manifests were unchanged for these checks. Both source tips are ancestors;
+the original bridge design and all imported diagnostic source bytes match Coach.
+Scoped checks passed: 247 local Markdown links/anchors, five evaluator tests,
+the Node helper and patch-generator syntax checks, and both radio-free uv-managed
+Python checks. Default-feature release build and offline CLI help passed.
+
+The full serial isolated suite **failed** the unchanged live-service verbose CLI
+test (expected route/distance/category output absent). A supplementary run excluding
+only that test passed **197 tests, 7 ignored**; this is not a full-suite pass.
+The isolated empty-state legacy regression provides no accuracy qualification;
+no formula changed and no populated-data accuracy claim is made.
+Formatting still fails and Clippy reports 152 library errors, matching the prior
+recorded debt. No tests, snapshots or gates were changed or suppressed.
+Private command outputs and path mapping: investigation `20261106-consolidation`
+under `~/.local/share/zwift-race-finder/investigations/`.
+
 ## Current focus
 
 Use the personal finder for race selection while comparing recency/current-form

@@ -1,5 +1,8 @@
 # ANT USB version and capability check
 
+Historical Coach evidence retained during consolidation. Current state and ownership
+are in the root [status](../../STATUS.md) and [documentation map](../README.md). Dated claims below are not current acceptance.
+
 ## Verified result
 
 Queried the owner's newly attached sticks over direct USB on Debian.
@@ -65,7 +68,7 @@ of a faulty stick.
 
 ## Reproducible diagnostic
 
-Source: [scripts/ant_usb_info.c](../../scripts/ant_usb_info.c).
+Source: [scripts/ant_usb_info.c](../../tools/historical-coach/ant_usb_info.c).
 This is a diagnostic utility, not the application runtime or a bridge scaffold.
 
 Build on a machine with a C compiler and libusb headers:

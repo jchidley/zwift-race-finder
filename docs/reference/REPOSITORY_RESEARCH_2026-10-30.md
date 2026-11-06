@@ -1,5 +1,8 @@
 # Repository and written-reference research — 2026-10-30
 
+Historical Coach evidence retained during consolidation. Current state and ownership
+are in the root [status](../../STATUS.md) and [documentation map](../README.md). Dated claims below are not current acceptance.
+
 ## Scope and evidence
 
 Read-only inspection of the four newly cloned repositories, paginated GitHub

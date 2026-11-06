@@ -1,5 +1,8 @@
 # Project boundaries and documentation migration
 
+Historical Coach evidence retained during consolidation. Current state and ownership
+are in the root [status](../../STATUS.md) and [documentation map](../README.md). Dated claims below are not current acceptance.
+
 ## Ownership
 
 | Project | Owns |

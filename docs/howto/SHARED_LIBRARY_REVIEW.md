@@ -14,13 +14,15 @@ directory convention**, inventory and copy-receipt interpretation. Read it first
 this page describes only Coach's use. Local access does not verify cloud sync,
 another machine's availability or independent backup.
 
-Coach owns reviews, pacing plans, experiment evidence and retained Sauce review
-evidence under `projects/zwift-race-coach/`. It reads approved shared FIT activities
+The combined project owns reviews, pacing plans, experiment evidence and retained Sauce review
+evidence. Existing `projects/zwift-race-coach/` and local Coach-named paths remain
+valid evidence locations; do not rename or republish them as part of consolidation. It reads approved shared FIT activities
 and ZwiftPower exports in place, plus explicitly approved source snapshots as
 needed. Do not maintain another Coach copy of shared FIT/results. Acquisition,
 sensor processing and hardware/control remain outside Coach.
 
-Use Bash from `~/git/zwift-race-coach`. Keep processing, dependency caches,
+Use Bash from the combined project root (currently `~/git/zwift-race-finder`;
+planned canonical root after handoff: `~/git/zwift-racing`). Keep processing, dependency caches,
 intermediates and draft reports on WSL ext4, outside Git; for example
 `~/.local/share/zwift-race-coach/`. Do not move live recording locations.
 Only completed, approved review artifacts belong in the library's Coach area.
@@ -94,7 +96,7 @@ uv run --offline --no-project --managed-python \
   --prior-match "$prior/zwiftpower-match.json" --output "$out"
 ```
 
-See [the scoped pilot result](../../STATUS.md#shared-library-pilot--2026-11-05)
+See [the scoped pilot result](../project-history/COACH_STATUS_PRE_CONSOLIDATION.md#shared-library-pilot--2026-11-05)
 for the retained evidence location and limitations. No Downloads or live-capture
 path is needed for this procedure.
 

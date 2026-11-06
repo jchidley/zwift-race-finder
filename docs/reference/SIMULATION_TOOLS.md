@@ -1,5 +1,8 @@
 # Zwift Simulation Tools for Automated Testing
 
+Historical Coach evidence retained during consolidation. Current state and ownership
+are in the root [status](../../STATUS.md) and [documentation map](../README.md). Dated claims below are not current acceptance.
+
 This document lists tools that can simulate Bluetooth/ANT+ cycling devices for automated testing of Zwift applications.
 
 For the locally inspected netbrain/zwift, zoffline-bots, vspeed, and vpower checkouts, see [Local Zwift ecosystem references](ZWIFT_ECOSYSTEM.md). The priority candidate is **netbrain/zwift for multiple client instances**, with distinct `ZWIFT_RIDER` containers/volumes. Its documented lack of ANT+ support means direct integration with vspeed/vpower is not established. No multi-instance environment has been launched or validated. The older catalogue and star counts below were not reverified in that inspection.
