@@ -135,6 +135,42 @@ Run OCR tests only when the feature and native prerequisites are available:
 zrf_check cargo test --features ocr -- --test-threads=1
 ```
 
+## Evaluate saved personal predictions
+
+Use Node.js from the checkout root. Keep rider data and reports outside Git. This
+command reads saved predictions; it does not fetch events, rerun a model or import
+history. The output must be a new file and is created with private permissions.
+
+```bash
+node tools/analysis/evaluate_predictions.mjs /absolute/private/predictions.jsonl /absolute/private/evaluation.json
+node --test tests/prediction_evaluation_tests.mjs
+```
+
+Each JSONL row contains a `target` with a unique source `result_id` and positive
+`actual_seconds`, plus consistently named model objects (such as `B0`, `R1`,
+`H1`, `RW1`). Each model supplies positive `raw_minutes` or an explicit
+`unavailable` reason. Example schema with synthetic data:
+
+```json
+{"target":{"result_id":"synthetic-1","actual_seconds":2532.517},"B0":{"raw_minutes":43.6126802983357}}
+```
+
+The report retains unrounded predicted seconds, signed error (predicted minus
+measured), absolute error, mean absolute error and mean signed error. Optional
+legacy `rounded_minutes` fields are ignored. Inclusive window decisions use raw
+seconds for 20–40, 40–50, 50–70, 75–105 and 40–60 minutes. These windows overlap;
+summed mistakes are not distinct races. Unsupported predictions count as not
+selected; an all-unavailable model has null error metrics, not zero error. Model
+means cover supported targets, so compare availability and paired cohorts before
+ranking models with different coverage.
+
+The evaluator verifies data shape, not source authenticity or training chronology.
+Qualify source/geometry and use strictly earlier history in the producing replay.
+Keep frozen predictions and earlier reports unchanged; generate a separate precision
+report. Do not combine retrospective geometry replays with prospective forecasts
+as though their inputs or validation status were identical. Numerical precision
+is not a claim of predictive accuracy, and rounded source distances remain uncertain.
+
 ## Update snapshots or golden data
 
 Review ordinary snapshot failures before accepting new output. Use Insta's review flow rather than blindly replacing snapshots.

@@ -105,7 +105,14 @@ Zwift uses different internal route IDs for the same physical route depending on
 
 Evaluate personal changes chronologically against the versioned baseline, using
 identical input snapshots and only earlier observations for each target. Report
-MAE in minutes, duration-window inclusions/exclusions and prediction availability.
+unrounded predicted seconds against exact measured finish seconds. Report signed
+error (prediction minus measured), absolute error, MAE and mean signed error in
+seconds, duration-window inclusions/exclusions and prediction availability. Window
+decisions also use unrounded predictions and measured seconds; displayed rounding
+must not enter these calculations. Round only report presentation, not stored inputs
+or errors. Whole-kilometre source distances remain an independent input limitation.
+The [prediction evaluator](../howto/TESTING_GUIDE.md#evaluate-saved-personal-predictions)
+implements this policy for saved chronological replay outputs.
 Preserve measured seconds and event geometry; do not tune on inspected races and
 call the same outcomes independent validation. Fitted residuals are not forecast
 intervals. The [baseline/experiment record](../project-history/RECENCY_BASELINE_2026-11-03.md)

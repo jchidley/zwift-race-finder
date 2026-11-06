@@ -12,6 +12,29 @@ duration → time-window filter**. Unsupported durations stay unknown and are om
 unfamiliar courses can use cross-course personal fitting. Score is not personal pace.
 [Algorithms](docs/reference/ALGORITHMS.md) owns the exact rules.
 
+## Duration precision — 2026-11-05
+
+The finder retains fractional minutes for inclusive duration-window filtering,
+including fixed durations supplied in seconds. Only display rounds to whole
+minutes. B0's fitting formula remains active and unchanged; R1/H1/RW1 are not
+promoted. The saved-prediction evaluator reports raw signed/absolute errors and
+uses measured seconds for metrics and window decisions. See the
+[evaluation procedure](docs/howto/TESTING_GUIDE.md#evaluate-saved-personal-predictions).
+
+The nine-result 90-day retrospective replay has unrounded MAE **128.633 seconds
+for R1** and **130.538 seconds for RW1**: close on this small inspected sample,
+not a clear RW1 advantage or independent validation. Frozen pre-race predictions
+remain separate from retrospective geometry replays. Source whole-kilometre
+distances remain an input limitation.
+
+Validation on the working tree based on `0813baf`: **198 default-feature tests
+passed, 7 ignored**, five evaluator tests passed, and the offline release CLI
+build and help smoke check passed. Populated legacy MAE was **2.093 → 2.093 minutes**
+on the same six-observation snapshot; this is not personal-model qualification.
+Formatting still fails repository-wide; Clippy still reports 152 library errors.
+No clean gate/CI claim. Private evidence: `20261105-duration-precision-URErMC7k`
+under `~/.local/share/zwift-race-finder/investigations/`. Normal database unchanged.
+
 ## Baseline and experiment
 
 R1 uses a 90-day half-life and requires three comparable same-route results within

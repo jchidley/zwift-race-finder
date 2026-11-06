@@ -59,6 +59,11 @@ Most reusable modules contain adjacent unit tests:
 | `tests/golden_tests.rs` and `tests/golden/` | Baseline generation and validation; generators/validators are ignored by default. |
 | `tests/ocr_*` | OCR characterization, fuzz/property, snapshot, and integration behaviour; prerequisites vary by target. |
 
+The saved-prediction evaluator is tested with
+`node --test tests/prediction_evaluation_tests.mjs`: raw signed/absolute errors,
+subsecond outcomes, inclusive window boundaries, unavailability and invalid-input
+rejection. It does not fetch or authenticate race results.
+
 ## Important limitations
 
 - No default Criterion benchmark suite is implemented. The optional
