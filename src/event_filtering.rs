@@ -97,7 +97,7 @@ pub fn filter_by_excluded_tags(events: &mut Vec<ZwiftEvent>, exclude_tags: &[Str
 
 #[derive(Debug, Clone)]
 pub struct EventEstimate {
-    pub duration_minutes: u32,
+    pub duration_minutes: f64,
     pub distance_km: Option<f64>,
     pub elevation_m: Option<u32>,
     pub is_fixed: bool,
@@ -106,7 +106,12 @@ pub struct EventEstimate {
 }
 
 impl EventEstimate {
-    fn resolved(duration_minutes: u32, geometry: Option<&EventGeometry>, is_fixed: bool) -> Self {
+    #[must_use]
+    pub fn matches_duration(&self, target_minutes: u32, tolerance_minutes: u32) -> bool {
+        (self.duration_minutes - f64::from(target_minutes)).abs() <= f64::from(tolerance_minutes)
+    }
+
+    fn resolved(duration_minutes: f64, geometry: Option<&EventGeometry>, is_fixed: bool) -> Self {
         let mut estimate = geometry.map_or(
             Self {
                 duration_minutes,
@@ -129,7 +134,7 @@ impl EventEstimate {
         estimate
     }
 
-    fn estimated(duration_minutes: u32, distance_km: f64, route_id: Option<u32>) -> Self {
+    fn estimated(duration_minutes: f64, distance_km: f64, route_id: Option<u32>) -> Self {
         let elevation_m = route_id
             .and_then(crate::estimation::get_route_data)
             .and_then(|route| crate::estimation::elevation_for_distance(&route, distance_km))
@@ -162,13 +167,15 @@ fn positive_distance(distance: Option<f64>) -> Option<f64> {
     distance.filter(|d| d.is_finite() && *d > 0.0)
 }
 
-pub(crate) fn fixed_minutes(minutes: Option<u32>, seconds: Option<u32>) -> Option<u32> {
-    minutes.filter(|&minutes| minutes > 0).or_else(|| {
-        seconds
-            .filter(|&seconds| seconds > 0)
-            .map(|seconds| seconds / 60)
-            .filter(|&minutes| minutes > 0)
-    })
+pub(crate) fn fixed_minutes(minutes: Option<u32>, seconds: Option<u32>) -> Option<f64> {
+    minutes
+        .filter(|&minutes| minutes > 0)
+        .map(f64::from)
+        .or_else(|| {
+            seconds
+                .filter(|&seconds| seconds > 0)
+                .map(|seconds| f64::from(seconds) / 60.0)
+        })
 }
 
 fn resolve_geometry(
@@ -293,8 +300,7 @@ pub fn resolve_event(
             )
         })
         .map_err(EstimateUnavailable::Personal)?;
-    let mut estimate =
-        EventEstimate::resolved(personal.minutes.round() as u32, Some(&geometry), false);
+    let mut estimate = EventEstimate::resolved(personal.minutes, Some(&geometry), false);
     estimate.personal = Some(personal);
     Ok(estimate)
 }
@@ -310,7 +316,7 @@ pub fn event_matches_duration(
     zwift_score: u32,
 ) -> bool {
     estimate_event(event, zwift_score)
-        .is_some_and(|estimate| estimate.duration_minutes.abs_diff(target_duration) <= tolerance)
+        .is_some_and(|estimate| estimate.matches_duration(target_duration, tolerance))
 }
 
 #[cfg(test)]

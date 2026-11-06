@@ -6,6 +6,11 @@ pub fn format_duration(minutes: u32) -> String {
     format!("{:02}:{:02}", hours, mins)
 }
 
+#[must_use]
+pub fn format_estimated_duration(minutes: f64) -> String {
+    format_duration(minutes.round() as u32)
+}
+
 pub fn format_event_type(event_type: &str, count: usize) -> String {
     let readable_type = match event_type.to_lowercase().as_str() {
         "race" => "races",
@@ -36,6 +41,14 @@ mod tests {
         assert_eq!(format_duration(1439), "23:59");
         assert_eq!(format_duration(1440), "24:00");
         assert_eq!(format_duration(2880), "48:00");
+    }
+
+    #[test]
+    fn fractional_duration_rounds_only_in_presentation() {
+        assert_eq!(format_estimated_duration(39.75), "00:40");
+        assert_eq!(format_estimated_duration(60.25), "01:00");
+        assert_eq!(format_estimated_duration(59.5), "01:00");
+        assert_eq!(format_estimated_duration(59.0 / 60.0), "00:01");
     }
 
     #[test]

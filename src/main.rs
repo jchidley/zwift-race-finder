@@ -212,7 +212,7 @@ fn filter_events(
 
     events.retain(|event| match resolve_event(event, zwift_score) {
         Ok(estimate) => {
-            let matches = estimate.duration_minutes.abs_diff(args.duration) <= args.tolerance;
+            let matches = estimate.matches_duration(args.duration, args.tolerance);
             if !matches {
                 stats.duration_filtered += 1;
             }

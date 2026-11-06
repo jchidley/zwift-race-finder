@@ -118,8 +118,9 @@ fn live_history_changes_filter_and_display_with_explicit_honest_fallbacks() {
     assert_eq!(personal.basis, PersonalBasis::SameRoute);
     assert_eq!(personal.sample_count, 12);
     assert!((personal.minutes - 3600.25 / 60.0).abs() < 1e-10);
-    assert_eq!(estimate.duration_minutes, 60);
-    assert!(event_matches_duration(&race, 60, 0, 195));
+    assert_eq!(estimate.duration_minutes, 3600.25 / 60.0);
+    assert!(!event_matches_duration(&race, 60, 0, 195));
+    assert!(event_matches_duration(&race, 60, 1, 195));
     assert_eq!(prepare_event_row(&race, 195).duration, "01:00");
     assert!(prepare_event_row(&race, 195)
         .basis
@@ -135,7 +136,10 @@ fn live_history_changes_filter_and_display_with_explicit_honest_fallbacks() {
     ] {
         assert!(verbose.contains(text), "{verbose}");
     }
-    assert_eq!(estimate_event(&race, 650).unwrap().duration_minutes, 60);
+    assert_eq!(
+        estimate_event(&race, 650).unwrap().duration_minutes,
+        3600.25 / 60.0
+    );
 
     race.event_sub_groups = vec![
         EventSubGroup {
@@ -163,8 +167,14 @@ fn live_history_changes_filter_and_display_with_explicit_honest_fallbacks() {
             laps: None,
         },
     ];
-    assert_eq!(estimate_event(&race, 195).unwrap().duration_minutes, 60);
-    assert_eq!(estimate_event(&race, 210).unwrap().duration_minutes, 75);
+    assert_eq!(
+        estimate_event(&race, 195).unwrap().duration_minutes,
+        3600.25 / 60.0
+    );
+    assert_eq!(
+        estimate_event(&race, 210).unwrap().duration_minutes,
+        3600.25 / 60.0 * 1.25
+    );
     race.event_sub_groups.clear();
 
     for kind in ["TIME_TRIAL", "GROUP_RIDE", "UNKNOWN"] {
@@ -344,7 +354,7 @@ fn live_history_changes_filter_and_display_with_explicit_honest_fallbacks() {
     race.duration_in_minutes = Some(45);
     let fixed = estimate_event(&race, 195).unwrap();
     assert!(fixed.is_fixed);
-    assert_eq!(fixed.duration_minutes, 45);
+    assert_eq!(fixed.duration_minutes, 45.0);
     assert!(fixed.personal.is_none());
     assert!(format_duration_info(&race, 195).contains("00:45 (fixed duration)"));
     assert_eq!(prepare_event_row(&race, 195).duration, "00:45");
@@ -362,7 +372,7 @@ fn live_history_changes_filter_and_display_with_explicit_honest_fallbacks() {
         range_access_label: None,
         laps: None,
     });
-    assert_eq!(estimate_event(&race, 195).unwrap().duration_minutes, 30);
+    assert_eq!(estimate_event(&race, 195).unwrap().duration_minutes, 30.0);
 
     let target = PersonalTarget {
         event_day: today,

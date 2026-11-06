@@ -3,7 +3,7 @@ use crate::database::Database;
 use crate::estimation::{get_route_data, get_route_data_from_db};
 use crate::event_analysis::selected_route_id;
 use crate::event_filtering::{estimate_event, resolve_event, FilterStats};
-use crate::formatting::format_duration;
+use crate::formatting::format_estimated_duration;
 use crate::models::ZwiftEvent;
 use crate::parsing::parse_description_data;
 use chrono::{DateTime, Local};
@@ -111,7 +111,7 @@ pub fn format_duration_info(event: &ZwiftEvent, zwift_score: u32) -> String {
             distance,
             elevation,
             "Duration".bright_blue(),
-            format_duration(estimate.duration_minutes).green(),
+            format_estimated_duration(estimate.duration_minutes).green(),
             basis
         )
     } else {
@@ -177,14 +177,14 @@ pub fn display_subgroups(event: &ZwiftEvent, zwift_score: u32) {
             group.duration_in_minutes,
             group.duration_in_seconds,
         ) {
-            print!(" ({})", format_duration(dur));
+            print!(" ({})", format_estimated_duration(dur));
         }
 
         if is_user_category {
             if let Some(estimate) = estimate_event(event, zwift_score) {
                 print!(
                     " → {} ({})",
-                    format_duration(estimate.duration_minutes).green(),
+                    format_estimated_duration(estimate.duration_minutes).green(),
                     if estimate.is_fixed {
                         "fixed duration"
                     } else {
@@ -313,7 +313,7 @@ pub fn prepare_event_row(event: &ZwiftEvent, zwift_score: u32) -> EventTableRow 
     );
     let duration_str = estimate.as_ref().map_or_else(
         || "? min".to_string(),
-        |e| format_duration(e.duration_minutes),
+        |e| format_estimated_duration(e.duration_minutes),
     );
 
     let basis = match &resolution {
@@ -662,7 +662,10 @@ mod tests {
         let row = prepare_event_row(&event, 195);
         assert_eq!(estimate.distance_km, Some(30.0));
         assert_eq!(row.distance, "30.0 km");
-        assert_eq!(row.duration, format_duration(estimate.duration_minutes));
+        assert_eq!(
+            row.duration,
+            format_estimated_duration(estimate.duration_minutes)
+        );
     }
 
     #[test]

@@ -114,6 +114,7 @@ fn displayed_minutes(event: &ZwiftEvent) -> u32 {
 fn assert_consistent(event: &ZwiftEvent) {
     let minutes = displayed_minutes(event);
     let estimate = resolve_event(event, 195).unwrap();
+    assert_eq!(minutes, estimate.duration_minutes.round() as u32);
     if !estimate.is_fixed {
         assert_eq!(
             estimate.personal.as_ref().unwrap().basis,
@@ -123,8 +124,8 @@ fn assert_consistent(event: &ZwiftEvent) {
     for target in [15, 30, 45, 60, 90] {
         assert_eq!(
             event_matches_duration(event, target, 15, 195),
-            minutes.abs_diff(target) <= 15,
-            "filter disagrees with displayed {minutes} minutes for target {target}"
+            (estimate.duration_minutes - f64::from(target)).abs() <= 15.0,
+            "filter disagrees with unrounded estimate (displayed {minutes}) for target {target}"
         );
     }
 }
@@ -537,30 +538,33 @@ fn route_metadata_url_and_unknown_logging_follow_selected_subgroup() {
 }
 
 #[test]
-fn subminute_fixed_seconds_do_not_mask_a_calculated_duration() {
+fn subminute_fixed_seconds_remain_authoritative_and_unrounded() {
     let mut race = event();
     race.route_id = Some(subgroup_route());
     race.distance_in_meters = Some(19000.0);
     let mut group = subgroup();
     group.duration_in_seconds = Some(59);
     race.event_sub_groups.push(group);
-    race.duration_in_seconds = Some(59);
-    let estimate = estimate_event(&race, 195).unwrap();
-    assert!(!estimate.is_fixed);
-    assert!(estimate.duration_minutes > 0);
-    race.event_sub_groups[0].duration_in_seconds = Some(60);
-    assert_eq!(displayed_minutes(&race), 1);
-    race.duration_in_seconds = Some(120);
-    assert_eq!(displayed_minutes(&race), 2);
+    for event_seconds in [None, Some(59)] {
+        race.duration_in_seconds = event_seconds;
+        let estimate = estimate_event(&race, 195).unwrap();
+        assert!(estimate.is_fixed);
+        assert_eq!(estimate.duration_minutes, 59.0 / 60.0);
+        assert_eq!(displayed_minutes(&race), 1);
+        assert!(!event_matches_duration(&race, 1, 0, 195));
+    }
+    race.duration_in_seconds = Some(60);
+    assert!(event_matches_duration(&race, 1, 0, 195));
 }
 
 #[test]
-fn rounded_prediction_is_shared_by_filter_compact_and_verbose_output() {
+fn prediction_rounds_only_for_compact_and_verbose_display() {
     let mut race = event();
     race.route_id = Some(personal_route());
     race.distance_in_meters = Some(22_875.0);
     assert_eq!(displayed_minutes(&race), 46);
-    assert!(event_matches_duration(&race, 46, 0, 195));
+    assert_eq!(resolve_event(&race, 195).unwrap().duration_minutes, 45.75);
+    assert!(!event_matches_duration(&race, 46, 0, 195));
     assert!(!event_matches_duration(&race, 45, 0, 195));
     assert!(format_duration_info(&race, 195).contains("00:46"));
     assert_consistent(&race);
@@ -587,7 +591,7 @@ fn unavailable_history_and_unsupported_formats_never_match_without_fixed_time() 
     assert!(!event_matches_duration(&race, 40, 100, 195));
     assert_eq!(prepare_event_row(&race, 195).duration, "? min");
     race.duration_in_minutes = Some(40);
-    assert_eq!(resolve_event(&race, 195).unwrap().duration_minutes, 40);
+    assert_eq!(resolve_event(&race, 195).unwrap().duration_minutes, 40.0);
 
     race.event_start = Utc::now();
     for kind in ["TIME_TRIAL", "GROUP_RIDE", "UNKNOWN"] {
@@ -614,8 +618,50 @@ fn missing_geometry_has_a_distinct_unavailable_reason_but_fixed_time_still_works
     ));
     race.duration_in_seconds = Some(2700);
     let estimate = resolve_event(&race, 195).unwrap();
-    assert_eq!(estimate.duration_minutes, 45);
+    assert_eq!(estimate.duration_minutes, 45.0);
     assert!(estimate.is_fixed);
     assert!(estimate.distance_km.is_none());
     assert!(event_matches_duration(&race, 45, 0, 195));
+}
+
+#[test]
+fn personal_window_boundaries_use_fractional_minutes() {
+    let mut race = event();
+    race.route_id = Some(personal_route());
+    for (minutes, selected) in [
+        (39.75, false),
+        (40.0, true),
+        (40.25, true),
+        (59.75, true),
+        (60.0, true),
+        (60.25, false),
+    ] {
+        race.distance_in_meters = Some(minutes / 2.0 * 1000.0);
+        let estimate = resolve_event(&race, 195).unwrap();
+        assert!((estimate.duration_minutes - minutes).abs() < 1e-10);
+        assert_eq!(estimate.matches_duration(50, 10), selected);
+        assert_eq!(event_matches_duration(&race, 50, 10, 195), selected);
+        assert_eq!(displayed_minutes(&race), minutes.round() as u32);
+    }
+}
+
+#[test]
+fn fixed_seconds_window_boundaries_are_not_truncated() {
+    let mut race = event();
+    for (seconds, selected) in [
+        (2399, false),
+        (2400, true),
+        (2401, true),
+        (3599, true),
+        (3600, true),
+        (3601, false),
+    ] {
+        race.duration_in_seconds = Some(seconds);
+        let estimate = resolve_event(&race, 195).unwrap();
+        assert_eq!(estimate.duration_minutes, f64::from(seconds) / 60.0);
+        assert_eq!(event_matches_duration(&race, 50, 10, 195), selected);
+        assert_eq!(estimate.matches_duration(50, 10), selected);
+    }
+    race.duration_in_seconds = Some(u32::MAX);
+    assert!(event_matches_duration(&race, u32::MAX / 60, 1, 195));
 }

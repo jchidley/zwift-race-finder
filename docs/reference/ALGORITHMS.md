@@ -33,7 +33,10 @@ newer cross-course support. Older volume can dominate newer observations. These
 are current implementation choices, not an adopted optimal current-form policy.
 The unresolved recency work belongs in [Tasks](../../TASKS.md#immediate-plan--recent-performance-relevance).
 
-Calculated personal output rounds once to whole minutes. Verbose output reports
+Resolved durations retain fractional minutes through filtering. Only presentation
+rounds to whole minutes, so a displayed boundary value can fall just outside the
+requested window. Both CLI and library filtering use the same inclusive raw-duration
+comparison. Verbose output reports
 method, sample count and descriptive fitted residual error. That error is **not**
 a confidence interval. The model uses course distance/climbing totals, not exact
 ordered gradients. Whole-kilometre historical distances and retrospective route
@@ -57,9 +60,8 @@ silently turning into traditional events. Traditional groups use exact
 fallback follows an exact D match. Score is not passed into personal fitting and does not supply a substitute speed.
 
 Duration precedence is positive event minutes, positive event seconds, then the
-selected subgroup's positive minutes or seconds. Seconds use integer division by
-60; a result below one whole minute is unavailable and does not mask a calculated
-estimate. Subgroup detail display uses the same duration helper. Declared time overrides a calculated estimate. For example, 2,700 seconds
+selected subgroup's positive minutes or seconds. Seconds are converted to fractional minutes without truncation; any positive
+declared duration, including one below a minute, remains authoritative. Subgroup detail display uses the same duration helper. Declared time overrides a calculated estimate. For example, 2,700 seconds
 remains 45 fixed minutes even when route geometry would predict something else.
 
 Fixed and calculated durations share one geometry policy:

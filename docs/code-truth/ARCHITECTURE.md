@@ -74,8 +74,8 @@ for personal fallback. Client metadata import and provenance are described in
 
 Personal estimation uses strictly earlier dates, same-route pace first, otherwise
 distance/ascent fitting. Its one-year weighting and support thresholds are
-unchanged; new recency policies remain proposals. Calculated personal minutes
-round once for filtering/display. The disabled profile prototype is not this
+unchanged; new recency policies remain proposals. Resolved minutes retain fractional precision for filtering; only display rounds
+to whole minutes. Both CLI and library call `EventEstimate::matches_duration()`. The disabled profile prototype is not this
 active cross-course fit. See [Algorithms](../reference/ALGORITHMS.md#personal-duration-estimates)
 for exact thresholds and fitting rules.
 

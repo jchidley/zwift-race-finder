@@ -120,6 +120,10 @@ when ready to apply it; do not share cookies or credentials.
   durations remain unknown and are excluded from time-window matches; the CLI
   reports the omitted count. No category-speed duration is substituted. Racing Score selects subgroup geometry, not personal pace. See the
   [algorithm reference](docs/reference/ALGORITHMS.md) for qualifications.
+- Duration filtering uses unrounded estimates; displayed durations round to whole
+  minutes. An estimate just outside your window can round to its boundary but will
+  still be excluded. Model evaluation uses unrounded predictions and measured seconds;
+  see [evaluation instructions](docs/howto/TESTING_GUIDE.md#evaluate-saved-personal-predictions).
 - Follow Zwift's Terms of Service when using or modifying this tool.
 
 ## Documentation and project map
