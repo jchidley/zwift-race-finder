@@ -71,6 +71,10 @@ Current README, tutorial, Cargo homepage/repository metadata and bootstrap hints
 use the new identity. The local checkout move to `~/git/zwift-racing` is the final
 session handoff; frozen absolute paths remain untouched historical evidence.
 Combined-content publication and old Coach archival are verified separately below.
+A fresh context-isolated same-family review independently matched all 59 archived
+artifacts, the 39-file original checkpoint, all 18 pre-relocation documents and
+the complete six-commit bundle. It found one omitted reusable comparison step;
+that frozen-evidence reconciliation guidance is restored in the review procedure.
 
 Documentation relocation checks on the tree based on `2bc701c`: 154 changed
 Markdown links/anchors, all 58 maintained Bash example blocks, bootstrap Bash

@@ -31,7 +31,9 @@ locates the completed original pilot and its run-specific calculation evidence.
 6. Produce a new local review. Preserve activity-versus-race timing ambiguity,
    result precision/status, and observation-versus-capacity/tactical distinctions.
    Missing Sauce, bike telemetry or a plan narrows claims; it does not block a
-   useful FIT/results review. Recheck input hashes after processing.
+   useful FIT/results review. Where prior evidence overlaps, compare deterministic
+   results with the frozen evidence and explain scope/policy differences rather
+   than forcing equality. Recheck input hashes after processing.
 7. Propose an exact new library destination and finalized artifact list before
    publication. Do not overwrite prior evidence or edit a shared session index
    implicitly. Verify destination hashes and retain original local evidence.
