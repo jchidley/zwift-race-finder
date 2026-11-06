@@ -59,9 +59,10 @@ unchanged. Repository consolidation is not publication of private reviews or
 approval to change live acquisition. Future publications must retain exact
 artifact/destination approval and separate verification receipts.
 
-GitHub rename, publication and Coach archival are approved; their observed result
-belongs in STATUS.md. Coach retirement means superseded/read-only archival, not
-deletion. The canonical local checkout move requires a new Pi session handoff.
+GitHub rename, publication and Coach archival are complete; observed checkpoints
+and readbacks are in STATUS.md. Coach retirement means superseded/read-only
+archival, not deletion. The canonical local checkout move requires a new Pi
+session handoff. No compatibility symlink or frozen-evidence rewrite is introduced.
 Cross-project maintained references should be updated from their owning sessions,
 not by rewriting historical evidence or startup files across unrelated projects.
 

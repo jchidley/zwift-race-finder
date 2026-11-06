@@ -70,7 +70,12 @@ GitHub rename is verified: the public repository is now
 Current README, tutorial, Cargo homepage/repository metadata and bootstrap hints
 use the new identity. The local checkout move to `~/git/zwift-racing` is the final
 session handoff; frozen absolute paths remain untouched historical evidence.
-Combined-content publication and old Coach archival are verified separately below.
+Combined content was pushed to public `main` at `468de0e`; GitHub API readback
+matched the local commit, preserving both original history tips. Coach retirement
+commit `3aca613` marks its root entrypoints superseded; that commit was pushed
+and GitHub API readback matched. The old Coach repository is verified **archived**,
+still private, with description/homepage pointing to Zwift Racing. It is retained
+read-only, not deleted. No force-push or history rewriting was used.
 A fresh context-isolated same-family review independently matched all 59 archived
 artifacts, the 39-file original checkpoint, all 18 pre-relocation documents and
 the complete six-commit bundle. It found one omitted reusable comparison step;
