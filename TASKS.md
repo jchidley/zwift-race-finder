@@ -23,10 +23,21 @@ The owner will select the event in race-finder. Follow the [race-planning/review
 - [ ] Receive an event link or supplied route/format snapshot and rider objective; confirm relevant rules, timing/lead-in and finish semantics.
 - [ ] Prepare and preserve a dated private plan: likely selections and durations, conditional actions, recovery opportunities, fallback, evidence bases and unknowns. Use the supplied GoldenCheetah summary as qualified prior work, not a newly verified or calibrated capacity profile.
 - [ ] If stronger claims need it, obtain an explicitly supplied durable private evidence location and verify only the relevant prior-work evidence. Do not rescan the profile automatically; keep predictive claims limited if evidence is unavailable.
-- [ ] After the race, inspect the explicitly approved completed recording and compare it with the preserved plan; separate measured effort, observed tactics, adherence and uncertain explanations. Optional video or immediate notes may help, but are not prerequisites.
+- [ ] Prepare the [four-source recording plan](docs/explanation/BRIDGE_AND_MULTI_RIDER_DESIGN.md#race-recording-integration): identify existing bike/Sauce recorder outputs and private destinations, approved preflight, open-ended explicit start/stop and post-race timing alignment; arrange explicit Zwift FIT and ZwiftPower inputs. Confirm present Sauce readiness/entitlement, not merely historical success. Do not build new acquisition here.
+- [x] Approve and install the open-ended Sauce launcher/recorder, preserve verified backups, and pass installed non-login preflight and 132 offline Windows recorder tests; see [installation evidence and limits](STATUS.md#open-ended-sauce-candidate--2026-11-05).
+- [ ] Separately qualify actual terminal start/stop and live race coverage; installed synthetic checks do not establish those results.
+- [ ] On approved supplied inputs, verify rider/event identity, inventory fields and per-source coverage, then align bike telemetry, Zwift FIT and Sauce clocks with held-out checks. Retain raw timestamps, offset/drift uncertainty and gaps; do not reuse the old fixed offset blindly.
+- [ ] After the race, compare the preserved plan with supported effort/tactical evidence and the supplied dated ZwiftPower result/status. Reconcile boundaries and disagreements; separate measurements, adherence and uncertain explanations. Missing sources narrow claims but do not block FIT-only review; optional video or immediate notes may help.
 - [ ] Retain the private plan/review and minimal provenance outside Git; record only a safe, scoped acceptance summary. One result does not prove a strategy caused improvement.
 
 Tool development, a maximal test and model calibration are not prerequisites for the first conditional plan. Numerical model work needs a separate justified task; do not change configured CP/FTP/W′ merely because a planning workflow uses them.
+
+## Shared-library consumption
+
+- [x] Document and test the explicit-path, agent-assisted FIT/ZwiftPower procedure against the approved November 5 library session, with a new local review and private provenance; see [pilot scope and limits](STATUS.md#shared-library-pilot--2026-11-05).
+- [ ] If publication is wanted, confirm the exact new Coach library destination and finalized artifact list first. Do not overwrite the frozen review or update the shared manifest implicitly.
+
+This pilot does not implement a maintained review command, select the application runtime or close the synthetic-validation gates below.
 
 ## Supporting ride-review implementation — deferred until justified
 
@@ -36,7 +47,7 @@ Initial approved-path intake, read-only field/time inspection and exploratory re
 
 - [ ] Select the smallest suitable parser/runtime and scope the local review command from intake findings; no placeholder application or simulator. Python/uv with `fitdecode` remains a candidate, not an adopted decision.
 - [ ] Implement a reproducible read-only review command with data-quality limits, declared-policy effort summaries, inspectable time blocks/windows and provisional phase labels. This is proposed implementation work, not authorized by documentation reconciliation.
-- [ ] Retain a durable private review and minimal private input/check provenance outside Git, with a safe acceptance summary here. The exploratory conversation is not sufficient durable evidence.
+- [ ] Retain full first-review acceptance evidence outside Git, with a safe summary here. The shared-library pilot now has a durable bounded review and input/check provenance, but maintained implementation, synthetic regressions and full acceptance remain incomplete; the earlier exploratory conversation alone is still insufficient.
 - [ ] Reproduce representative metrics and intervals independently against the maintained implementation. Prior exploratory agreement between decoders does not establish this gate.
 - [ ] Add synthetic positive/negative regressions for missing/zero, irregular sampling, gaps, pauses, duplicate/out-of-order timestamps, conflicting populated fields and exact timing boundaries (E1).
 

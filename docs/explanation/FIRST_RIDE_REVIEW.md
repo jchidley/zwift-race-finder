@@ -19,6 +19,8 @@ Do not search personal directories for an activity, download account data, or as
 - Inspect power, cadence, heart rate, speed, altitude and position independently. Missing power means no power-based analysis; HR alone does not recover watts.
 - Keep raw bytes unchanged. Keep input paths, file hashes, private metrics, coordinates and the generated report outside Git. Use synthetic fixtures for published tests.
 
+For a race with multiple approved sources, use the [race recording integration plan](BRIDGE_AND_MULTI_RIDER_DESIGN.md#race-recording-integration) for bike telemetry, Zwift FIT, Sauce and ZwiftPower identity, timing, coverage and disagreement handling. Do not require those extra sources for a useful FIT-only review.
+
 ## Report
 
 1. **Data quality:** present/missing fields, coverage, exclusions, gaps and the time basis used.

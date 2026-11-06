@@ -3,11 +3,15 @@
 ## Purpose and design
 
 - [First ride review](explanation/FIRST_RIDE_REVIEW.md): private input selection, field inspection, report and acceptance criteria. Start here.
-- [Coach integration and multi-rider experiments](explanation/BRIDGE_AND_MULTI_RIDER_DESIGN.md): coach-owned strategy/telemetry work and the Fitness Bridge boundary.
+- [Coach integration and multi-rider experiments](explanation/BRIDGE_AND_MULTI_RIDER_DESIGN.md): four-source race recording (bike telemetry, Zwift FIT, Sauce and ZwiftPower), coach-owned strategy/telemetry work and the Fitness Bridge boundary.
 - [Fitness Bridge](https://github.com/jchidley/fitness-bridge): authoritative sensor/processing/BLE/ANT+ design and implementation backlog.
 
 - [Pacing and race experiments](explanation/PACING_AND_RACE_EXPERIMENTS.md): practical first milestone, experimental roles, limitations, and evidence needs.
 - [Project boundaries and migration](reference/PROJECT_BOUNDARIES.md): which project owns which work and where these notes came from.
+
+## Review procedures
+
+- [Shared-library review](how-to/SHARED_LIBRARY_REVIEW.md): Coach-specific ownership, explicit shared inputs, local working outputs and the tested private November 5 procedure; not a maintained review executable.
 
 ## Setup evidence
 
@@ -43,7 +47,7 @@ qualification and bridge implementation belong to Fitness Bridge.
 - [QZ SkiErg audit and WYK82Q test plan](reference/QZ_SKIERG_AUDIT_AND_TEST_PLAN.md): live Debian host checks, source-level FTMS/RSC findings, scaling and freshness caveats, and gated Windows-client test procedure.
 
 - [Bridge/bot comparison — 2026-10-30](reference/BRIDGE_COMPARISON_2026-10-30.md): bike/run/row matrix; local Gymnasticon, V2, QZ, FortiusANT and Zwack source; pinned upstream SmartSpin2k; bot fidelity, exact-input/freshness and physical-control boundaries.
-- [Sauce actual download review — 2026-10-30](reference/SAUCE_DOWNLOAD_REVIEW_2026-10-30.md): headless source, stable archive inspection, disabled offline-server switch, payment/licensing and runtime qualification limits.
+- [Sauce actual download review — 2026-10-30](reference/SAUCE_DOWNLOAD_REVIEW_2026-10-30.md): historical headless source/archive inspection, offline and payment/licensing limits; see [later live-capture evidence](../STATUS.md#recovered-sauce-evidence--2026-11-04).
 
 - [Companion applications and services — 2026-10-30](reference/COMPANION_TOOLS_2026-10-30.md): web-researched analysis, training, pacing, Sauce API, Gymnasticon/QZ bridges and simulator shortlist; includes encryption corrections.
 

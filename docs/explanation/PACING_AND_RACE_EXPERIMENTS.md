@@ -35,7 +35,8 @@ Keep a dated pre-race plan outside Git and preserve its original expectations be
 - objective and supplied event/route snapshot, including timing/lead-in and finish semantics;
 - likely selection points and approximate effort durations;
 - conditional actions, expected recovery opportunities and a fallback if the intended group is unsustainable;
-- the basis for consequential recommendations, assumptions and unresolved questions.
+- the basis for consequential recommendations, assumptions and unresolved questions;
+- the [recording integration plan](BRIDGE_AND_MULTI_RIDER_DESIGN.md#race-recording-integration): bike telemetry, Zwift FIT, Sauce and ZwiftPower roles, readiness, coverage and alignment, with absent sources explicitly noted.
 
 After the race, compare the original plan with the explicitly approved recording and any optional video or immediate rider notes. Separate what the rider produced, what happened tactically where evidence exists, whether the planned action was followed, plausible explanations and what remains unknown. Separate the race finish from cooldown and any extra efforts.
 

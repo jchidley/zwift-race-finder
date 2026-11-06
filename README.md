@@ -8,6 +8,8 @@ This project owns ride reviews, pacing plans and controlled strategy experiments
 
 There is no installation or application command yet. From an existing checkout at `~/git/zwift-race-coach`, start a project session and provide an explicit path to one completed activity **outside the checkout**, permission to read it, and your question about the ride. Do not upload private activity data to Git. No runtime, account login, live bridge or upcoming event is required for this first step.
 
+For approved inputs in the central FitnessData library, use the [explicit-path shared-library procedure](docs/how-to/SHARED_LIBRARY_REVIEW.md). It keeps working outputs local and requires confirmation before publishing a completed review; no application install or manifest parser is needed.
+
 The first observable result is a read-only inventory of available fields and time/data-quality limitations. That inventory determines which review metrics are supported and which parser/runtime, if any, is needed. See the [first ride-review contract](docs/explanation/FIRST_RIDE_REVIEW.md).
 
 ## First useful workflow
