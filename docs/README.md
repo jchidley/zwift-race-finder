@@ -19,6 +19,7 @@ race duration and filters events to fit the rider's available time.
 - [Active algorithms](reference/ALGORITHMS.md)
 - [Versioned baseline and recency experiment](project-history/RECENCY_BASELINE_2026-11-03.md)
 - [Observation/prediction separation](explanation/HISTORY_DATA_MODEL.md)
+- [Shared inputs, local import previews and saved evaluations](howto/SHARED_LIBRARY_WORKFLOWS.md)
 
 ## Change and validate the implementation
 

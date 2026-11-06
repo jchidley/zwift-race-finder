@@ -146,6 +146,9 @@ node tools/analysis/evaluate_predictions.mjs /absolute/private/predictions.jsonl
 node --test tests/prediction_evaluation_tests.mjs
 ```
 
+For copied FitnessData predictions, see [local reproduction and evidence ownership](SHARED_LIBRARY_WORKFLOWS.md).
+Keep processing and fresh reports local; publication is a separately approved action.
+
 Each JSONL row contains a `target` with a unique source `result_id` and positive
 `actual_seconds`, plus consistently named model objects (such as `B0`, `R1`,
 `H1`, `RW1`). Each model supplies positive `raw_minutes` or an explicit

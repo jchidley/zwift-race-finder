@@ -66,6 +66,10 @@ Unlike the older client-route import preview, this history preview clones the
 target into memory: **it does not create, migrate or write the target**.
 The apply command also preflights the complete batch in memory first.
 
+For copied FitnessData inputs, use the [shared-library local workflow](SHARED_LIBRARY_WORKFLOWS.md)
+to select a disposable populated backup explicitly and retain separate evidence.
+It does not apply an import or publish results.
+
 ## What is preserved
 
 - Original event dates/UTC timestamps and measured finish seconds.
