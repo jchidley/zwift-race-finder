@@ -136,9 +136,21 @@ agent availability. No credentials, scheduler, retention or recovery settings ch
 Fitness Bridge has no maintained production recorder/output setting; its docs now
 state the local-library boundary without inventing one. Only the two new doc hunks
 were committed as `084be5b` and pushed; unrelated pre-existing changes were left
-unstaged. Life Fitness's supported host recorder is being qualified with native
-home defaults and existing explicit-output/control/storage semantics. Deployment
-and actual source/collector host selection remain separate from source validation.
+unstaged. Life Fitness's direct host and supported `bikectl` launcher defaults
+are published as `c47b60e`, preserving explicit outputs and legacy/binary lifecycle
+semantics. Current-source validation passed 334 tests (2 hardware tests ignored),
+13 focused launcher tests, 5 focused host tests and strict Clippy. A test-only
+platform-path improvement was followed by another 5-test host/Clippy pass.
+Scoped formatting passed; package formatting still reports unchanged
+`src/reporting_client.rs` debt. A fresh context-isolated same-family review found
+no blocking defects; native Windows runtime was not exercised.
+
+The newer upstream evidence-only commit was incorporated before push, with all
+validated runtime/test source bytes preserved. Canonical Life Fitness checkout
+fast-forward is blocked by pre-existing untracked files now tracked upstream;
+its original files were preserved and the clean integration worktree retained.
+No installed launcher or ongoing session was changed. Checkout reconciliation,
+between-session client deployment and source/collector selection remain open.
 
 All 250 exact migration originals still match inventory hashes. Five supplied
 pilot evidence files retain old path references, so no originals or pilot sources

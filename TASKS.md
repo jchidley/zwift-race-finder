@@ -112,10 +112,14 @@ This pilot does not implement a maintained review command, select the applicatio
   and machine/session ownership before transferring private recordings or enabling
   scheduling. The library's `SYNCHRONIZATION.md` supplies manual rsync options;
   no host selection or sync job is implied.
-- [ ] In the active Life Fitness controller repository, establish the equivalent
-  local host-recording and optional synchronization procedure under
-  `projects/life-fitness/`. Preserve intentional Git recordings and the read-only
-  `life_cycle` source evidence.
+- [x] Publish Life Fitness direct-host and `bikectl` native-home defaults with
+  existing legacy/binary lifecycle semantics (`c47b60e`, 2026-11-07), including
+  isolated-path tests and local recording/sync guidance.
+- [ ] Reconcile the canonical Life Fitness checkout's pre-existing untracked files
+  with newer upstream before between-session client rebuild/reinstallation. The
+  fast-forward refused safely; originals and the clean tested worktree are retained.
+  Do not delete/move evidence or interrupt an ongoing ride implicitly. Preserve
+  intentional Git recordings and read-only `life_cycle` source evidence.
 - [x] Audit the exact migration originals and supplied pilot dependencies
   (2026-11-07): all 250 originals still match inventory hashes; five pilot evidence
   files retain historical path references. Preserve these sources and frozen paths.
