@@ -9,7 +9,8 @@ There is no maintained intake/report executable, selected coaching runtime or
 coaching regression suite. Do not promote a frozen script into one.
 
 The FitnessData root README owns the central directory convention. Supply its
-machine-local path explicitly; no cross-project `FITNESS_DATA_ROOT` setting is
+machine-local path explicitly: `$HOME/FitnessData` (`/home/jack/FitnessData`) on
+this machine, not OneDrive. No cross-project `FITNESS_DATA_ROOT` setting is
 implemented. The [evidence library index](../reference/EVIDENCE_LIBRARY.md)
 locates the completed original pilot and its run-specific calculation evidence.
 
@@ -40,12 +41,12 @@ locates the completed original pilot and its run-specific calculation evidence.
 
 ## Explicit input selection
 
-From the combined checkout in Bash, replace these placeholder paths with the
-approved selections. This creates only a fresh local working directory; it is
-not a review or a decoder invocation:
+From the combined checkout in Bash, use the current local library and replace
+the activity/result placeholders with the approved selections. This creates only
+a fresh local working directory; it is not a review or a decoder invocation:
 
 ```bash
-library=/path/to/FitnessData
+library="$HOME/FitnessData"
 fit="$library/<approved-activity-relative-path>"
 results="$library/<approved-results-relative-path>"
 work="$HOME/.local/share/zwift-race-finder/reviews"
@@ -67,6 +68,6 @@ this procedure. Existing Coach-named evidence directories remain valid; do not
 rename frozen paths to match the combined repository name.
 
 Completed reviews belong in the library; working state remains local. Local
-readability and checksum agreement do not establish cloud sync, independent
-backup, race boundaries, calibration or physiological validity. Reusable tooling
+readability and checksum agreement do not establish independent backup/restore
+coverage, race boundaries, calibration or physiological validity. Reusable tooling
 and synthetic numerical regressions remain in [TASKS.md](../../TASKS.md#supporting-ride-review-implementation--deferred-until-justified).

@@ -89,9 +89,38 @@ Tool development, a maximal test and model calibration are not prerequisites for
 ### Shared-library consumption
 
 - [x] Document and test the explicit-path, agent-assisted FIT/ZwiftPower procedure against the approved November 5 library session, with a new local review and private provenance; see [pilot scope and limits](docs/reference/EVIDENCE_LIBRARY.md#coach-status-pre-consolidation).
-- [ ] If publication is wanted, confirm the exact new Coach library destination and finalized artifact list first. Do not overwrite the frozen review or update the shared manifest implicitly.
+- [x] Publish the separate approved Coach pilot allowlist without overwriting the
+  frozen review or changing the shared session manifest; see the
+  [local-library follow-through](#local-evidence-library-follow-through).
 
 This pilot does not implement a maintained review command, select the application runtime or close the synthetic-validation gates below.
+
+### Local evidence-library follow-through
+
+- [x] Verify current home-backup inclusion and recovery (2026-11-07): snapshot
+  `3a0451e2` restored all 344 current FitnessData files into fresh ext4 staging,
+  with matching SHA-256 and exact file set. This qualifies local recovery only,
+  not an independent external replica. No OneDrive sync/pinning work is required.
+- [x] Publish the approved Finder (19-file) and Coach (8-file) pilot allowlists
+  under the current local library root, verify source/destination hashes and retain
+  separate receipts (2026-11-07). Root library navigation links the new runs;
+  frozen session indexes and original proposals remain unchanged.
+- [x] Inspect Fitness Bridge recording support: its production bridge has no
+  maintained recorder/output-path option to configure (2026-11-07). Do not build
+  one implicitly or treat synthetic fixtures/private trial evidence as a recorder.
+- [ ] Select actual synchronization source/collector hosts, native library paths
+  and machine/session ownership before transferring private recordings or enabling
+  scheduling. The library's `SYNCHRONIZATION.md` supplies manual rsync options;
+  no host selection or sync job is implied.
+- [ ] In the active Life Fitness controller repository, establish the equivalent
+  local host-recording and optional synchronization procedure under
+  `projects/life-fitness/`. Preserve intentional Git recordings and the read-only
+  `life_cycle` source evidence.
+- [x] Audit the exact migration originals and supplied pilot dependencies
+  (2026-11-07): all 250 originals still match inventory hashes; five pilot evidence
+  files retain historical path references. Preserve these sources and frozen paths.
+  This bounded audit does not prove every consumer portable; no deletion or source
+  retirement is approved, and the obsolete Coach checkout stays archived.
 
 ### Supporting ride-review implementation — deferred until justified
 

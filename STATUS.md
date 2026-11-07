@@ -13,8 +13,9 @@ The shared-library consumer pilots are complete for their tested workflows;
 new Finder/Coach publication proposals remain separate and unexecuted here.
 Detailed Coach/run evidence is now retained in the FitnessData archive described
 by the [evidence library index](docs/reference/EVIDENCE_LIBRARY.md). Existing
-recording/export paths and frozen evidence remain unchanged. Cloud sync/offline
-retention has not been rechecked. See the [migration record](docs/project-history/CONSOLIDATION.md).
+recording/export paths and frozen evidence remain unchanged. The current library
+is `$HOME/FitnessData`, replacing the OneDrive plan; independent backup/restore
+coverage is separate. See the [migration record](docs/project-history/CONSOLIDATION.md).
 
 ### Integration validation
 
@@ -86,6 +87,65 @@ Markdown links/anchors, all 58 maintained Bash example blocks, bootstrap Bash
 syntax, five evaluator tests and `git diff --check` passed. Rust source/tests,
 Cargo.lock, CI and archive are unchanged; only Cargo URL metadata changed.
 These checks do not replace the previously qualified suite/build results above.
+
+## Local evidence-library correction — 2026-11-06
+
+The owner replaced the OneDrive plan with `$HOME/FitnessData`. Current README,
+consumer procedures and library guidance now use that root; frozen receipts,
+source paths, project directory names and historical transcripts remain intact.
+Validation against repository `9dfa315` plus these documentation edits matched
+all 250 migration entries (both inventory and receipt), 59 consolidation artifacts,
+12 session-index hashes and 21 library navigation links. Saved evaluation from
+the new root matched the frozen report byte-for-byte; isolated import preview
+reported 1 new, 0 enriched, 196 unchanged and preserved its disposable DB hash.
+The former OneDrive root was absent, so no full source-tree comparison was possible.
+Private verification and consumer outputs: `fitness-data-path-review-20261106-aRSCpc`
+under `~/.local/share/`.
+
+Both unpublished proposals still have matching source hashes (Finder: 19 files;
+Coach: 8); their destinations do not yet exist in the local library. No publication,
+session-index edit, source retirement or recorder relocation was performed.
+The installed home backup selects `/home/jack` with `--one-file-system`; the
+library shares that filesystem. Snapshot inclusion and restore are not verified
+by this configuration inspection. The owner subsequently clarified the recording
+model: each system writes into its own local home-directory FitnessData library,
+with optional rsync synchronization, not live cross-host filesystem access. The
+library's `SYNCHRONIZATION.md` records options; Bridge and Life Fitness still need
+recorder-specific output/completion configuration. No recorder or sync job was
+changed. The archived Coach checkout is not an active owner.
+See the [remaining library work](TASKS.md#local-evidence-library-follow-through).
+
+## FitnessData follow-through — 2026-11-07
+
+The approved pilot allowlists are now published locally: Finder has 19 artifacts,
+Coach has 8, each with a new `publication-receipt.json` beneath its original
+proposed relative destination. Source/destination hashes were verified before and
+after copying. Root library navigation links the new runs; frozen session indexes,
+original proposals and historical evidence remain unchanged.
+
+A scoped restore from home snapshot `d9689e35` (2026-11-06 08:07 UTC) into fresh
+ext4 staging matched all 250 migration files and 59 consolidation artifacts.
+The scheduled-backup inspection found stale snapshots and runtime GPG
+`No pinentry` failures; the interactive configured provider worked. A normal
+existing home backup completed as `3a0451e2` (2026-11-07 11:35 UTC), and freshness
+status passed. Restoring the entire current library into new ext4 staging matched
+all 344 files and the exact file set, including new pilot publications and sync
+guidance. This qualifies local recovery, not an external replica or future GPG
+agent availability. No credentials, scheduler, retention or recovery settings changed.
+
+Fitness Bridge has no maintained production recorder/output setting; its docs now
+state the local-library boundary without inventing one. Only the two new doc hunks
+were committed as `084be5b` and pushed; unrelated pre-existing changes were left
+unstaged. Life Fitness's supported host recorder is being qualified with native
+home defaults and existing explicit-output/control/storage semantics. Deployment
+and actual source/collector host selection remain separate from source validation.
+
+All 250 exact migration originals still match inventory hashes. Five supplied
+pilot evidence files retain old path references, so no originals or pilot sources
+were retired. The private follow-through evidence is
+`~/.local/share/fitness-data-followthrough-20261107-DFrbpxSb/`, including scoped
+recovery, original-dependency audit and current-backup logs. No synchronization
+job, account access, live acquisition or device operation was performed.
 
 ## Current focus
 

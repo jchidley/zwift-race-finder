@@ -68,7 +68,10 @@ For an upcoming race, preserve a dated private plan and predictions before racin
 then compare the result and recording with those original expectations under the
 [pacing and before/after standards](docs/explanation/PACING_AND_RACE_EXPERIMENTS.md).
 Use the [shared-library review procedure](docs/howto/SHARED_LIBRARY_REVIEW.md)
-for approved FitnessData inputs. Keep processing local and publication separate.
+for approved inputs from `$HOME/FitnessData` (`/home/jack/FitnessData` on this
+machine). Each recorder may write into its own local library; the library's
+`SYNCHRONIZATION.md` describes optional rsync collection. Keep temporary processing
+outside the data library and completed-evidence publication separate.
 
 ## Common commands
 

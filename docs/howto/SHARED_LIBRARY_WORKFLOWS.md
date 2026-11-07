@@ -3,7 +3,8 @@
 Use Bash from the combined checkout. Rust builds use stable Cargo and the saved
 prediction evaluator uses Node.js. The FitnessData root README owns directory and
 publication conventions. Select explicit paths on this machine; no application
-setting named `FITNESS_DATA_ROOT` is implemented.
+setting named `FITNESS_DATA_ROOT` is implemented. The current library on this
+machine is `$HOME/FitnessData` (`/home/jack/FitnessData`), not OneDrive.
 
 The [evidence library index](../reference/EVIDENCE_LIBRARY.md) locates earlier
 worked examples, exact private run identities, dependency/path inventories and
@@ -17,11 +18,16 @@ validation receipts. They are evidence, not maintained command entrypoints.
 | Saved-prediction evaluation | `node tools/analysis/evaluate_predictions.mjs INPUT.jsonl OUTPUT.json` | Reads predictions and exclusively creates a mode-0600 report; refuses overwrite. No API, model execution or DB access. |
 | Prediction production | No maintained main-CLI JSONL exporter | Frozen probes are run-specific evidence, not a supported public exporter. Do not invent an export flag or redirect a live search as JSONL. |
 
+Each recording host may write live captures into its own local FitnessData library;
+optional synchronization is separate from acquisition. The library root's
+`SYNCHRONIZATION.md` documents rsync options, session completion and ownership.
+These Finder procedures consume completed inputs, not active or interrupted copies.
+
 Keep active databases, disposable copies, builds, caches and intermediates on local
-Linux/WSL ext4. Use completed consistent database backups, never move a live SQLite
-file into OneDrive. Read finalized library inputs directly or copy selected inputs
-locally and verify hashes. Keep original predictions, joined outcomes and new
-reports separate. Frozen scripts, manifests and provenance retain original paths.
+Linux/WSL ext4, outside the data library. Use completed consistent database backups;
+never move a live SQLite file into the evidence library. Read finalized library
+inputs directly or copy selected inputs locally and verify hashes. Keep original
+predictions, joined outcomes and new reports separate. Frozen scripts, manifests and provenance retain original paths.
 
 ## Preview against a disposable populated database
 
@@ -32,7 +38,7 @@ below; the output directory must not be an active application-state directory.
 
 ```bash
 umask 077
-library=/path/to/FitnessData
+library="$HOME/FitnessData"
 history="$library/<approved-history-relative-path>"
 backup="$library/<consistent-populated-backup-relative-path>"
 mkdir -p "$HOME/.local/share/zwift-race-finder/investigations"
@@ -86,8 +92,9 @@ unrelated patches and duplicated shared originals. Verify copied bytes and retai
 local sources; do not overwrite frozen evidence or update session indexes implicitly.
 
 Historical probes may pin checkout/target paths, write beside their source or open
-a mutable database. Do not build or run them inside OneDrive. For separately
-approved reuse, inspect effects first, copy necessary source to local ext4 and use
-explicit disposable inputs and fresh outputs. Keep frozen provenance unchanged.
-Local readability does not establish cloud sync, persistent offline retention,
-independent backup or portability of every historical artifact.
+a mutable database. Do not build or run them inside the finalized library. For
+separately approved reuse, inspect effects first, copy necessary source to local
+ext4 and use explicit disposable inputs and fresh outputs. Keep frozen provenance unchanged.
+The library is local; OneDrive synchronization and pinning are no longer part of
+this workflow. Local readability does not establish independent backup, restore
+coverage or portability of every historical artifact.

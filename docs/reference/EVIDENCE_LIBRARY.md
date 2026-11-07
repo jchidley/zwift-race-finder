@@ -8,7 +8,8 @@ is a current-document ownership change, not confidentiality-driven history rewri
 
 ## Locate the retained evidence
 
-Read the FitnessData root README for the library convention and machine-local root.
+The current machine-local root is `$HOME/FitnessData` (`/home/jack/FitnessData`),
+not OneDrive. Read its root README for the library convention.
 The completed archive is under this path relative to that root:
 
 ```text
@@ -22,8 +23,11 @@ projects/zwift-race-coach/project-history/2026-11-06-pre-public-consolidation/
 
 The 59 selected artifacts were copied without overwriting and verified by Windows
 PowerShell 7 and independently through mounted-byte SHA-256 reads on 2026-11-06.
-The receipt is the 60th file. Cloud synchronization, cross-machine availability and
-independent backup remain unverified. Original local Coach files remain intact.
+The receipt is the 60th file. Those checks describe the original OneDrive copy;
+the receipt retains that historical destination. The library now lives under
+`$HOME/FitnessData`; OneDrive synchronization/pinning is no longer required.
+Independent backup/restore coverage remains separately qualified. Original local
+Coach files remain intact.
 No activity exports, live databases, credentials or untracked account state were
 selected. Existing library session indexes and earlier receipts are unchanged.
 
@@ -100,4 +104,5 @@ Local fitness bridge and multi-rider experiments. Details: `working-tree/docs/ex
 The earlier concrete Finder and Coach pilot instructions are retained at
 `working-tree/docs/howto/SHARED_LIBRARY_WORKFLOWS.md` and
 `working-tree/docs/howto/SHARED_LIBRARY_REVIEW.md`. Use the maintained generic
-procedures for new work; do not run old one-off scripts in OneDrive.
+procedures for new work; do not run old one-off scripts in the finalized library.
+Preserve archived absolute paths and hashes as provenance, not current launch paths.
